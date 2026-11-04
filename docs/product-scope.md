@@ -50,7 +50,7 @@ Basis of decisions: a sample of the 20 newest flat sale listings in Gdańsk from
 ## 1. Settled decisions
 
 - **Data:** Tricity (Trójmiasto) (Gdańsk, Gdynia, Sopot), flat sales only, ~120–150 listings. Scenarios A and B run on Gdańsk. Rationale: several cities and many districts give sensible location filters and stable medians ([scraping-plan.md](scraping-plan.md) §2).
-- **Kraków and other cities outside the data:** an explicit answer with a proposal of the same criteria in Gdańsk (UC13).
+- **Kraków and other cities outside the data:** in the chat, an explicit answer with a proposal of the same criteria in Gdańsk (UC13).
 - **Source:** otodom.pl, `__NEXT_DATA__`. Details in [scraping-plan.md](scraping-plan.md), with the scraper robustness simplified relative to §7 of the plan (section 0).
 - **Stack:** C#/.NET (ASP.NET Core) + React + MySQL: a stack allowed in the task requirements and consistent with the team's stack. The 1-pager and README give the reason for the choice in one sentence.
 - **Application under a public URL** (task requirement). Data prepared locally and uploaded to production.
@@ -123,7 +123,7 @@ Basis of decisions: a sample of the 20 newest flat sale listings in Gdańsk from
 5. They open a listing. They see all fields with a provenance label, “no data” instead of empty places, and the form of ownership. If the description mentions parking, they see the Real price with a quote. Below is the “Ask the seller about:” list.
 6. They return with the “back” button to the same page with the same filters.
 
-**Edge cases:** “40,5” with a comma; area `"40.50"` normalized at import; 0 results → UC12; “Kraków” typed into the text field → a hint that Kraków is not in the data (UC13).
+**Edge cases:** “40,5” with a comma; area `"40.50"` normalized at import; 0 results → UC12; “Kraków” typed into the search field is plain text search (0 results with “what blocks”); the explicit out-of-scope answer (UC13) is given by the chat, because keyword parsing of the search field is cut ([design.md](design.md) §6.7).
 
 ## 6. Scenario B: "chcę ładne, tanie mieszkanie, 40 m w Gdańsku" (I want a nice, cheap flat, 40 m in Gdańsk)
 

@@ -26,7 +26,7 @@ Resilience to structure changes (§7) is scoped to a one-off import; the decisio
    - the same flat listed by several agencies — a natural case for deduplication.
 3. **Task domain.** The task text says outright “inspired by otodom.pl” — the data model and UX can be compared 1:1 with the original.
 4. **robots.txt** does not block `/pl/wyniki/` or `/pl/oferta/` (it blocks e.g. `/ajax/`, `/oferta/kontakt/`).
-5. **C# stack:** `HttpClient` + `AngleSharp` (or regex) are enough to extract `<script id="__NEXT_DATA__">` + `System.Text.Json`. No Playwright.
+5. **C# stack:** `HttpClient` + a regex are enough to extract (no HTML parser, [design.md](design.md) §2) `<script id="__NEXT_DATA__">` + `System.Text.Json`. No Playwright.
 
 ### Risks and mitigation
 
@@ -75,7 +75,7 @@ Why ~200, and not 100 or 2000:
 
 ### Raw data
 
-The whole `ad` JSON is kept in the `raw_json` column (MySQL `JSON`). Normalisation is a separate step that can be repeated without re-scraping.
+The whole `ad` JSON, without contact data, is kept in `raw_listings.ad_json` (MySQL `JSON`, local database only, [design.md](design.md) §3.2). Normalisation is a separate step that can be repeated without re-scraping.
 
 ## 5. Pipeline (high level, details at implementation time)
 

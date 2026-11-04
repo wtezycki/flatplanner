@@ -1,0 +1,26 @@
+# Local working notes (not part of the repository)
+.notes/
+
+# Scraped data and dumps: never committed (test fixtures live in tests/)
+data/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# .NET
+**/bin/
+**/obj/
+*.user
+.vs/
+
+# Frontend
+node_modules/
+web/dist/
+src/Flatplanner.Api/wwwroot/
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store

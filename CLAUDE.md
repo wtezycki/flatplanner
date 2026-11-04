@@ -28,7 +28,7 @@ Do not import the docs into context wholesale: `design.md` is large. Read the se
 
 ## How to work
 
-- Work on exactly one item from `design.md` §13 at a time, in order. Use the `implement-item` skill.
+- Work on exactly one item from `design.md` §13 at a time, in order, following the cycle below (the `implement-item` skill runs it).
 - Read only the design sections listed in the item's "What is produced" column, plus §6 common rules when touching the API.
 - An item is done when its "Definition of done" is verified literally by a command, test or recorded manual check. Report how it was verified.
 - Do not start the next item, and do not build anything from: design §14.4 (cut order), §14.5 (deliberately not built), product-scope §8 (out of scope) and §9 (cuts).
@@ -123,6 +123,16 @@ The repository is read by reviewers. Keep it a product, not a diary.
 - No `TODO` without context: either do it or state why not and where it is tracked (design section or the one-pager's "with more time").
 - No references to private or local-only files. Generated `docs/ingest-report.md` is committed; nothing else generated is.
 
-## Skills
+## Workflow per item
 
-`.claude/skills/`: `implement-item` (one §13 item end to end), `overengineering-check`, `architecture-check`, `clean-code`, `code-review`, `pre-submission-check`.
+1. **Plan** (`implement-item`): files, names from the design, tests, how each DoD clause is checked. **Wait for the user's approval**; skip the wait only if the user asked for autonomous work in this session.
+2. **Implement + tests**, then format, build and tests green.
+3. **`clean-code`** (apply) on the changed files.
+4. **`overengineering-check`** on the branch diff; fix every "remove".
+5. **`architecture-check`**, only when the item adds a project, folder, reference, package, middleware or Docker/compose change.
+6. **`code-review`** on the cleaned branch diff; fix blocker and major findings.
+7. **Verify the DoD** clause by clause; manual steps go to the user.
+8. **Commit, push, PR** to `main` (title = squash-commit message, body from the PR template).
+9. **Stop** until the user merges.
+
+Outside the cycle: `overengineering-check` on any plan or design change; `code-review` on any PR on request; `pre-submission-check` only when the user starts it, before handing in the task.

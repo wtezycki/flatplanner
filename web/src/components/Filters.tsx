@@ -341,7 +341,6 @@ function FilterFields({ meta, intent }: FieldsProps) {
         form={form}
         onChange={patchText}
         inputProps={{ type: 'number', min: -1, max: 40 }}
-        hint="parter = 0"
       />
 
       <Radios

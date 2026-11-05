@@ -340,7 +340,7 @@ Inline, height 20 px, padding `0 6px`, `--radius-sm`, `--fs-xs`, `--fw-semibold`
 | motto (top bar, under the wordmark, hidden ≤ 640 px) | „Przeczytamy ogłoszenia za Ciebie.” |
 | search field | `aria-label` „Szukaj w ofertach” |
 | card photo gallery | `aria-label` „Zdjęcia oferty”; buttons „Poprzednie zdjęcie” / „Następne zdjęcie”; counter „{n} / {total}” |
-| filters | form `aria-label` „Filtry”; mobile toggle „Filtry ({n})”; `aria-label` of the range fields „Cena od” / „Cena do”, „Powierzchnia od” / „Powierzchnia do”, „Pokoje od” / „Pokoje do”, „Piętro od” / „Piętro do”; district summary „Dzielnica” + „ ({n})” with n selected districts; floor hint „parter = 0”; with `areaApprox` and no range „Teraz: ok. {areaApprox} m². Wpisany zakres zastąpi przybliżenie.” |
+| filters | form `aria-label` „Filtry”; mobile toggle „Filtry ({n})”; `aria-label` of the range fields „Cena od” / „Cena do”, „Powierzchnia od” / „Powierzchnia do”, „Pokoje od” / „Pokoje do”, „Piętro od” / „Piętro do”; district summary „Dzielnica” + „ ({n})” with n selected districts; with `areaApprox` and no range „Teraz: ok. {areaApprox} m². Wpisany zakres zastąpi przybliżenie.” |
 | pagination | `aria-label` „Paginacja”; „‹ Poprzednia”, „Następna ›”; `aria-label` of the arrows „Poprzednia strona”, „Następna strona” |
 | warnings | visually hidden prefix „Uwaga: ” |
 
@@ -509,6 +509,7 @@ The classic list uses the §11.1 tokens. Until `ask` exists (design §16.2) `/` 
 - **Districts:** a `<details>` titled „Dzielnica” ({n} selected) closed by default; inside, district pills grouped by city (the §5.4 scroll limit of 240 px stays).
 - **No Apply button:** the filters write the URL on every change (design §9). „Wyczyść filtry” is a link at the top of the panel; nothing in the panel is sticky. On mobile the panel stays open until the „Filtry ({n})” toggle is pressed again.
 - **Bigger cards, swipeable photos:** the container is 1280 px and the photo column is 42 % of the card (min 260 px, 4:3), so the photo is roughly twice as large as in §5.6. The photo is a gallery of all `imageUrls` (design §6.1): CSS scroll-snap track (native swipe on touch, trackpad and drag-scroll), a „{n} / {total}” counter, and „‹” / „›” buttons on hover on devices with a pointer (hidden on touch and at the ends). A click on the photo opens the listing. The card is an `<article>`; the title is the link (stretched over the whole card, focus ring on the card) instead of the whole card being one `<a>`, because the gallery buttons cannot live inside a link. The §5.6 title line is two lines instead of one.
+- **No floor hint:** the „parter = 0” note under the floor fields (§5.4) is dropped.
 - **Fields:** filter fields are 44 px (`--field-height`), the search field 52 px.
 - **`--color-border-strong`** is `#8a8279`, not `#b6aea5`: the §11.1 value gives 2.19:1 on white, below the 3:1 §2 requires for field outlines (`#8a8279`: 3.78:1 on white, 3.39:1 on `--color-bg`).
 - **Contrast checked** with the WCAG formula: `--on-teal` on `--teal-900` 6.26:1 and on `--teal-700` 4.91:1; `--teal-900` on `--color-bg` 5.87:1; white on `--teal-700` 5.14:1; `--color-text-secondary` on `--color-bg` 4.64:1.

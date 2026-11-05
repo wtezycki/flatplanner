@@ -1,0 +1,375 @@
+import { useQuery } from '@tanstack/react-query'
+import { useId, useState } from 'react'
+import type { FormEvent, InputHTMLAttributes } from 'react'
+import { useSearchParams } from 'react-router'
+import { metaQuery } from '../api.ts'
+import type { EnumOption, MetaResponse, SearchIntent } from '../api.ts'
+import { formatArea } from '../format.ts'
+import { FILTER_PARAMS, activeFilterCount, clearFilters, intentFromSearchParams } from '../intent.ts'
+
+interface FilterForm {
+  cities: string[]
+  districts: string[]
+  priceMin: string
+  priceMax: string
+  areaMin: string
+  areaMax: string
+  roomsMin: string
+  roomsMax: string
+  floorMin: string
+  floorMax: string
+  market: string
+  advertiserType: string
+  requireLift: boolean
+  requireBalcony: boolean
+}
+
+type RangeField = 'price' | 'area' | 'rooms' | 'floor'
+
+const fieldText = (value: number | undefined) => (value === undefined ? '' : String(value))
+
+function formFromIntent(intent: SearchIntent): FilterForm {
+  return {
+    cities: intent.cities,
+    districts: intent.districts,
+    priceMin: fieldText(intent.priceMin),
+    priceMax: fieldText(intent.priceMax),
+    areaMin: fieldText(intent.areaMin),
+    areaMax: fieldText(intent.areaMax),
+    roomsMin: fieldText(intent.roomsMin),
+    roomsMax: fieldText(intent.roomsMax),
+    floorMin: fieldText(intent.floorMin),
+    floorMax: fieldText(intent.floorMax),
+    market: intent.market ?? '',
+    advertiserType: intent.advertiserType ?? '',
+    requireLift: intent.requireLift,
+    requireBalcony: intent.requireBalcony,
+  }
+}
+
+function numberValue(raw: string, integer: boolean): string | undefined {
+  const value = Number(raw.replace(/\s/g, '').replace(',', '.'))
+  if (!raw.trim() || !Number.isFinite(value) || (integer && !Number.isInteger(value))) {
+    return undefined
+  }
+  return String(value)
+}
+
+function applyFilters(searchParams: URLSearchParams, form: FilterForm): URLSearchParams {
+  const next = new URLSearchParams(searchParams)
+  for (const param of FILTER_PARAMS) {
+    if (param !== 'areaApprox') {
+      next.delete(param)
+    }
+  }
+  next.delete('page')
+
+  for (const city of form.cities) {
+    next.append('cities', city)
+  }
+  for (const district of form.districts) {
+    next.append('districts', district)
+  }
+  const numbers: [string, string, boolean][] = [
+    ['priceMin', form.priceMin, true],
+    ['priceMax', form.priceMax, true],
+    ['areaMin', form.areaMin, false],
+    ['areaMax', form.areaMax, false],
+    ['roomsMin', form.roomsMin, true],
+    ['roomsMax', form.roomsMax, true],
+    ['floorMin', form.floorMin, true],
+    ['floorMax', form.floorMax, true],
+  ]
+  for (const [param, raw, integer] of numbers) {
+    const value = numberValue(raw, integer)
+    if (value !== undefined) {
+      next.set(param, value)
+    }
+  }
+  if (form.market) {
+    next.set('market', form.market)
+  }
+  if (form.advertiserType) {
+    next.set('advertiserType', form.advertiserType)
+  }
+  if (form.requireLift) {
+    next.set('requireLift', 'true')
+  }
+  if (form.requireBalcony) {
+    next.set('requireBalcony', 'true')
+  }
+
+  if (next.has('areaMin') || next.has('areaMax')) {
+    next.delete('areaApprox')
+  }
+  if (form.cities.length === 0) {
+    next.delete('requestedCityOutOfScope')
+  }
+  return next
+}
+
+function toggle(values: string[], value: string): string[] {
+  return values.includes(value) ? values.filter((v) => v !== value) : [...values, value]
+}
+
+interface RangeProps {
+  legend: string
+  label: string
+  field: RangeField
+  form: FilterForm
+  onChange: (patch: Partial<FilterForm>) => void
+  inputProps: InputHTMLAttributes<HTMLInputElement>
+  hint?: string
+}
+
+function Range({ legend, label, field, form, onChange, inputProps, hint }: RangeProps) {
+  const minKey = `${field}Min` as const
+  const maxKey = `${field}Max` as const
+  return (
+    <fieldset className="filters__group">
+      <legend>{legend}</legend>
+      <div className="filters__pair">
+        <input
+          className="field"
+          aria-label={`${label} od`}
+          placeholder="od"
+          value={form[minKey]}
+          onChange={(event) => onChange({ [minKey]: event.target.value })}
+          {...inputProps}
+        />
+        <input
+          className="field"
+          aria-label={`${label} do`}
+          placeholder="do"
+          value={form[maxKey]}
+          onChange={(event) => onChange({ [maxKey]: event.target.value })}
+          {...inputProps}
+        />
+      </div>
+      {hint && <p className="filters__hint">{hint}</p>}
+    </fieldset>
+  )
+}
+
+interface RadiosProps {
+  legend: string
+  name: string
+  value: string
+  options: EnumOption[]
+  onChange: (value: string) => void
+}
+
+function Radios({ legend, name, value, options, onChange }: RadiosProps) {
+  return (
+    <fieldset className="filters__group">
+      <legend>{legend}</legend>
+      {[{ value: '', label: 'dowolny' }, ...options].map((option) => (
+        <label key={option.value} className="filters__choice">
+          <input
+            type="radio"
+            name={name}
+            checked={value === option.value}
+            onChange={() => onChange(option.value)}
+          />
+          {option.label}
+        </label>
+      ))}
+    </fieldset>
+  )
+}
+
+interface FieldsProps {
+  meta: MetaResponse
+  intent: SearchIntent
+  onApply: () => void
+}
+
+function FilterFields({ meta, intent, onApply }: FieldsProps) {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [form, setForm] = useState(() => formFromIntent(intent))
+  const patch = (changes: Partial<FilterForm>) => setForm((current) => ({ ...current, ...changes }))
+
+  const toggleCity = (slug: string) => {
+    const cities = toggle(form.cities, slug)
+    patch({ cities, districts: form.districts.filter((key) => cities.includes(key.split(':')[0])) })
+  }
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    setSearchParams(applyFilters(searchParams, form))
+    onApply()
+  }
+
+  const selectedCities = meta.cities.filter((city) => form.cities.includes(city.slug))
+  const approximateArea = intent.areaMin === undefined && intent.areaMax === undefined ? intent.areaApprox : undefined
+
+  return (
+    <form className="filters__form" aria-label="Filtry" onSubmit={submit}>
+      <fieldset className="filters__group">
+        <legend>Miasto</legend>
+        {meta.cities.map((city) => (
+          <label key={city.slug} className="filters__choice">
+            <input type="checkbox" checked={form.cities.includes(city.slug)} onChange={() => toggleCity(city.slug)} />
+            {city.name} ({city.count})
+          </label>
+        ))}
+      </fieldset>
+
+      <fieldset className="filters__group">
+        <legend>Dzielnica</legend>
+        {selectedCities.length === 0 ? (
+          <p className="filters__hint">Wybierz miasto, aby zobaczyć dzielnice.</p>
+        ) : (
+          <div className="filters__districts">
+            {selectedCities.map((city) => (
+              <div key={city.slug}>
+                <p className="filters__city-title">{city.name}</p>
+                {city.districts.map((district) => (
+                  <label key={district.key} className="filters__choice">
+                    <input
+                      type="checkbox"
+                      checked={form.districts.includes(district.key)}
+                      onChange={() => patch({ districts: toggle(form.districts, district.key) })}
+                    />
+                    {district.name} ({district.count})
+                  </label>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+      </fieldset>
+
+      <Range
+        legend="Cena (zł)"
+        label="Cena"
+        field="price"
+        form={form}
+        onChange={patch}
+        inputProps={{ type: 'text', inputMode: 'numeric' }}
+      />
+      <Range
+        legend="Powierzchnia (m²)"
+        label="Powierzchnia"
+        field="area"
+        form={form}
+        onChange={patch}
+        inputProps={{ type: 'text', inputMode: 'decimal' }}
+        hint={
+          approximateArea === undefined
+            ? undefined
+            : `Teraz: ok. ${formatArea(approximateArea)}. Wpisany zakres zastąpi przybliżenie.`
+        }
+      />
+      <Range
+        legend="Pokoje"
+        label="Pokoje"
+        field="rooms"
+        form={form}
+        onChange={patch}
+        inputProps={{ type: 'number', min: 1, max: 10 }}
+      />
+      <Range
+        legend="Piętro"
+        label="Piętro"
+        field="floor"
+        form={form}
+        onChange={patch}
+        inputProps={{ type: 'number', min: -1, max: 40 }}
+        hint="parter = 0"
+      />
+
+      <Radios
+        legend="Rynek"
+        name="market"
+        value={form.market}
+        options={meta.enums.market}
+        onChange={(market) => patch({ market })}
+      />
+      <Radios
+        legend="Ogłaszający"
+        name="advertiserType"
+        value={form.advertiserType}
+        options={meta.enums.advertiserType}
+        onChange={(advertiserType) => patch({ advertiserType })}
+      />
+
+      <fieldset className="filters__group">
+        <legend>Udogodnienia</legend>
+        <label className="filters__choice">
+          <input
+            type="checkbox"
+            checked={form.requireLift}
+            onChange={(event) => patch({ requireLift: event.target.checked })}
+          />
+          Tylko z windą
+        </label>
+        <label className="filters__choice">
+          <input
+            type="checkbox"
+            checked={form.requireBalcony}
+            onChange={(event) => patch({ requireBalcony: event.target.checked })}
+          />
+          Tylko z balkonem
+        </label>
+        <p className="filters__hint">Oferty bez tej informacji zostaną pominięte.</p>
+      </fieldset>
+
+      <button className="btn btn--primary filters__apply" type="submit">
+        Zastosuj
+      </button>
+      <button
+        className="btn btn--link"
+        type="button"
+        onClick={() => {
+          setSearchParams(clearFilters(searchParams))
+          onApply()
+        }}
+      >
+        Wyczyść filtry
+      </button>
+    </form>
+  )
+}
+
+export default function Filters() {
+  const [searchParams] = useSearchParams()
+  const meta = useQuery(metaQuery)
+  const [expanded, setExpanded] = useState(false)
+  const panelId = useId()
+  const intent = intentFromSearchParams(searchParams)
+  const formKey = FILTER_PARAMS.map((param) => searchParams.getAll(param).join(',')).join('|')
+
+  let content
+  if (meta.data) {
+    content = <FilterFields key={formKey} meta={meta.data} intent={intent} onApply={() => setExpanded(false)} />
+  } else if (meta.isError) {
+    content = (
+      <div className="notice notice--error">
+        <p>Nie udało się wczytać filtrów.</p>
+        <button className="btn btn--secondary" type="button" onClick={() => void meta.refetch()}>
+          Spróbuj ponownie
+        </button>
+      </div>
+    )
+  } else {
+    content = <p className="filters__hint">Ładowanie…</p>
+  }
+
+  return (
+    <aside className="filters">
+      <button
+        className="btn btn--secondary filters__toggle"
+        type="button"
+        aria-expanded={expanded}
+        aria-controls={panelId}
+        onClick={() => setExpanded(!expanded)}
+      >
+        Filtry ({activeFilterCount(intent)})
+      </button>
+      <div id={panelId} className={expanded ? 'filters__panel' : 'filters__panel filters__panel--collapsed'}>
+        {content}
+      </div>
+    </aside>
+  )
+}

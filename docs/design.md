@@ -462,7 +462,7 @@ Displayed **only in details**, under the price: “799 000 zł + parking space 6
 
 Common rules:
 - JSON in camelCase;
-- errors as `ProblemDetails` (`AddProblemDetails()` + `UseExceptionHandler()`); validation errors as `400` with `errors: { field: [message] }`;
+- errors as `ProblemDetails` (`AddProblemDetails()` + `UseExceptionHandler()` + `UseStatusCodePages()`, the last one gives the body-less 400 of a failed parameter binding a ProblemDetails body); validation errors as `400` with `errors: { field: [message] }`;
 - unknown `/api/*` path → `404` ProblemDetails (a separate `app.Map("/api/{**rest}", ...)` before the SPA fallback);
 - all endpoints are in `Flatplanner.Api/Endpoints/*.cs` as Minimal API;
 - **one serialization rule** (follows the Microsoft REST guidelines: do not send fields with a `null` value):
@@ -995,7 +995,7 @@ The user sees above the results: “Simplified query understanding (AI temporari
 
 ## 8. Protection of the public chatbox
 
-Middleware order in `Program.cs`: `UseExceptionHandler` → `UseRateLimiter` → `UseDefaultFiles` → `UseStaticFiles` → endpoints → `MapFallbackToFile("index.html")`.
+Middleware order in `Program.cs`: `UseExceptionHandler` → `UseStatusCodePages` → `UseRateLimiter` → `UseDefaultFiles` → `UseStaticFiles` → endpoints → `MapFallbackToFile("index.html")`.
 
 **Client IP:** behind the Railway proxy `RemoteIpAddress` is the proxy edge address, so the per-IP limiter would put everyone into one bucket. Verified on the deployed skeleton (§13 #2, 2026-11-05), from a home network and from a phone on LTE:
 

@@ -112,3 +112,20 @@ public static class ChatMode
     public const string Llm = "llm";
     public const string Fallback = "fallback";
 }
+
+public static class Preference
+{
+    public const string Cheap = "cheap";
+    public const string GoodCondition = "good_condition";
+
+    public static readonly string[] All = [Cheap, GoodCondition];
+}
+
+public static class OutOfScope
+{
+    public const string Rent = "rent";
+    public const string House = "house";
+    public const string Metro = "metro";
+
+    public static readonly string[] All = [Rent, House, Metro];
+}

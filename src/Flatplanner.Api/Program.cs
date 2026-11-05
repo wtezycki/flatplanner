@@ -1,5 +1,6 @@
 using Flatplanner.Api;
 using Flatplanner.Api.Endpoints;
+using Flatplanner.Api.Listings;
 using Flatplanner.Core.Data;
 using Flatplanner.Core.Options;
 using Microsoft.EntityFrameworkCore;
@@ -22,6 +23,7 @@ builder.Services.AddDbContext<FlatplannerDbContext>((services, db) =>
     db.UseMySql(settings.ConnectionString, DbConstants.ServerVersion, mysql => mysql.EnableRetryOnFailure(5));
 });
 builder.Services.AddScoped<MetaService>();
+builder.Services.AddScoped<ListingsService>();
 
 var app = builder.Build();
 
@@ -32,11 +34,13 @@ if (app.Services.GetRequiredService<IOptions<FlatplannerOptions>>().Value.DbMigr
 }
 
 app.UseExceptionHandler();
+app.UseStatusCodePages();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
 app.MapHealth();
 app.MapMeta();
+app.MapListings();
 app.Map("/api/{**rest}", () => Results.Problem(statusCode: StatusCodes.Status404NotFound));
 app.MapFallbackToFile("index.html");
 

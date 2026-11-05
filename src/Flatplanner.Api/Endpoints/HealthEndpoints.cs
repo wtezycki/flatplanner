@@ -17,15 +17,17 @@ public static class HealthEndpoints
         CancellationToken ct)
     {
         var clientIp = http.Connection.RemoteIpAddress?.ToString();
+        var xForwardedFor = http.Request.Headers["X-Original-For"].FirstOrDefault() ?? http.Request.Headers["X-Forwarded-For"].FirstOrDefault();
+        var xRealIp = http.Request.Headers["X-Real-IP"].FirstOrDefault();
         try
         {
             await db.Database.ExecuteSqlRawAsync("SELECT 1", ct);
-            return Results.Ok(new HealthResponse("ok", "ok", clientIp));
+            return Results.Ok(new HealthResponse("ok", "ok", clientIp, xForwardedFor, xRealIp));
         }
         catch (Exception ex) when (ex is DbException or RetryLimitExceededException)
         {
             logger.LogError(ex, "Database health check failed");
-            return Results.Json(new HealthResponse("error", "error", clientIp), ApiJson.Options, statusCode: StatusCodes.Status503ServiceUnavailable);
+            return Results.Json(new HealthResponse("error", "error", clientIp, xForwardedFor, xRealIp), ApiJson.Options, statusCode: StatusCodes.Status503ServiceUnavailable);
         }
     }
 }

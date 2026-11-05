@@ -719,7 +719,7 @@ The source of the lists for the filters. `MetaService` in Api takes `SearchMeta`
 
 ### 6.6 `GET /api/health`
 
-Returns `{ "status": "ok", "db": "ok", "clientIp": "83.x.x.x" }`. It checks the database via `SELECT 1` and returns `503` on a database error. `clientIp` = `HttpContext.Connection.RemoteIpAddress` after `UseForwardedHeaders`; it is used to verify the proxy after deploy (section 8). The endpoint is also the platform's healthcheck.
+Returns `{ "status": "ok", "db": "ok", "clientIp": "83.x.x.x" }`. It checks the database via `SELECT 1` and returns `503` on a database error. `clientIp` = the `X-Real-IP` request header, `HttpContext.Connection.RemoteIpAddress` when it is absent (section 8). The endpoint is also the platform's healthcheck.
 
 ### 6.7 Keyword search (cut from the MVP)
 
@@ -994,21 +994,16 @@ The user sees above the results: “Simplified query understanding (AI temporari
 
 ## 8. Protection of the public chatbox
 
-Middleware order in `Program.cs`: `UseForwardedHeaders` → `UseExceptionHandler` → `UseRateLimiter` → `UseDefaultFiles` → `UseStaticFiles` → endpoints → `MapFallbackToFile("index.html")`.
+Middleware order in `Program.cs`: `UseExceptionHandler` → `UseRateLimiter` → `UseDefaultFiles` → `UseStaticFiles` → endpoints → `MapFallbackToFile("index.html")`.
 
-**`UseForwardedHeaders`:** behind the Railway proxy `RemoteIpAddress` is the proxy's address. Without this configuration the per-IP limiter throws everyone into one bucket, i.e. one user blocks the chat for everybody.
+**Client IP:** behind the Railway proxy `RemoteIpAddress` is the proxy edge address, so the per-IP limiter would put everyone into one bucket. Verified on the deployed skeleton (§13 #2, 2026-11-05), from a home network and from a phone on LTE:
 
-```csharp
-builder.Services.Configure<ForwardedHeadersOptions>(o =>
-{
-    o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-    o.KnownNetworks.Clear();   // the platform's proxy addresses are not published
-    o.KnownProxies.Clear();
-    o.ForwardLimit = 1;        // take the RIGHTMOST XFF value (appended by the proxy), the left ones can be forged
-});
-```
+| Network | `X-Real-IP` | `X-Forwarded-For` | `RemoteIpAddress` |
+|---|---|---|---|
+| home (`curl -4 ifconfig.me` = `77.236.31.78`) | `77.236.31.78` | `[::ffff:100.64.0.3]:56572` | `152.233.43.34` |
+| phone, LTE | `37.248.214.112` | `[::ffff:100.64.0.4]:54532` | `152.233.43.34` |
 
-**[TO BE VERIFIED]** Railway does not unambiguously document the semantics of `X-Forwarded-For`: help threads speak sometimes of appending the address at the end, sometimes of the first value. Verification at §13 #2: `/api/health` temporarily returns the raw `X-Forwarded-For` and `X-Real-IP` headers; from two networks (e.g. Wi-Fi and a phone) they show which variant carries the client address. Choose one and record it here: **rightmost XFF** (the configuration above, if the edge appends), **leftmost XFF** (if the edge replaces the header: a custom partition key from the first value), or **`X-Real-IP`**. Then remove the raw headers from the response. Plan B: section 15, K5.
+`X-Real-IP` carries the client address. `X-Forwarded-For` holds the internal proxy address (100.64.x.x, with a port) and `RemoteIpAddress` the platform edge, so neither identifies the client. Decision: the partition key and `/api/health.clientIp` are the `X-Real-IP` header, falling back to `RemoteIpAddress`. `UseForwardedHeaders` is not used. A request with a forged `X-Real-IP: 1.2.3.4` still returned the caller's real address, so the edge overwrites the header. Plan B: section 15, K5.
 
 **Rate limiter** (`AddRateLimiter`, built into ASP.NET Core 9):
 
@@ -1017,7 +1012,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(o =>
 | `GlobalLimiter` | `/api/*` only: the partitioner returns `RateLimitPartition.GetNoLimiter` for other paths, so static files and the SPA are not counted | IP | FixedWindow 120 req / 1 min, `QueueLimit = 0` |
 | `"chat"` (`.RequireRateLimiting("chat")` on `/api/search/interpret`) | chat | IP | FixedWindow 5 req / 1 min, `QueueLimit = 0` |
 
-`RejectionStatusCode = 429`. `OnRejected` writes ProblemDetails and the `Retry-After` header from `MetadataName.RetryAfter`. Partition key: `RemoteIpAddress?.ToString() ?? "unknown"`.
+`RejectionStatusCode = 429`. `OnRejected` writes ProblemDetails and the `Retry-After` header from `MetadataName.RetryAfter`. Partition key: the client IP defined above, `"unknown"` when both are absent.
 
 **Length limit:** `message` after trim 1–300 characters (`CHAT_MAX_LENGTH`, section 10). Longer → 400 without calling the model. The frontend has `maxLength=300` on the textarea.
 
@@ -1209,9 +1204,9 @@ Recommendation: **Hobby**, because the Trial may run out during the evaluation.
 5. Check: `GET /api/health` → `db: ok`; `/` shows the SPA (an empty list); `GET /api/listings` → `total: 0`.
 6. Migrations: they are applied at container startup, because it is a single instance and there is no race. If a migration fails, the container does not come up, and the Railway log shows the exception.
 
-**[TO VERIFY]** the MySQL version from the Railway template (`SELECT VERSION();`). Pomelo with `ServerVersion 8.4` works with 8.x; for 9.x see K1 (section 15).
+The MySQL version from the Railway template is 8.4.13 (`SELECT VERSION();`, checked 2026-11-05). Pomelo with `ServerVersion 8.4` works with 8.x; for 9.x see K1 (section 15).
 
-**HTTPS:** terminated by the Railway proxy. The application listens on HTTP on 8080, without `UseHttpsRedirection` (the redirect is done by the platform). `X-Forwarded-Proto` is handled by `UseForwardedHeaders`.
+**HTTPS:** terminated by the Railway proxy. The application listens on HTTP on 8080, without `UseHttpsRedirection` (the redirect is done by the platform).
 
 ### 11.4 Data transfer (§13 #15)
 
@@ -1237,7 +1232,7 @@ docker compose exec -T -e MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql mysqldump -uroo
 
 ### 11.5 Smoke test on production (`$URL` = the public address)
 
-1. `curl -s $URL/api/health`: `db: ok`, `clientIp` = your public IP (compare with `curl -s ifconfig.me`); repeat from another network.
+1. `curl -s $URL/api/health`: `db: ok`, `clientIp` = your public IPv4 (compare with `curl -4 -s ifconfig.me`); repeat from another network; a request with a forged `X-Real-IP` must still show your own address.
    Run the smoke test after the last data import: the chat schema contains the district list, so the first LLM call after an import may be slower (step 3 doubles as a warm-up).
 2. **Scenario A:** `curl -s "$URL/api/listings?cities=gdansk&areaMin=40&areaMax=80" | jq '.total, .items[0].id'` → total > 0. Then `curl -s $URL/api/listings/<id> | jq '.fields.pricePln, .askSeller'`. In the browser: filter → district → sort by price/m² → details → “back” preserves the filters.
 3. **Scenario B:**
@@ -1409,8 +1404,6 @@ Places where earlier documents or data allowed two variants, and the variant ado
 
 ### 14.3 To verify (collected)
 
-- the semantics of `X-Forwarded-For` on Railway (section 8, smoke 11.5);
-- the MySQL version in the Railway template;
 - the error code after OpenAI prepaid credits are exhausted (`credit_balance_exhausted` only from a secondary source) and the availability of `gpt-6.1-terra` on the project account;
 - compatibility of `xunit.runner.visualstudio` 3.1.5 with xunit 2.9.3;
 - whether the otodom CDN accepts hotlinking without `Referer` (`referrerPolicy="no-referrer"`);
@@ -1464,5 +1457,5 @@ Order of cuts when time runs out (the list from [product-scope.md](product-scope
 | K2 | Polish characters: mojibake after import | “GdaÅ„sk” in the UI or in `SELECT`; `SHOW CREATE TABLE` without `utf8mb4` | `CharSet=utf8mb4` in the connection string, `--default-character-set=utf8mb4` in the dump and import, `HasCharSet(..., ApplyToAll)`; re-import |
 | K3 | LLM response: latency and shape | > 20% `fallbackReason=timeout` in the logs; `400` on the first call (the schema breaks the strict rule, e.g. a field outside `required`, or an effort that does not match the model); `schema_mismatch` | effort `none` is already set; on a 400 fix the schema according to the rules from section 5, and a unit test checks that every field is in `required`; `CHAT_TIMEOUT_SECONDS=8` or `LLM_MODEL=gpt-6-luna`; the fallback works independently |
 | K4 | The text anchor rejects correct quotes | share of rejected facts > 30%, mostly `quote_not_found` | rejected rows have the `quote` saved: compare with the description, fix `AnchorText.Normalize` and re-validate the saved quotes (without LLM) with a simple query in `enrich --revalidate`. If still wrong: cut 6 (mini-W2, 14.4) |
-| K5 | Platform proxy: client IP | `/api/health.clientIp` from two networks is identical or private (10.x, 100.64.x) | partition key from the leftmost `X-Forwarded-For` value or from `X-Real-IP`, whichever the raw headers from #2 show to be the client address; otherwise a global limiter (all clients) of 30 req/min on chat. Cost is limited anyway by the hard limit of the OpenAI project |
+| K5 | Platform proxy: client IP | `/api/health.clientIp` from two networks is identical or private (10.x, 100.64.x) | `X-Real-IP` is the partition key (chosen at #2); if the edge stops overwriting a client-sent `X-Real-IP`, a global limiter (all clients) of 30 req/min on chat. Cost is limited anyway by the hard limit of the OpenAI project |
 | K6 | Migrations on production | container in a restart loop, `Migrate()` exception in the Railway logs | `DB_MIGRATE_ON_STARTUP=false`, `dotnet ef database update` locally via the TCP proxy (`ConnectionStrings__Default` set to `MYSQL_PUBLIC_URL`), then back to `true` |

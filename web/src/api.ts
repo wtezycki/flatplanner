@@ -70,7 +70,7 @@ export interface ListingItem {
   citySlug: string
   cityName: string
   districtName?: string
-  imageUrl?: string
+  imageUrls: string[]
   market: string
   createdAtSource: string
   locationApproximate: boolean

@@ -11,6 +11,7 @@ import {
   type ListingDetail,
 } from '../api.ts'
 import Description from '../components/Description.tsx'
+import Icon, { type IconName } from '../components/Icon.tsx'
 import LocationSection from '../components/LocationSection.tsx'
 import PhotoCarousel from '../components/PhotoCarousel.tsx'
 import PhotoLightbox from '../components/PhotoLightbox.tsx'
@@ -28,12 +29,32 @@ const labelOf = (options: EnumOption[] | undefined, value: string | undefined) =
 
 const yesOrUnknown = (value: boolean | undefined) => (value ? 'tak' : undefined)
 
-function Row({ label, value, missing = 'brak danych' }: { label: string; value: ReactNode; missing?: string }) {
+interface RowProps {
+  icon: IconName
+  label: string
+  value: ReactNode
+  missing?: string
+}
+
+function Row({ icon, label, value, missing = 'brak danych' }: RowProps) {
   return (
     <div className="params__row">
-      <dt>{label}</dt>
+      <dt>
+        <Icon name={icon} />
+        {label}
+      </dt>
       <dd>{value ?? <span className="value--missing">{missing}</span>}</dd>
     </div>
+  )
+}
+
+function KeyFact({ icon, label, value }: { icon: IconName; label: string; value: ReactNode }) {
+  return (
+    <li className="key-facts__item">
+      <Icon name={icon} />
+      <span className="key-facts__value">{value ?? <span className="key-facts__missing">brak danych</span>}</span>
+      <span className="key-facts__label">{label}</span>
+    </li>
   )
 }
 
@@ -77,11 +98,13 @@ function Details({ listing }: { listing: ListingDetail }) {
         <div>
           <h1 className="detail__title">{listing.title}</h1>
           <p className="detail__location">
-            {location}
+            <span className="detail__address">
+              <Icon name="pin" />
+              <strong>{location}</strong>
+            </span>
             {listing.locationApproximate && (
               <span className="detail__approximate" title="Ogłaszający nie podał dokładnej lokalizacji.">
-                {' '}
-                · Lokalizacja przybliżona
+                Lokalizacja przybliżona
               </span>
             )}
           </p>
@@ -97,23 +120,31 @@ function Details({ listing }: { listing: ListingDetail }) {
           <p className="detail__stale">Dane z {formatDate(listing.scrapedAt)}. Aktualną ofertę sprawdź na otodom.</p>
         </div>
       </section>
+      <ul className="key-facts" aria-label="Najważniejsze parametry">
+        <KeyFact icon="area" label="Powierzchnia" value={formatArea(listing.areaM2)} />
+        <KeyFact icon="rooms" label="Pokoje" value={listing.rooms} />
+        <KeyFact icon="floor" label="Piętro" value={floor} />
+        <KeyFact icon="year" label="Rok budowy" value={listing.buildYear} />
+        <KeyFact icon="street" label="Ulica" value={listing.street} />
+        <KeyFact icon="city" label="Miasto" value={listing.cityName} />
+      </ul>
       <h2 className="detail__heading">Parametry</h2>
       <dl className="params">
-        <Row label="Powierzchnia" value={formatArea(listing.areaM2)} />
-        <Row label="Pokoje" value={listing.rooms} />
-        <Row label="Piętro" value={floor} />
-        <Row label="Rok budowy" value={listing.buildYear} />
-        <Row label="Rynek" value={labelOf(meta?.enums.market, listing.market)} />
-        <Row label="Stan wykończenia" value={labelOf(meta?.enums.finishCondition, listing.finishCondition)} />
-        <Row label="Forma własności" value={labelOf(meta?.enums.ownership, listing.ownership)} />
-        <Row label="Czynsz (zł/mies.)" value={rent} />
-        <Row label="Winda" value={yesOrUnknown(listing.hasLift)} missing="brak informacji" />
-        <Row label="Balkon" value={yesOrUnknown(listing.hasBalcony)} missing="brak informacji" />
-        <Row label="Garaż / miejsce postojowe" value={yesOrUnknown(listing.hasGarage)} missing="brak informacji" />
-        <Row label="Piwnica" value={yesOrUnknown(listing.hasBasement)} missing="brak informacji" />
-        <Row label="Ogłaszający" value={labelOf(meta?.enums.advertiserType, listing.advertiserType)} />
-        <Row label="Dzielnica" value={listing.districtName} />
-        <Row label="Ulica" value={listing.street} />
+        <Row icon="area" label="Powierzchnia" value={formatArea(listing.areaM2)} />
+        <Row icon="rooms" label="Pokoje" value={listing.rooms} />
+        <Row icon="floor" label="Piętro" value={floor} />
+        <Row icon="year" label="Rok budowy" value={listing.buildYear} />
+        <Row icon="market" label="Rynek" value={labelOf(meta?.enums.market, listing.market)} />
+        <Row icon="finish" label="Stan wykończenia" value={labelOf(meta?.enums.finishCondition, listing.finishCondition)} />
+        <Row icon="ownership" label="Forma własności" value={labelOf(meta?.enums.ownership, listing.ownership)} />
+        <Row icon="rent" label="Czynsz (zł/mies.)" value={rent} />
+        <Row icon="lift" label="Winda" value={yesOrUnknown(listing.hasLift)} missing="brak informacji" />
+        <Row icon="balcony" label="Balkon" value={yesOrUnknown(listing.hasBalcony)} missing="brak informacji" />
+        <Row icon="garage" label="Garaż / miejsce postojowe" value={yesOrUnknown(listing.hasGarage)} missing="brak informacji" />
+        <Row icon="basement" label="Piwnica" value={yesOrUnknown(listing.hasBasement)} missing="brak informacji" />
+        <Row icon="advertiser" label="Ogłaszający" value={labelOf(meta?.enums.advertiserType, listing.advertiserType)} />
+        <Row icon="district" label="Dzielnica" value={listing.districtName} />
+        <Row icon="street" label="Ulica" value={listing.street} />
       </dl>
       <h2 className="detail__heading">Opis</h2>
       <Description text={listing.descriptionText} />

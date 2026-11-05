@@ -183,11 +183,18 @@ Between 641 and 959 px: like mobile (collapsible filters), but a horizontal card
 │ │                                                                   3 / 12 │ │
 │ └──────────────────────────────────────────────────────────────────────────┘ │
 │ Słoneczne | Do wprowadzenia | Widok na zielone…        799 000 zł (28px bold)│
-│ Letnica, ul. Starowiejska, Gdańsk · Approximate…       19 087 zł/m² · 41,86 m²│
+│ ⌖ Letnica, ul. Starowiejska, Gdańsk (bold)             19 087 zł/m² · 41,86 m²│
 │                                                        [ View on otodom ↗ ]  │
-│ Parameters                                             Data from 2026-11-04. │
-│ Area            41,86 m²      │ Rooms             2                          │
-│ Floor           4 of 6        │ Year built        ┆no data┆                  │
+│ Approximate location                                   Data from 2026-11-04. │
+│ ┌───────────┐ ┌───────────┐ ┌───────────┐                                    │
+│ │ ⛶ 41,86 m²│ │ ▯ 2       │ │ ≋ 4 of 6  │   key facts panel (§5.9)           │
+│ └───────────┘ └───────────┘ └───────────┘                                    │
+│ ┌───────────┐ ┌───────────┐ ┌───────────┐                                    │
+│ │ ▦ 2019    │ │ ⚑ ul. Star│ │ ▥ Gdańsk  │                                    │
+│ └───────────┘ └───────────┘ └───────────┘                                    │
+│ Parameters                                                                   │
+│ ⛶ Area          41,86 m²      │ ▯ Rooms           2                          │
+│ ≋ Floor         4 of 6        │ ▦ Year built      ┆no data┆                  │
 │ …                             │ …                                            │
 │ Description  (headings, lists, paragraphs)                                   │
 │ Location     ┌────────────────────────────────────────────────────────────┐ │
@@ -270,8 +277,9 @@ With `scopeBlocked` the list is not shown at all (no “No listings”); the not
 - **Fullscreen dialog (photo lightbox and map):** one `FullscreenDialog` component, native `<dialog>` (`showModal`), full viewport on `rgba(42,38,35,.94)`; “×” 44×44 (`aria-label` „Zamknij”, top right); closes on Escape, on a click outside the content and on “×”. The photo lightbox shows the photo `object-fit: contain`, buttons “‹” / “›” („Poprzednie zdjęcie” / „Następne zdjęcie”, wrapping at the ends), counter “3 / 12”, arrows on the keyboard, `alt` „{title}, zdjęcie {i} z {n}”.
 - **Header row:** under the gallery, `<h1>` (`--fs-xl`) and the location line on the left; on the right (right-aligned) `pricePln` (28 px, bold), `{pricePerM2} · {areaM2} · {rooms}` (`--fs-sm`, secondary), the primary button “Zobacz na otodom ↗” (`target="_blank" rel="noopener noreferrer"`) and the stale-data note built from `scrapedAt` (§7.1; `--fs-xs`, secondary). On mobile the price block goes under the title, left-aligned, the button full width.
 - **Map:** h2 „Lokalizacja” and a Leaflet map after the description, 320 px high, OSM tiles with attribution, loaded lazily. The preview is not interactive (no drag, zoom control or wheel zoom); the whole preview is a button („Powiększ mapę”, `cursor: zoom-in`, label in the corner) that opens the map in the fullscreen dialog, where it is fully interactive. With `locationApproximate` a circle of 500 m around `lat`/`lng` and the note „Lokalizacja przybliżona” under the map; otherwise a circle marker. `role="region"` with `aria-label` „Mapa lokalizacji”.
-- **Parameters:** `<dl class="params">`, `grid-template-columns: 200px 1fr`, rows separated by 1 px `--color-border`, padding 8 px; ≤ 640 px label above the value. Order and labels in §7.2. A missing value is a `.value--missing` element: text “brak danych”, white background, 1 px **dashed** `--color-border-strong` outline. Two-state values (`hasLift`, `hasBalcony`, `hasGarage`, `hasBasement`: `true` or omitted): `true` → “tak”; omitted → `.value--missing` with “brak informacji” (not “nie”).
-- **Approximate location:** with `locationApproximate`, in the line under the title the text “· Lokalizacja przybliżona” (`--color-warning-text`, `--fs-sm`) with `title="Ogłaszający nie podał dokładnej lokalizacji."`.
+- **Key facts panel:** between the header row and Parameters, `<ul class="key-facts" aria-label="Najważniejsze parametry">`, 3 columns (2 on mobile), 6 tiles in this order: `areaM2` (Powierzchnia), `rooms` (Pokoje), floor (Piętro, §7.4), `buildYear` (Rok budowy), `street` (Ulica), `cityName` (Miasto). A tile is white, 1 px `--color-border`, `--radius-md`, padding 12×16 px: a 28 px teal icon, the value (`--fs-lg`, bold) and the label (`--fs-xs`, secondary). A missing value reads „brak danych” (`--fs-sm`, secondary).
+- **Parameters:** `<dl class="params">`, two columns on desktop, one on mobile; each row has the label with an 18 px teal icon on the left and the value on the right (right-aligned), rows separated by 1 px `--color-border`, padding 8 px. Order and labels in §7.2. A missing value is a `.value--missing` element: text “brak danych”, white background, 1 px **dashed** `--color-border-strong` outline. Two-state values (`hasLift`, `hasBalcony`, `hasGarage`, `hasBasement`: `true` or omitted): `true` → “tak”; omitted → `.value--missing` with “brak informacji” (not “nie”).
+- **Location line:** under the title, in bold with a 20 px teal pin icon: `districtName`, `street`, `cityName` joined with “, ”. With `locationApproximate` the text „Lokalizacja przybliżona” follows (`--color-warning-text`, `--fs-sm`) with `title="Ogłaszający nie podał dokładnej lokalizacji."`.
 - **Description:** h2 “Opis”, `descriptionText` split into blocks (`max-width: 70ch`): a line of up to 40 characters ending with “:” is an `<h3>`, lines starting with “- ” or “•” form a `<ul>`, other lines are `<p style="white-space: pre-line">`. HTML is never rendered.
 - **Source:** “Źródło: otodom.pl · pobrano {scrapedAt} · dodano {createdAtSource}” (`--fs-xs`, secondary).
 
@@ -327,7 +335,7 @@ Inline, height 20 px, padding `0 6px`, `--radius-sm`, `--fs-xs`, `--fw-semibold`
 | filters (legends) | „Miasto”, „Dzielnica”, „Cena (zł)”, „Powierzchnia (m²)”, „Pokoje”, „Piętro”, „Rynek”, „Ogłaszający”, „Udogodnienia”; fields „od” / „do”; radio „dowolny”; checkboxes „Tylko z windą”, „Tylko z balkonem”; hint „Oferty bez tej informacji zostaną pominięte.”; „Wybierz miasto, aby zobaczyć dzielnice.” |
 | results bar | „{n} {oferta/oferty/ofert}”, „Sortuj” |
 | card | „Dlaczego tutaj:”, „Brak zdjęcia”, „lokalizacja przybliżona”, „nietypowa cena, sprawdź opis” |
-| details | „Parametry”, „Opis”, „Lokalizacja”, „Lokalizacja przybliżona”, „Mapa lokalizacji”, „Powiększ mapę”, „Zamknij”, „{tytuł}, zdjęcie {i} z {n}”, „brak danych”, „brak informacji”, „tak”, „Źródło: otodom.pl · pobrano {data} · dodano {data}”, „‹ Wszystkie oferty”; stale-data note from `scrapedAt`: „Dane z {data}. Aktualną ofertę sprawdź na otodom.” |
+| details | „Parametry”, „Opis”, „Lokalizacja”, „Lokalizacja przybliżona”, „Mapa lokalizacji”, „Najważniejsze parametry”, „Miasto”, „Powiększ mapę”, „Zamknij”, „{tytuł}, zdjęcie {i} z {n}”, „brak danych”, „brak informacji”, „tak”, „Źródło: otodom.pl · pobrano {data} · dodano {data}”, „‹ Wszystkie oferty”; stale-data note from `scrapedAt`: „Dane z {data}. Aktualną ofertę sprawdź na otodom.” |
 | summary prefix after chat | „Zrozumiałem: ” |
 | loading / empty / errors | „Ładowanie…”; zero results: „Brak ofert dla tych kryteriów.”, „Wyniki pojawią się, jeśli zmienisz jedno kryterium:”, „Żadna pojedyncza zmiana nie wystarczy.”; „Nie udało się pobrać ofert.”; „Nieprawidłowe parametry wyszukiwania.” + link „Wyczyść wyszukiwanie”; „Nie udało się wczytać filtrów.”; „Nie znaleziono oferty.” + link „Wróć do listy ofert” |
 | chat errors (under the field) | 429: „Za dużo zapytań. Spróbuj ponownie za {Retry-After} s.”; 400: „Wpisz od 1 do {max} znaków.”; network or 5xx: „Nie udało się połączyć. Skorzystaj z filtrów poniżej.” |
@@ -393,7 +401,7 @@ Flags (design.md §3.6, only those visible in the details): `price_outlier` „N
 - **Animations and transitions:** none (also a skeleton without shimmer, no `scroll-behavior: smooth`).
 - **Dark mode:** out of scope.
 - **Component library, CSS-in-JS, Tailwind, CSS Modules:** no; a single `styles.css` (design.md §9).
-- **Icons:** no library and no SVG. The Unicode characters “×”, “‹”, “›”, “↗”, “▾” and text (badges, notices) are enough. Every icon character in a button has an `aria-label`.
+- **Icons:** no icon library. Unicode characters “×”, “‹”, “›”, “↗”, “▾” and text serve buttons, badges and notices. The details page uses one small set of inline SVG icons (`Icon` component, 24 px grid, 2 px stroke, `currentColor`, `aria-hidden`) for the location pin, the key facts panel and the parameter rows (design.md R21).
 - **Modal (other than the photo and map fullscreen dialog on the details page), sticky elements, infinite scroll, remembering the mode in `localStorage`:** no.
 - **Travel time, contradictions, deduplication:** out of scope ([product-scope.md](product-scope.md) §8). A map exists only as the location map on the details page (design.md R20).
 

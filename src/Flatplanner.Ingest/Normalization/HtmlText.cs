@@ -8,16 +8,20 @@ public static partial class HtmlText
     public const string EmailMask = "[e-mail ukryty]";
     public const string PhoneMask = "[telefon ukryty]";
 
-    private const char BoldOpen = '\uE001';
-    private const char ItalicOpen = '\uE002';
-    private const char BoldClose = '\uE003';
-    private const char ItalicClose = '\uE004';
+    private const string BoldOpen = "\uE001";
+    private const string ItalicOpen = "\uE002";
+    private const string BoldClose = "\uE003";
+    private const string ItalicClose = "\uE004";
 
-    public static string ToPlain(string html) => Convert(html, keepEmphasis: false);
+    public static string ToPlain(string html) => ToText(html, keepEmphasis: false);
 
-    public static string ToMarkup(string html) => Convert(html, keepEmphasis: true);
+    public static string? ToMarkup(string html)
+    {
+        var markup = ToText(html, keepEmphasis: true);
+        return WithoutWhitespace(StripEmphasis(markup)) == WithoutWhitespace(ToPlain(html)) ? markup : null;
+    }
 
-    private static string Convert(string html, bool keepEmphasis)
+    private static string ToText(string html, bool keepEmphasis)
     {
         var text = keepEmphasis ? MarkEmphasis(html) : html;
         text = LineBreakTag().Replace(text, "\n");
@@ -33,12 +37,17 @@ public static partial class HtmlText
         return keepEmphasis ? RenderEmphasis(text) : text;
     }
 
+    private static string StripEmphasis(string markup) =>
+        EmphasisMarker().Replace(markup, match => match.Groups[1].Value);
+
+    private static string WithoutWhitespace(string text) => Whitespace().Replace(text, "");
+
     private static string MarkEmphasis(string html)
     {
-        var text = BoldOpenTag().Replace(html, BoldOpen.ToString());
-        text = BoldCloseTag().Replace(text, BoldClose.ToString());
-        text = ItalicOpenTag().Replace(text, ItalicOpen.ToString());
-        return ItalicCloseTag().Replace(text, ItalicClose.ToString());
+        var text = BoldOpenTag().Replace(html, BoldOpen);
+        text = BoldCloseTag().Replace(text, BoldClose);
+        text = ItalicOpenTag().Replace(text, ItalicOpen);
+        return ItalicCloseTag().Replace(text, ItalicClose);
     }
 
     private static string RenderEmphasis(string text)
@@ -47,9 +56,15 @@ public static partial class HtmlText
         withoutEmpty = EmptyItalic().Replace(withoutEmpty, "");
         var escaped = withoutEmpty.Replace("\\", "\\\\").Replace("*", "\\*");
         return escaped
-            .Replace(BoldOpen.ToString(), "**").Replace(BoldClose.ToString(), "**")
-            .Replace(ItalicOpen.ToString(), "*").Replace(ItalicClose.ToString(), "*");
+            .Replace(BoldOpen, "**").Replace(BoldClose, "**")
+            .Replace(ItalicOpen, "*").Replace(ItalicClose, "*");
     }
+
+    [GeneratedRegex(@"\\(.)|\*{1,2}", RegexOptions.Singleline)]
+    private static partial Regex EmphasisMarker();
+
+    [GeneratedRegex(@"\s+")]
+    private static partial Regex Whitespace();
 
     [GeneratedRegex(@"<(?:strong|b)(?:\s[^>]*)?>", RegexOptions.IgnoreCase)]
     private static partial Regex BoldOpenTag();

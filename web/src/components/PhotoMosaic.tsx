@@ -31,6 +31,7 @@ export default function PhotoMosaic({ urls, onOpen }: Props) {
           <img
             src={url}
             alt=""
+            loading="lazy"
             referrerPolicy="no-referrer"
             onError={() => setFailed((current) => [...current, url])}
           />

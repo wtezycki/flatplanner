@@ -110,6 +110,18 @@ public sealed class NormalizationTests
     }
 
     [Fact]
+    public void Normalize_PhoneSplitByEmphasis_MarkupDroppedSoNoNumberLeaks()
+    {
+        var ad = Load(Primary);
+        ad["description"] = "<p>Zadzwoń: <b>501</b> 234 567</p>";
+
+        var listing = Accept(ad);
+
+        Assert.Contains(HtmlText.PhoneMask, listing.DescriptionText);
+        Assert.Null(listing.DescriptionMarkup);
+    }
+
+    [Fact]
     public void Normalize_ContactDataInDescription_MaskedAndPriceUntouched()
     {
         var ad = Load(Primary);

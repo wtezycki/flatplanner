@@ -1,0 +1,81 @@
+{
+  "id": 68605466,
+  "url": "https://www.otodom.pl/pl/oferta/sloneczne-2-pokoje-white-check-mark10-min-od-centrumwhite-check-mark-hala-garazowa-komorka-ID4DRpM",
+  "title": "Słoneczne 2 pokoje ✅10 min od Centrum✅ Hala Garażowa + Komórka",
+  "description": "<p><strong>ZAKUP BEZPOŚREDNIO OD DEWELOPERA - ZAPRASZAM NA PREZENTACJE OSIEDLA </strong>Nie współpracujemy z pośrednikami Spotkania możliwe 6 dni w tygodniu</p><p><br></p><p><strong>Świetna lokalizacja:</strong></p><ul><li>10 minut do Centrum (5 km)</li><li>Blisko las, sklepy, szkoły, przedszkola</li><li>Spacerem do planowanej stacji Pomorskiej Kolei Metropolitalnej</li><li>pełna infrastruktura usługowo - handlowa (dużo sklepów już w odległości 2 - 3 min spacerem)</li></ul><p><br></p><p><strong>Pełna własność gruntu + niski czynsz + 5 letnia rękojmia na zakupione mieszkanie</strong></p><p><strong>Dostępna Hala Garażowa oraz Komórki Lokatorskie</strong></p><p><strong>Kameralne osiedle w sąsiedztwie lasu, wysoki standard wykończenia części wspólnych, podwyższony standard deweloperski</strong></p><p><br></p><ul><li>Rabaty na mieszkania</li><li>Możliwe Oględziny na żywo</li><li>Stylowa architektura</li><li>Garaże, windy, monitoring</li><li>Zielone tereny i ogródki</li><li>Energooszczędne rozwiązania</li></ul><p><br></p><p>Pomożemy w kredycie! Współpracujemy z doświadczonymi doradcami finansowymi - bezpłatna pomoc na każdym etapie zakupu!</p>",
+  "createdAt": "2026-11-05T16:28:19Z",
+  "images": [
+    {
+      "medium": "https://ireland.apollo.olxcdn.com/v1/files/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmbiI6IjNrYTJibnYxenZmazItRUNPU1lTVEVNIiwidyI6W3siZm4iOiJlbnZmcXFlMWF5NGsxLUFQTCIsInMiOiIxNiIsImEiOiIwIiwicCI6IjEwLC0xMCJ9XX0.bM8zTYWafqkoYOG2U28GN3aXe2z0NYL4f7XKoCCKVyI/image;s=655x491;q=80"
+    },
+    {
+      "medium": "https://ireland.apollo.olxcdn.com/v1/files/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmbiI6InlveGM0MTZiYXZ2Zy1FQ09TWVNURU0iLCJ3IjpbeyJmbiI6ImVudmZxcWUxYXk0azEtQVBMIiwicyI6IjE2IiwiYSI6IjAiLCJwIjoiMTAsLTEwIn1dfQ.MNDdyBK5Z7TaNsFPXusaVKQ3FGiFg9HhF73CYVFaAeg/image;s=655x491;q=80"
+    }
+  ],
+  "target": {
+    "City": "gdansk",
+    "MarketType": "primary",
+    "ProperType": "mieszkanie",
+    "OfferType": "sprzedaz",
+    "hidePrice": "0",
+    "Price": 457567,
+    "Area": "35.89",
+    "Rooms_num": [
+      "2"
+    ],
+    "Floor_no": [
+      "floor_2"
+    ],
+    "Building_floors_num": "4",
+    "Build_year": "2026",
+    "Construction_status": [
+      "to_completion"
+    ],
+    "Building_ownership": [
+      "full_ownership"
+    ],
+    "Rent": 0,
+    "Extras_types": [
+      "lift",
+      "balcony",
+      "terrace",
+      "basement",
+      "garage",
+      "usable_room"
+    ],
+    "user_type": "agency"
+  },
+  "location": {
+    "coordinates": {
+      "latitude": 54.32019,
+      "longitude": 18.59369
+    },
+    "mapDetails": {
+      "radius": 100
+    },
+    "address": {
+      "street": {
+        "name": "ul. I Brygady"
+      }
+    },
+    "reverseGeocoding": {
+      "locations": [
+        {
+          "locationLevel": "voivodeship",
+          "id": "pomorskie",
+          "name": "pomorskie"
+        },
+        {
+          "locationLevel": "city_or_village",
+          "id": "pomorskie/gdansk/gdansk/gdansk",
+          "name": "Gdańsk"
+        },
+        {
+          "locationLevel": "district",
+          "id": "pomorskie/gdansk/gdansk/gdansk/ujescisko--lostowice",
+          "name": "Ujeścisko-Łostowice"
+        }
+      ]
+    }
+  }
+}

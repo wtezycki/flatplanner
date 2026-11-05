@@ -74,6 +74,12 @@ public static class FactStatus
     public static readonly string[] All = [Included, ExtraCost, NotAvailable];
 }
 
+public static class NormalizeStatus
+{
+    public const string Accepted = "accepted";
+    public const string Rejected = "rejected";
+}
+
 public static class ValidationStatus
 {
     public const string Accepted = "accepted";

@@ -1,0 +1,79 @@
+{
+  "id": 68604445,
+  "url": "https://www.otodom.pl/pl/oferta/sloneczna-kawalerka-wyposazona-suchanino-ID4DR9j",
+  "title": "Słoneczna Kawalerka | Wyposażona | Suchanino",
+  "description": "<strong>MIESZKANIE:</strong><br>Na sprzedaż funkcjonalne i przytulne mieszkanie <strong>o powierzchni 30,94 m²,</strong> charakteryzujące się przemyślanym układem pomieszczeń oraz dobrym doświetleniem wnętrza.<br><br><strong>W skład mieszkania wchodzą:</strong><br>- Przestronny, ustawny salon, bardzo dobrze doświetlony dzięki dużym oknom i południowo-zachodniej ekspozycji, zapewniającej naturalne światło przez większą część dnia.<br>- Kuchnia z oknem, wyposażona w niezbędne sprzęty AGD, funkcjonalna i gotowa do codziennego użytkowania.<br>- Korytarz z praktyczną szafą zapewniającą dodatkowe miejsce do przechowywania.<br>- Łazienka - wyposażona w kabinę prysznicową, WC oraz pralkę.<br><br><strong>Mieszkanie jest zadbane, utrzymane w dobrym stanie technicznym i wizualnym</strong>. W pełni wyposażone, z praktycznymi zabudowami i miejscem do przechowywania. <strong>Nie wymaga dodatkowych nakładów finansowych</strong>, dzięki czemu nowy właściciel może wprowadzić się bez konieczności przeprowadzania remontu.<br><br>Dużym atutem nieruchomości jest funkcjonalne wykorzystanie dostępnej przestrzeni, jasne wnętrze oraz wyposażenie, które zapewnia komfort codziennego użytkowania.<strong> Dodatkowym atutem mieszkania jest możliwość przeniesienia kuchni do salonu, co pozwala na stworzenie przestrzeni z aneksem kuchennym i wydzielenie osobnej sypialni w miejscu obecnej kuchni<br><br>BUDYNEK:</strong><br>10 piętrowy, po renowacji elewacji budynku. Klatka schodowa czysta, szeroka, zabezpieczona domofonem. Na poszczególne kondygnacje dostaniemy się windą. Przed budynkiem i w okolicy miejsca parkingowe ogólnodostępne. Zarządzane przez spółdzielnie mieszkaniową<br><br> <strong>LOKALIZACJA:</strong><br>Mieszkanie położone jest przy ul. Macieja Kamieńskiego w Gdańsku, w dobrze skomunikowanej i rozwiniętej części miasta<strong>. W najbliższej okolicy znajdują się liczne sklepy spożywcze, m.in. Biedronka, ALDI i Żabka, a także piekarnie, apteki, punkty usługowe oraz lokale gastronomiczne,</strong> co zapewnia wygodę codziennego funkcjonowania.<br><br>Dużym atutem nieruchomości jest dogodny dostęp do komunikacji miejskiej<strong>  w pobliżu znajdują się przystanki autobusowe, umożliwiające sprawny dojazd do centrum Gdańska</strong> oraz pozostałych części miasta. Okolica oferuje również dostęp do szkół, przedszkoli, placówek medycznych oraz terenów zielonych i rekreacyjnych.<br><br><strong>DODATKOWE INFORMACJE</strong><br>- Wydanie od zaraz  <br>- Przynależna piwnica<br><br>Zapraszam na prezentację ! <br><br><br><br><strong>KUP Z NAMI - KORZYSTNIE I BEZPIECZNIE!</strong><br><br>- <strong>0% prowizji od Kupującego</strong> (dotyczy ofert oznaczonych znaczkiem KUP bez prowizji) i żadnych dodatkowych lub ukrytych kosztów<br>- gwarantujemy <strong>bezpieczny zakup</strong> i najlepszą cenę<br>- oferujemy skuteczną i bezpłatną <strong>pomoc w uzyskaniu kredytu</strong><br>- zapewniamy <strong>fachowe doradztwo</strong> przy zakupie pod inwestycję<br><br>",
+  "createdAt": "2026-11-05T13:01:40Z",
+  "images": [
+    {
+      "medium": "https://ireland.apollo.olxcdn.com/v1/files/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmbiI6ImQ1bnQzamhoZGtrNDEtRUNPU1lTVEVNIiwidyI6W3siZm4iOiJlbnZmcXFlMWF5NGsxLUFQTCIsInMiOiIxNiIsImEiOiIwIiwicCI6IjEwLC0xMCJ9XX0.IWSmua14eXzn7oiVWM-IdsEud62yXSLFOQPFPN8YLVo/image;s=655x491;q=80"
+    },
+    {
+      "medium": "https://ireland.apollo.olxcdn.com/v1/files/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmbiI6IjBodjZzY2R4OXkwcTMtRUNPU1lTVEVNIiwidyI6W3siZm4iOiJlbnZmcXFlMWF5NGsxLUFQTCIsInMiOiIxNiIsImEiOiIwIiwicCI6IjEwLC0xMCJ9XX0.c9KbFqhjDZ7Nkkul6UydU_uvrYU8NoD6Ib5csG0FLgI/image;s=655x491;q=80"
+    }
+  ],
+  "target": {
+    "City": "gdansk",
+    "MarketType": "secondary",
+    "ProperType": "mieszkanie",
+    "OfferType": "sprzedaz",
+    "hidePrice": "0",
+    "Price": 469000,
+    "Area": "30.94",
+    "Rooms_num": [
+      "1"
+    ],
+    "Floor_no": [
+      "ground_floor"
+    ],
+    "Building_floors_num": "10",
+    "Build_year": "1970",
+    "Construction_status": [
+      "ready_to_use"
+    ],
+    "Building_ownership": [
+      "limited_ownership"
+    ],
+    "Rent": 600,
+    "Extras_types": [
+      "lift",
+      "separate_kitchen",
+      "garage",
+      "usable_room"
+    ],
+    "user_type": "agency"
+  },
+  "location": {
+    "coordinates": {
+      "latitude": 54.35414,
+      "longitude": 18.611055
+    },
+    "mapDetails": {
+      "radius": 0
+    },
+    "address": {
+      "street": {
+        "name": "Macieja Kamieńskiego"
+      }
+    },
+    "reverseGeocoding": {
+      "locations": [
+        {
+          "locationLevel": "voivodeship",
+          "id": "pomorskie",
+          "name": "pomorskie"
+        },
+        {
+          "locationLevel": "city_or_village",
+          "id": "pomorskie/gdansk/gdansk/gdansk",
+          "name": "Gdańsk"
+        },
+        {
+          "locationLevel": "district",
+          "id": "pomorskie/gdansk/gdansk/gdansk/suchanino",
+          "name": "Suchanino"
+        }
+      ]
+    }
+  }
+}

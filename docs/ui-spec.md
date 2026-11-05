@@ -478,6 +478,8 @@ Green tokens from §2 map to teal (`--green-600` → `--teal-700`, `--green-50` 
 - Before the first question the page shows only the hero and the example chips; no list. The classic list with filters (§4.1) moves behind the link "Wolisz klasyczne filtry?".
 - While `ask` runs (5–10 s): the hero input stays, below it a progress card with three steps that light up in turn: "Rozumiem pytanie" → "Czytam ogłoszenia" → "Sprawdzam dowody". This is a fixed animation on a timer, not real progress.
 - Card desktop: `grid-template-columns: 200px 1fr 320px`; ≤ 959 px the AI column goes under the content; ≤ 640 px vertical card. Per need: verdict icon in its colour, reason (`--fs-sm`), evidence under it (`--fs-xs`, secondary; quotes in „…”, places as "Nazwa · 148 m", fields as "Pole: wartość").
+- Groups (design §16.2 step 5) are separate sections with the group heading; the `near` group shows the failing need first, in `--verdict-no`, so the user sees at once what they would give up. When `full` is empty, the relaxation lead and buttons sit above the groups.
+- Risks: under the needs in the AI column, heading "Na co uważać", one line per risk with its kind as a small badge and the evidence under it; an `extra_cost` risk with `totalWithExtrasPln` shows "Łącznie z dopłatą: {total}" in `--fs-md`, bold.
 - Details page: same tokens, no provenance badges (design §16.5).
 
 ### 11.3 Copy for §7 (to be moved into §7.1 when implemented)
@@ -494,10 +496,17 @@ Green tokens from §2 map to teal (`--green-600` → `--teal-700`, `--green-50` 
 | verdicts (aria-label) | pasuje · częściowo · nie pasuje · brak danych |
 | AI summary prefix | AI: |
 | approximate location | lokalizacja przybliżona, odległość orientacyjna |
+| group headings | Pasuje · Pasuje częściowo · Prawie pasuje: jedna rzecz nie gra |
 | unknown group | Ogłoszenie o tym nie mówi ({n}) |
+| relaxation lead (no `full`) | Żadne mieszkanie nie spełnia wszystkich warunków. Najczęściej odpada: {need} ({count} z {total}). |
+| relaxation button | Pokaż bez tego warunku ({count}) |
+| hard-filter relaxation | Bez warunku „{filter}”: {count} mieszkań |
+| risks heading | Na co uważać |
+| risk kinds | Dopłata · Stan prawny · Lokal zajęty · Hałas · Niezgodność z danymi ogłoszenia |
+| real price | Łącznie z dopłatą: {total} |
 | classic link | Wolisz klasyczne filtry? |
 | AI unavailable | AI chwilowo niedostępne — pokazujemy wyniki według podstawowych kryteriów. |
-| no results | Żadne ogłoszenie nie spełnia wszystkich warunków. Spróbuj opisać to inaczej albo usuń jeden z warunków. |
+| no results (no candidates and no relaxation helps) | Nie mamy mieszkań, które spełniają te warunki. Spróbuj opisać to inaczej. |
 
 ### 11.4 Classic list `/` as built (item #5, restyled)
 

@@ -1090,7 +1090,7 @@ The `FlatplannerOptions` class in Core. Every property has `[ConfigurationKeyNam
 | Variable | Example | Where | Required |
 |---|---|---|---|
 | `ConnectionStrings__Default` | `Server=localhost;Port=3306;Database=flatplanner;User=flatplanner;Password=change-me;CharSet=utf8mb4` | Api, Ingest | yes |
-| `OPENAI_API_KEY` | `sk-proj-...` | Api (when `CHAT_MODE=llm`), Ingest (`enrich`, `eval-intents`); passed explicitly to `ApiKeyCredential` | conditionally |
+| `OPENAI_API_KEY` | `sk-proj-...` | Api (when `CHAT_MODE=llm`), Ingest (`eval-intents`; the dossier needs no key, 16.1); passed explicitly to `ApiKeyCredential` | conditionally |
 | `LLM_MODEL` | `gpt-6.1-terra` | Api, Ingest | no (default `gpt-6.1-terra`) |
 | `LLM_CHAT_REASONING_EFFORT` | `none` | Api, Ingest (`eval-intents`) | no (`none`) |
 | `LLM_INGEST_REASONING_EFFORT` | `low` | Ingest (`enrich`) | no (`low`) |
@@ -1469,21 +1469,47 @@ Order of cuts when time runs out (the list from [product-scope.md](product-scope
 
 ### 16.1 Import: the listing dossier (replaces mini-W2, section 5)
 
-`enrich` (Ingest, local only) builds for each listing:
-- `ai_summary VARCHAR(1000) NULL`: `prompts/listing-summary.v1.md`, 2-3 Polish sentences about the flat itself; agency boilerplate (financing help, commission, disclaimers) ignored.
+The dossier is built once, locally. **The language part is done by a coding agent working from the versioned prompt, not by paid API calls** (agreed 2026-11-05): it is a one-off over ~200 listings, the output is validated by code exactly as an API response would be, and the API key is then needed only at runtime (`ask`) and for `eval-intents`.
+
+Per listing:
+- `ai_summary VARCHAR(1000) NULL`: 2-3 Polish sentences about the flat itself; agency boilerplate (financing help, commission, disclaimers) ignored.
+- `risks_json JSON NULL`: buyer risks that do not depend on any question: `[{ "kind", "reason", "quote", "amountPln"? }]`, `kind` ∈ `extra_cost` (parking, garage or storage paid on top, incl. obligatory ones), `legal` (commercial premises with VAT, bankruptcy-trustee sale, garage on a separate land register, bank mortgage repaid from the price), `occupied` (rented out), `noise` (a named source: clubs, concerts, a planned tram line), `field_mismatch` (a field contradicts the description: rooms, area, lift, rent, market, garage "included" vs paid, advertiser type). A description's claim is a declaration, not proof: "wyjątkowo ciche" on a main street is reported as a contradiction, not repeated.
 - `nearby_json JSON NULL`: places within 1 500 m from OpenStreetMap, fetched once with one Overpass query per listing (`https://overpass-api.de/api/interpreter`, `User-Agent` set, 1 request/s): `amenity` in {school, kindergarten, place_of_worship, pharmacy, clinic, hospital, doctors, university}, `leisure` in {park, playground, dog_park}, `natural=wood`, `landuse=forest`, `railway` in {station, halt, tram_stop}, `highway=bus_stop`, `shop` in {supermarket, convenience}. Stored as `[{ "n": name, "t": "amenity=school", "x": "isced:level=1;religion=…", "d": metres }]`, nearest 60, distances by haversine in C#.
 
-Migration `AiDossier` adds both columns. Failure path as 5.2 (`facts_status = 'failed'`, import continues). Overpass is never called by the API; the data reaches production with the dump (11.4). `listing_facts`, `AnchorValidator` amount rules and real price (5.3) are cut; `AnchorText.Normalize` and the substring check stay for quotes.
+Ingest commands (replace `enrich` from section 5):
+
+| Command | Action |
+|---|---|
+| `nearby` | Overpass → `nearby_json` for listings where it is NULL |
+| `export-dossiers` | writes `data/agent/listings.jsonl`: `externalId`, fields, `description_text` (gitignored like all of `data/`) |
+| *(agent)* | reads `prompts/listing-dossier.v1.md` and `listings.jsonl`, writes `data/agent/dossiers.jsonl`: `{ externalId, summary, risks[] }` |
+| `import-dossiers` | validates and writes `ai_summary`, `risks_json`, `facts_status` |
+
+`import-dossiers` validation (same rules as for a model response, section 5.1): `externalId` must exist; `summary` 1–1 000 characters; each risk: `kind` from the list, `quote` a substring of the description after `AnchorText.Normalize`, `amountPln` only for `extra_cost` and equal to a number extracted from the quote (5.1 number rule, range 5 000–300 000). An invalid risk is dropped and counted; a listing without a valid line gets `facts_status = 'failed'`. The `report` prints accepted and dropped risks per kind; the dropped share is the honesty metric for the agent's output. `prompt_version` (`listing-dossier.v1`) and the producer (`agent`) are printed in the report and stated in the README.
+
+Migration `AiDossier` adds the three columns. Overpass and the agent are never part of the API; the data reaches production with the dump (11.4). `listing_facts`, `AnchorValidator` amount rules beyond the above and the import-time real price (5.3) are cut; the real price is computed at query time from verified `extra_cost` risks (16.2 step 7).
 
 ### 16.2 `POST /api/search/ask` (replaces `POST /api/search/interpret`, 6.3)
 
-Request `{ "message": string }` (1–300 characters). One endpoint does the whole pipeline; the frontend keeps only `?q=<message>` in the URL, and the response cache makes refresh and "back" free.
+Request `{ "message": string, "excludeNeeds": int[] }` (message 1–300 characters; `excludeNeeds` optional, indexes into the interpreted `needs`). One endpoint does the whole pipeline; the frontend keeps only `?q=<message>` in the URL, and the response cache makes refresh and "back" free.
 
 1. **Interpret** (`prompts/search-intent.v2.md`, structured output): hard filters from `SearchIntent` (only `cities`, `districts`, `priceMax`, `areaMin`, `areaMax`, `roomsMin`) plus `needs: string[]` (max 4, each one restated in Polish: "podstawówka w zasięgu spaceru dla 7-latki") and `declined: [{ text, reason }]` for requests the system will not judge (16.4). "dom" means a place to live unless a house is named explicitly; "bez kredytu" is context, not a need.
 2. **Narrow** (C#): SQL with the hard filters → candidates (≤ 197).
-3. **Judge** (`prompts/listing-judge.v1.md`): batches of 15 dossiers (id, fields, `ai_summary`, `description_text` truncated to 3 000 characters, `nearby_json`, `location_approximate`), `SemaphoreSlim(4)`. Output per listing: `{ id, needs: [{ verdict: "yes"|"partly"|"no"|"unknown", reason, evidence: [{ kind: "quote"|"place"|"field", ref }] }] }`.
+3. **Judge** (`prompts/listing-judge.v1.md`): batches of 15 dossiers (id, fields, `ai_summary`, `description_text` truncated to 3 000 characters, `nearby_json`, `location_approximate`), `SemaphoreSlim(4)`. Output per listing: `{ id, needs: [{ verdict: "yes"|"partly"|"no"|"unknown", reason, evidence: [{ kind: "quote"|"place"|"field", ref }] }] }`. Risks are not judged at runtime: they come verified from the dossier (`risks_json`, 16.1) and are attached to every item by code. **The judge treats a description's claim as a declaration, not as proof:** "wyjątkowo ciche" on a main street is checked against the nearby places and the location.
 4. **Verify** (C#, `EvidenceVerifier`): `quote` must be a substring of the description after `AnchorText.Normalize`; `place` must be an index into that listing's `nearby_json`; `field` must name a listing column. A `yes`/`partly`/`no` without valid evidence becomes `unknown`. Unknown ids are dropped. `location_approximate = true` turns a `place`-only `yes` into `partly` with the note that the location is approximate.
-5. **Order** (C#): listings where every need is `yes`, then those with at least one `yes`/`partly` and no `no`, then the rest with no `no` (shown collapsed as "unknown"); any `no` hides the listing. Within a group: more `yes`, then newest.
+5. **Group and order** (C#), `group` per listing:
+
+   | `group` | Condition | Shown |
+   |---|---|---|
+   | `full` | every need `yes` | first |
+   | `partial` | at least one `yes`/`partly`, no `no` | second |
+   | `near` | exactly one `no` (with valid evidence) | third, the failing need highlighted: "Prawie pasuje: jedna rzecz nie gra" |
+   | `unknown` | only `unknown` verdicts | collapsed, count in `unknownCount` |
+   | — | two or more `no` | hidden |
+
+   Within a group: more `yes`, then fewer `unknown`, then newest. With one need, `near` is empty by definition (one `no` = does not fit).
+6. **Relaxations** (C#, no LLM call): when `full` is empty, `relaxations` lists for each need how many listings would be `full` or `partial` without it, from the verdicts already computed: `[{ need, count, bestId }]`, descending by `count`, only `count > 0`. The UI offers "Pokaż bez tego warunku"; the click re-sends the same message with `excludeNeeds: [index]`, served from the cache without a model call. When step 2 already returns no candidates, `relaxations` lists instead each hard filter removed separately with its `COUNT` (at most 6 queries, the logic of 6.4 limited to the `ask` hard filters), and no judge call is made.
+7. **Real price for extra costs:** for `extra_cost` risks in `risks_json` with `amountPln` (already checked against the quote at import), code adds `totalWithExtrasPln = price_pln + Σ amountPln`. The model never computes amounts.
 
 Response `200`:
 
@@ -1499,6 +1525,7 @@ Response `200`:
                             "evidence": [ { "kind": "place", "label": "Szkoła Podstawowa nr 30 · 148 m" } ] },
                           { "verdict": "no", "reason": "…", "evidence": [ { "kind": "field", "label": "Forma własności: pełna własność" } ] } ] } ],
   "unknownCount": 4,
+  "relaxations": [ { "need": "zakup bez zezwolenia MSWiA", "count": 6, "bestId": 76 } ],
   "usedFallback": false
 }
 ```
@@ -1514,7 +1541,14 @@ Evidence `label`s are built by code from the dossier, never taken from the model
 `prompts/listing-judge.v1.md` contains a short, versioned list of rules the model may apply, each with the field it rests on:
 - a buyer from outside the EEA in Gdańsk, Gdynia and Sopot (border zone) needs an MSWiA permit for `ownership = full_ownership`, not for `limited_ownership` **[TO VERIFY: act on the acquisition of real estate by foreigners, art. 8]**;
 - a bank financing a purchase expects a land register without encumbrances;
-- an `amenity=school` with `isced:level` other than 1, or a name containing "policealna"/"liceum", is not a primary school.
+- an `amenity=school` with `isced:level` other than 1, or a name containing "policealna"/"liceum", is not a primary school;
+- `ownership = limited_ownership` (cooperative ownership right) is what lets a foreigner buy without the permit; when the field says `limited_ownership` and the description is silent about the kind of right, the verdict is `partly` with "zapytaj o rodzaj prawa" **[TO VERIFY]**;
+- commercial premises sold with 23% VAT are not a flat: the tenant-protection act and residential mortgage terms may not apply **[TO VERIFY]**;
+- a sale by a bankruptcy trustee (syndyk) requires a deposit, usually without a viewing, "as is"; mortgage financing is harder **[TO VERIFY]**;
+- a flat sold with a running lease is not available until the lease ends;
+- a garage on a separate land register is a separate purchase with its own price and its own mortgage question **[TO VERIFY]**.
+
+These rules come from general knowledge, not from the data; each stays marked until checked, and the 1-pager says so.
 
 Anything outside these rules and the dossier is `unknown`.
 
@@ -1526,17 +1560,30 @@ Anything outside these rules and the dossier is `unknown`.
 
 ### 16.5 Scope: everything else to the minimum
 
-Kept as built: `GET /api/listings` (#4) and the listings page with filters (#5) as the secondary path. Changed: #6 details become a plain page with fields, description and a link to otodom (no provenance badges, no "Ask the seller"). Replaced: #7 → `ask` (16.2); #8 ranking → 16.2 step 5; #11 → dossier (16.1). Cut: #12 blockers, #13 chips with removal, #14 ask the seller, real price, medians, `why`, quality-flag UI.
+Kept as built: `GET /api/listings` (#4) and the listings page with filters (#5) as the secondary path. Changed: #6 details become a plain page with fields, description and a link to otodom (no provenance badges, no "Ask the seller"). Replaced: #7 → `ask` (16.2); #8 ranking → 16.2 steps 5–6; #12 "what blocks" → 16.2 step 6 (relaxations from verdicts, hard-filter counts only at zero candidates); #11 → dossier (16.1). Cut: the #12 `blockers` field and `Blockers.tsx`, #13 chips with removal, #14 ask the seller, medians, `why`, quality-flag UI.
 
-**New order:** #6′ minimal details → #11′ dossier → #7′ `ask` + judge + verify → #9′ eval → #10 protection → #15 → #16 → #17.
+**New order:** #6′ minimal details → #11′ dossier (`nearby`, `export-dossiers`, agent run, `import-dossiers`) → #7′a `ask` backend (interpret, judge, verify, groups, relaxations) → #7′b UI (ui-spec §11) → #9′ eval → #10 protection → #15 → #16 → #17.
 
-**Tests (§12, no LLM, no network):** `SearchIntentSchemaTests` for `needs`/`declined`; `EvidenceVerifierTests` (quote not in description, place index out of range, approximate location downgrade); grouping order; haversine. `tests/search-queries.json` holds the chat scenarios with the expected behaviour, run by `eval-intents` against the real model.
+**Tests (§12, no LLM, no network):** `SearchIntentSchemaTests` for `needs`/`declined`; `EvidenceVerifierTests` (quote not in description, place index out of range, approximate location downgrade); grouping (`full`/`partial`/`near`/`unknown`/hidden) and relaxation counts from a fixed verdict table; `import-dossiers` risk validation (kind, quote not in description, amount not in quote or out of range); haversine. `tests/search-queries.json` holds the chat scenarios with the expected behaviour, run by `eval-intents` against the real model.
 
 ### 16.6 Demo listings (local import, 2026-11-05)
 
+Listings are named by local `id` with the otodom `external_id` in brackets: local ids are not stable across imports.
+
 | Listing | Why it shows the AI | Scenarios |
 |---|---|---|
-| 70 · Ujeścisko-Łostowice, 680 000 zł, 2 rooms, top floor | The description holds what no field has: "nikt nie chodzi nad głową", primary school 2 minutes away, park, bicycle and pram rooms, EV charging in the garage, parking + storage as an optional 40 000 zł extra, and a bank mortgage to be repaid from the price with handover adjustable to the buyer's mortgage. The word "kredyt" here is a real fact, not boilerplate. | night worker, 7-year-old to school, cyclist, EV, mortgage buyer (risk shown) |
-| 97 · Wrzeszcz Górny, 749 000 zł, "3 rooms" | otodom says 3 rooms; the description says the land register shows 2 rooms + kitchen, and the kitchen was turned into a third office, so there is no kitchen today. Ground floor, former service premises. 148 m from the New Synagogue (OSM). | "afraid of being cheated" (field vs description), home office / practice, synagogue |
-| 166 · Grabówek (Gdynia), 495 000 zł, cooperative | States that foreigners can buy without the MSWiA permit, 1930 modernist building, 2.84 m ceilings, separate office room, SKM station nearby. `ownership = limited_ownership` confirms the claim from a field. | Ukrainian buyer, old-building lover, home office |
+| 70 (68604420) · Ujeścisko-Łostowice, 680 000 zł, 2 rooms, top floor | The description holds what no field has: "nikt nie chodzi nad głową", primary school 2 minutes away, park, bicycle and pram rooms, EV charging in the garage, parking + storage as an optional 40 000 zł extra, and a bank mortgage to be repaid from the price with handover adjustable to the buyer's mortgage. The word "kredyt" here is a real fact, not boilerplate. | night worker, 7-year-old to school, cyclist, EV, mortgage buyer (risk shown) |
+| 97 (68600339) · Wrzeszcz Górny, 749 000 zł, "3 rooms" | otodom says 3 rooms; the description says the land register shows 2 rooms + kitchen, and the kitchen was turned into a third office, so there is no kitchen today. Ground floor, former service premises. 148 m from the New Synagogue (OSM). | "afraid of being cheated" (field vs description), home office / practice, synagogue |
+| 166 (68597257) · Grabówek (Gdynia), 495 000 zł, cooperative | States that foreigners can buy without the MSWiA permit, 1930 modernist building, 2.84 m ceilings, separate office room, SKM station nearby. `ownership = limited_ownership` confirms the claim from a field. | Ukrainian buyer, old-building lover, home office |
+
+**What the descriptions hold beyond the fields** (analysis of 198 scraped descriptions, 2026-11-05; otodom `external_id`):
+- At least one real fact no filter covers: ~167 of 198 (84%). ~31 (16%) are template shells or truncated descriptions, for which `unknown` is the only correct answer.
+- Extra costs are the most frequent fact stated in descriptions: ~35 listings (18%) with parking, garage or storage paid on top (30–150 thousand zł), e.g. 68601905 (headline 1 099 000 zł, "łączna cena 1 199 000 zł"), obligatory ones in 68603502 ("obligatoryjne do zakupu za 80 000 zł"). This is why 16.2 step 7 restores the real price.
+- Field vs description mismatches: ~20 listings with `has_garage` where the description says paid or public parking; ≥ 12 with empty or zero rent and an amount in the description; lift in the description but not in the fields (68605047, 68604420, 68603990); one room more in the field than in the description or land register (68594959, 68598147, 68600339); ~5 marked secondary although under construction (68605308, 68603718); "bez pośredników" with an agency advertiser (68605230, 68600084, 68603835); a duplicate with different condition (68604444, 68604666).
+- Legal and occupancy risks: bankruptcy-trustee sale with a 76 200 zł deposit and no viewing (68591539); commercial premises with VAT (68604085, 68604164, 68604170, 68602316, 68596920, 68601011); rented out (68598147 until 1.03.2027, 68604441); garage on a separate land register for 136 000 zł next to a 499 000 zł flat (68604794).
+- Foreign buyers: cooperative right stated in 68605124, 68597257, 68604444/68604666, 68605023, 68600370, 68600533; `limited_ownership` with a silent description in 68604350, 68604445, 68604794 (the judge must combine the field with the rule).
+- Marketing contradicting the location: "wyjątkowo ciche" at ul. Świętojańska (68601356), "cisza i spokój" at al. Grunwaldzka (68600339), air conditioning "na 10. piętrze" for a 5th-floor flat (68602918).
+- Needs the data cannot answer: LGBTQ+ / tolerance (0 of 198, correctly `declined`), pet rules (1 direct mention, 68594959; house rules are not in listings, so a dog owner gets "partly, ask about the rules" at best, from a ground-floor garden or a forest nearby, e.g. 68603990).
+
+**The product starts from the life situation, not from a list of requirements.** "Mam psa", "pracuję na nocki", "córka pójdzie sama do szkoły" are the input; the judge turns each into what can be checked in the dossier and answers in the user's terms. Life situations lean on the surroundings more than on the description, and the surroundings exist for every listing (all 197 have coordinates, 114 exact), while description facts exist only where the seller wrote them. Where a part of the situation cannot be checked in any listing (house rules for pets, lift dimensions), the verdict is `partly` with what was checked and what to ask the seller: "Ogródek 54 m² i las 200 m — sprawdzone; regulamin dla zwierząt — zapytaj". `unknown` alone is reserved for listings whose dossier holds nothing relevant (template shells, truncated descriptions).
 

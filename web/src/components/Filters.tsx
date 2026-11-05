@@ -28,13 +28,6 @@ type RangeField = 'price' | 'area' | 'rooms' | 'floor'
 
 const TEXT_DEBOUNCE_MS = 500
 
-const FLOOR_OPTIONS = [
-  { value: '-1', label: 'suterena' },
-  { value: '0', label: 'parter' },
-  ...Array.from({ length: 10 }, (_, index) => ({ value: String(index + 1), label: `piętro ${index + 1}` })),
-]
-const FLOOR_FROM_OPTIONS = [...FLOOR_OPTIONS, { value: '11', label: 'piętro 11 i wyżej' }]
-
 const fieldText = (value: number | undefined) => (value === undefined ? '' : String(value))
 
 function formFromIntent(intent: SearchIntent): FilterForm {
@@ -121,58 +114,39 @@ function toggle(values: string[], value: string): string[] {
   return values.includes(value) ? values.filter((v) => v !== value) : [...values, value]
 }
 
-interface RangeOption {
-  value: string
-  label: string
-}
-
 interface RangeProps {
   legend: string
   label: string
   field: RangeField
   form: FilterForm
   onChange: (patch: Partial<FilterForm>) => void
-  inputProps?: InputHTMLAttributes<HTMLInputElement>
-  minOptions?: RangeOption[]
-  maxOptions?: RangeOption[]
+  inputProps: InputHTMLAttributes<HTMLInputElement>
   hint?: string
 }
 
-function Range({ legend, label, field, form, onChange, inputProps, minOptions, maxOptions, hint }: RangeProps) {
+function Range({ legend, label, field, form, onChange, inputProps, hint }: RangeProps) {
   const minKey = `${field}Min` as const
   const maxKey = `${field}Max` as const
-  const bound = (key: typeof minKey | typeof maxKey, suffix: 'od' | 'do', options?: RangeOption[]) =>
-    options ? (
-      <select
-        className="field"
-        aria-label={`${label} ${suffix}`}
-        value={form[key]}
-        onChange={(event) => onChange({ [key]: event.target.value })}
-      >
-        <option value="">{suffix}</option>
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    ) : (
-      <input
-        className="field"
-        aria-label={`${label} ${suffix}`}
-        placeholder={suffix}
-        value={form[key]}
-        onChange={(event) => onChange({ [key]: event.target.value })}
-        {...inputProps}
-      />
-    )
-
   return (
     <fieldset className="filters__group">
       <legend>{legend}</legend>
       <div className="filters__pair">
-        {bound(minKey, 'od', minOptions)}
-        {bound(maxKey, 'do', maxOptions)}
+        <input
+          className="field"
+          aria-label={`${label} od`}
+          placeholder="od"
+          value={form[minKey]}
+          onChange={(event) => onChange({ [minKey]: event.target.value })}
+          {...inputProps}
+        />
+        <input
+          className="field"
+          aria-label={`${label} do`}
+          placeholder="do"
+          value={form[maxKey]}
+          onChange={(event) => onChange({ [maxKey]: event.target.value })}
+          {...inputProps}
+        />
       </div>
       {hint && <p className="filters__hint">{hint}</p>}
     </fieldset>
@@ -365,9 +339,9 @@ function FilterFields({ meta, intent }: FieldsProps) {
         label="Piętro"
         field="floor"
         form={form}
-        onChange={patch}
-        minOptions={FLOOR_FROM_OPTIONS}
-        maxOptions={FLOOR_OPTIONS}
+        onChange={patchText}
+        inputProps={{ type: 'number', min: -1, max: 40 }}
+        hint="parter = 0"
       />
 
       <Radios

@@ -1104,7 +1104,7 @@ The `FlatplannerOptions` class in Core. Every property has `[ConfigurationKeyNam
 | Variable | Example | Where | Required |
 |---|---|---|---|
 | `ConnectionStrings__Default` | `Server=localhost;Port=3306;Database=flatplanner;User=flatplanner;Password=change-me;CharSet=utf8mb4` | Api, Ingest | yes |
-| `OPENAI_API_KEY` | `sk-proj-...` | Api (when `CHAT_MODE=llm`), Ingest (`enrich`, `eval-intents`); passed explicitly to `ApiKeyCredential` | conditionally |
+| `OPENAI_API_KEY` | `sk-proj-...` | Api (when `CHAT_MODE=llm`), Ingest (`eval-intents`; the dossier needs no key, 16.1); passed explicitly to `ApiKeyCredential` | conditionally |
 | `LLM_MODEL` | `gpt-6.1-terra` | Api, Ingest | no (default `gpt-6.1-terra`) |
 | `LLM_CHAT_REASONING_EFFORT` | `none` | Api, Ingest (`eval-intents`) | no (`none`) |
 | `LLM_INGEST_REASONING_EFFORT` | `low` | Ingest (`enrich`) | no (`low`) |
@@ -1477,11 +1477,25 @@ Order of cuts when time runs out (the list from [product-scope.md](product-scope
 
 ### 16.1 Import: the listing dossier (replaces mini-W2, section 5)
 
-`enrich` (Ingest, local only) builds for each listing:
-- `ai_summary VARCHAR(1000) NULL`: `prompts/listing-summary.v1.md`, 2-3 Polish sentences about the flat itself; agency boilerplate (financing help, commission, disclaimers) ignored.
+The dossier is built once, locally. **The language part is done by a coding agent working from the versioned prompt, not by paid API calls** (agreed 2026-11-05): it is a one-off over ~200 listings, the output is validated by code exactly as an API response would be, and the API key is then needed only at runtime (`ask`) and for `eval-intents`.
+
+Per listing:
+- `ai_summary VARCHAR(1000) NULL`: 2-3 Polish sentences about the flat itself; agency boilerplate (financing help, commission, disclaimers) ignored.
+- `risks_json JSON NULL`: buyer risks that do not depend on any question: `[{ "kind", "reason", "quote", "amountPln"? }]`, `kind` ∈ `extra_cost` (parking, garage or storage paid on top, incl. obligatory ones), `legal` (commercial premises with VAT, bankruptcy-trustee sale, garage on a separate land register, bank mortgage repaid from the price), `occupied` (rented out), `noise` (a named source: clubs, concerts, a planned tram line), `field_mismatch` (a field contradicts the description: rooms, area, lift, rent, market, garage "included" vs paid, advertiser type). A description's claim is a declaration, not proof: "wyjątkowo ciche" on a main street is reported as a contradiction, not repeated.
 - `nearby_json JSON NULL`: places within 1 500 m from OpenStreetMap, fetched once with one Overpass query per listing (`https://overpass-api.de/api/interpreter`, `User-Agent` set, 1 request/s): `amenity` in {school, kindergarten, place_of_worship, pharmacy, clinic, hospital, doctors, university}, `leisure` in {park, playground, dog_park}, `natural=wood`, `landuse=forest`, `railway` in {station, halt, tram_stop}, `highway=bus_stop`, `shop` in {supermarket, convenience}. Stored as `[{ "n": name, "t": "amenity=school", "x": "isced:level=1;religion=…", "d": metres }]`, nearest 60, distances by haversine in C#.
 
-Migration `AiDossier` adds both columns. Failure path as 5.2 (`facts_status = 'failed'`, import continues). Overpass is never called by the API; the data reaches production with the dump (11.4). `listing_facts`, `AnchorValidator` amount rules and the import-time real price (5.3) are cut (the real price returns at query time, 16.2 step 7); `AnchorText.Normalize` and the substring check stay for quotes.
+Ingest commands (replace `enrich` from section 5):
+
+| Command | Action |
+|---|---|
+| `nearby` | Overpass → `nearby_json` for listings where it is NULL |
+| `export-dossiers` | writes `data/agent/listings.jsonl`: `externalId`, fields, `description_text` (gitignored like all of `data/`) |
+| *(agent)* | reads `prompts/listing-dossier.v1.md` and `listings.jsonl`, writes `data/agent/dossiers.jsonl`: `{ externalId, summary, risks[] }` |
+| `import-dossiers` | validates and writes `ai_summary`, `risks_json`, `facts_status` |
+
+`import-dossiers` validation (same rules as for a model response, section 5.1): `externalId` must exist; `summary` 1–1 000 characters; each risk: `kind` from the list, `quote` a substring of the description after `AnchorText.Normalize`, `amountPln` only for `extra_cost` and equal to a number extracted from the quote (5.1 number rule, range 5 000–300 000). An invalid risk is dropped and counted; a listing without a valid line gets `facts_status = 'failed'`. The `report` prints accepted and dropped risks per kind; the dropped share is the honesty metric for the agent's output. `prompt_version` (`listing-dossier.v1`) and the producer (`agent`) are printed in the report and stated in the README.
+
+Migration `AiDossier` adds the three columns. Overpass and the agent are never part of the API; the data reaches production with the dump (11.4). `listing_facts`, `AnchorValidator` amount rules beyond the above and the import-time real price (5.3) are cut; the real price is computed at query time from verified `extra_cost` risks (16.2 step 7).
 
 ### 16.2 `POST /api/search/ask` (replaces `POST /api/search/interpret`, 6.3)
 
@@ -1489,7 +1503,7 @@ Request `{ "message": string, "excludeNeeds": int[] }` (message 1–300 characte
 
 1. **Interpret** (`prompts/search-intent.v2.md`, structured output): hard filters from `SearchIntent` (only `cities`, `districts`, `priceMax`, `areaMin`, `areaMax`, `roomsMin`) plus `needs: string[]` (max 4, each one restated in Polish: "podstawówka w zasięgu spaceru dla 7-latki") and `declined: [{ text, reason }]` for requests the system will not judge (16.4). "dom" means a place to live unless a house is named explicitly; "bez kredytu" is context, not a need.
 2. **Narrow** (C#): SQL with the hard filters → candidates (≤ 197).
-3. **Judge** (`prompts/listing-judge.v1.md`): batches of 15 dossiers (id, fields, `ai_summary`, `description_text` truncated to 3 000 characters, `nearby_json`, `location_approximate`), `SemaphoreSlim(4)`. Output per listing: `{ id, needs: [{ verdict: "yes"|"partly"|"no"|"unknown", reason, evidence: [{ kind: "quote"|"place"|"field", ref }] }], risks: [{ kind, reason, evidence: [...] }] }`. `risks` are buyer risks found in the dossier regardless of the needs, `kind` ∈ `extra_cost` (parking, garage or storage paid on top, incl. obligatory ones), `legal` (commercial premises with VAT, bankruptcy-trustee sale, garage on a separate land register, bank mortgage repaid from the price), `occupied` (rented out), `noise` (a named source: clubs, concerts, a planned tram line), `field_mismatch` (a field contradicts the description: rooms, area, lift, rent, market, garage "included" vs paid, advertiser type). **The judge treats a description's claim as a declaration, not as proof:** "wyjątkowo ciche" on a main street is checked against the nearby places and the location, and a contradiction is reported, not repeated.
+3. **Judge** (`prompts/listing-judge.v1.md`): batches of 15 dossiers (id, fields, `ai_summary`, `description_text` truncated to 3 000 characters, `nearby_json`, `location_approximate`), `SemaphoreSlim(4)`. Output per listing: `{ id, needs: [{ verdict: "yes"|"partly"|"no"|"unknown", reason, evidence: [{ kind: "quote"|"place"|"field", ref }] }] }`. Risks are not judged at runtime: they come verified from the dossier (`risks_json`, 16.1) and are attached to every item by code. **The judge treats a description's claim as a declaration, not as proof:** "wyjątkowo ciche" on a main street is checked against the nearby places and the location.
 4. **Verify** (C#, `EvidenceVerifier`): `quote` must be a substring of the description after `AnchorText.Normalize`; `place` must be an index into that listing's `nearby_json`; `field` must name a listing column. A `yes`/`partly`/`no` without valid evidence becomes `unknown`. Unknown ids are dropped. `location_approximate = true` turns a `place`-only `yes` into `partly` with the note that the location is approximate.
 5. **Group and order** (C#), `group` per listing:
 
@@ -1503,7 +1517,7 @@ Request `{ "message": string, "excludeNeeds": int[] }` (message 1–300 characte
 
    Within a group: more `yes`, then fewer `unknown`, then newest. With one need, `near` is empty by definition (one `no` = does not fit).
 6. **Relaxations** (C#, no LLM call): when `full` is empty, `relaxations` lists for each need how many listings would be `full` or `partial` without it, from the verdicts already computed: `[{ need, count, bestId }]`, descending by `count`, only `count > 0`. The UI offers "Pokaż bez tego warunku"; the click re-sends the same message with `excludeNeeds: [index]`, served from the cache without a model call. When step 2 already returns no candidates, `relaxations` lists instead each hard filter removed separately with its `COUNT` (at most 6 queries, the logic of 6.4 limited to the `ask` hard filters), and no judge call is made.
-7. **Real price for extra costs:** for a verified `extra_cost` risk whose quote contains exactly one amount (number extraction from 5.1, ranges 5 000–300 000), code adds `totalWithExtrasPln = price_pln + amount`. The model never computes amounts.
+7. **Real price for extra costs:** for `extra_cost` risks in `risks_json` with `amountPln` (already checked against the quote at import), code adds `totalWithExtrasPln = price_pln + Σ amountPln`. The model never computes amounts.
 
 Response `200`:
 
@@ -1556,9 +1570,9 @@ Anything outside these rules and the dossier is `unknown`.
 
 Kept as built: `GET /api/listings` (#4) and the listings page with filters (#5) as the secondary path. Changed: #6 details become a plain page with fields, description and a link to otodom (no provenance badges, no "Ask the seller"). Replaced: #7 → `ask` (16.2); #8 ranking → 16.2 steps 5–6; #12 "what blocks" → 16.2 step 6 (relaxations from verdicts, hard-filter counts only at zero candidates); #11 → dossier (16.1). Cut: the #12 `blockers` field and `Blockers.tsx`, #13 chips with removal, #14 ask the seller, medians, `why`, quality-flag UI.
 
-**New order:** #6′ minimal details → #11′ dossier → #7′ `ask` + judge + verify → #9′ eval → #10 protection → #15 → #16 → #17.
+**New order:** #6′ minimal details → #11′ dossier (`nearby`, `export-dossiers`, agent run, `import-dossiers`) → #7′a `ask` backend (interpret, judge, verify, groups, relaxations) → #7′b UI (ui-spec §11) → #9′ eval → #10 protection → #15 → #16 → #17.
 
-**Tests (§12, no LLM, no network):** `SearchIntentSchemaTests` for `needs`/`declined`; `EvidenceVerifierTests` (quote not in description, place index out of range, approximate location downgrade); grouping (`full`/`partial`/`near`/`unknown`/hidden) and relaxation counts from a fixed verdict table; `totalWithExtrasPln` only for exactly one amount in the quote; haversine. `tests/search-queries.json` holds the chat scenarios with the expected behaviour, run by `eval-intents` against the real model.
+**Tests (§12, no LLM, no network):** `SearchIntentSchemaTests` for `needs`/`declined`; `EvidenceVerifierTests` (quote not in description, place index out of range, approximate location downgrade); grouping (`full`/`partial`/`near`/`unknown`/hidden) and relaxation counts from a fixed verdict table; `import-dossiers` risk validation (kind, quote not in description, amount not in quote or out of range); haversine. `tests/search-queries.json` holds the chat scenarios with the expected behaviour, run by `eval-intents` against the real model.
 
 ### 16.6 Demo listings (local import, 2026-11-05)
 

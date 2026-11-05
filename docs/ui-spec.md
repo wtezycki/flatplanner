@@ -339,7 +339,8 @@ Inline, height 20 px, padding `0 6px`, `--radius-sm`, `--fs-xs`, `--fw-semibold`
 | list 429 | „Za dużo zapytań. Spróbuj ponownie za {Retry-After} s.” |
 | motto (top bar, under the wordmark, hidden ≤ 640 px) | „Przeczytamy ogłoszenia za Ciebie.” |
 | search field | `aria-label` „Szukaj w ofertach” |
-| filters | form `aria-label` „Filtry”; mobile toggle „Filtry ({n})”; `aria-label` of the range fields „Cena od” / „Cena do”, „Powierzchnia od” / „Powierzchnia do”, „Pokoje od” / „Pokoje do”, „Piętro od” / „Piętro do”; district summary „Dzielnica” + „ ({n})” with n selected districts; floor hint „parter = 0”; with `areaApprox` and no range „Teraz: ok. {areaApprox} m². Wpisany zakres zastąpi przybliżenie.” |
+| floor filter options | dropdowns „od” / „do”: „suterena”, „parter”, „piętro 1” … „piętro 10”; the „od” list also has „piętro 11 i wyżej” |
+| filters | form `aria-label` „Filtry”; mobile toggle „Filtry ({n})”; `aria-label` of the range fields „Cena od” / „Cena do”, „Powierzchnia od” / „Powierzchnia do”, „Pokoje od” / „Pokoje do”, „Piętro od” / „Piętro do”; district summary „Dzielnica” + „ ({n})” with n selected districts; with `areaApprox` and no range „Teraz: ok. {areaApprox} m². Wpisany zakres zastąpi przybliżenie.” |
 | pagination | `aria-label` „Paginacja”; „‹ Poprzednia”, „Następna ›”; `aria-label` of the arrows „Poprzednia strona”, „Następna strona” |
 | warnings | visually hidden prefix „Uwaga: ” |
 
@@ -507,6 +508,7 @@ The classic list uses the §11.1 tokens. Until `ask` exists (design §16.2) `/` 
 - **Pills in the filter panel:** city, market, advertiser and the two amenities are pill toggles (hidden native `checkbox`/`radio`, styled label) instead of checkbox and radio rows. Labels and counts are unchanged, e.g. „Gdańsk (108)”.
 - **Districts:** a `<details>` titled „Dzielnica” ({n} selected) closed by default; inside, district pills grouped by city (the §5.4 scroll limit of 240 px stays).
 - **No Apply button:** the filters write the URL on every change (design §9). „Wyczyść filtry” is a link at the top of the panel; nothing in the panel is sticky. On mobile the panel stays open until the „Filtry ({n})” toggle is pressed again.
+- **Floor as text:** the floor filter is a pair of dropdowns with the §7.4 words („suterena”, „parter”, „piętro N”) instead of two number fields, so nobody has to know that the ground floor is 0.
 - **Fields:** filter fields are 44 px (`--field-height`), the search field 52 px.
 - **`--color-border-strong`** is `#8a8279`, not `#b6aea5`: the §11.1 value gives 2.19:1 on white, below the 3:1 §2 requires for field outlines (`#8a8279`: 3.78:1 on white, 3.39:1 on `--color-bg`).
 - **Contrast checked** with the WCAG formula: `--on-teal` on `--teal-900` 6.26:1 and on `--teal-700` 4.91:1; `--teal-900` on `--color-bg` 5.87:1; white on `--teal-700` 5.14:1; `--color-text-secondary` on `--color-bg` 4.64:1.

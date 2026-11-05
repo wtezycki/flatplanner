@@ -5,7 +5,7 @@ Operational rules for coding agents in this repository. The specification lives 
 ## Project
 
 Flatplanner: a simplified flat listings portal for Tricity (Gdańsk, Gdynia, Sopot), sales only, ~150 listings imported once from otodom.pl.
-Stack: .NET 9 Minimal API + EF Core 9 (Pomelo MySQL), React + Vite + TypeScript, MySQL 8.4, OpenAI for two narrow uses (fact extraction at import, chat query → `SearchIntent`), both with deterministic fallbacks. Deployed on Railway.
+Stack: .NET 9 Minimal API + EF Core 9 (Pomelo MySQL), React + Vite + TypeScript, MySQL 8.4, OpenAI at the core of the product (AI-first pivot, design §16): listing dossier at import (summary + nearby places from OSM), and at runtime the `ask` pipeline that judges every listing against the user's needs, with evidence verified by code and deterministic fallbacks. Deployed on Railway.
 Constraint from the task: avoid overengineering; limited time. Scope is fixed; quality of reasoning beats feature count.
 
 ## Layout (design §2)
@@ -28,11 +28,11 @@ Do not import the docs into context wholesale: `design.md` is large. Read the se
 
 ## How to work
 
-- Work on exactly one item from `design.md` §13 at a time, in order, following the cycle below (the `implement-item` skill runs it).
+- Work on exactly one item at a time, in the order of `design.md` §16.5 (which supersedes §13 where they differ), following the cycle below (the `implement-item` skill runs it).
 - Read only the design sections listed in the item's "What is produced" column, plus §6 common rules when touching the API.
 - An item is done when its "Definition of done" is verified literally by a command, test or recorded manual check. Report how it was verified.
 - Do not start the next item, and do not build anything from: design §14.4 (cut order), §14.5 (deliberately not built), product-scope §8 (out of scope) and §9 (cuts).
-- Items #12–#14 are built only if #15–#17 are not at risk (design §13). Ask before starting them.
+- Items #12–#14 are cut (design §16.5). Basic features stay minimal; the AI pipeline is the priority.
 - If the design is ambiguous, contradictory or wrong for the code at hand: stop and ask. Do not improvise a variant.
 - An agreed deviation is recorded in `docs/design.md` (the relevant section or §14.1) in the same commit as the code.
 - Resolving a `[TO BE VERIFIED]` / `[TO VERIFY]` marker (design §14.3): record the result in the design section that holds the marker, in the same commit.
@@ -72,8 +72,8 @@ Environment: `set -a; source .env; set +a` before `dotnet run` (design §10). `e
 - **No layers:** `DbContext` used directly. No repository pattern, unit of work, MediatR, CQRS, generic services, AutoMapper, controllers. Four projects only: Core, Api, Ingest, Tests (design §2).
 - **Enums are `VARCHAR`** with `string` constants (`Flatplanner.Core/Data/Enums.cs`); no C# `enum` + `HasConversion`. Unknown source value → `NULL` + `unknown_value:<column>` flag, never silently mapped.
 - **Dependencies:** only the packages and versions in design §2. A new package needs approval and a design update.
-- **Model translates, code decides:** filters, ranking, medians, tolerances and "what blocks" are deterministic C#. The LLM never ranks or filters.
-- **LLM calls:** prompts only in versioned files under `prompts/` (`search-intent.v1.md`, `listing-facts.v1.md`); a changed prompt is a new version file. Structured output with `strict: true`; output validated (schema, `AnchorValidator`, `SearchIntentNormalizer`) before use. Every call has the design's failure path: chat → `IntentFallbackParser` with `fallbackReason` (§7.7), never 5xx; enrich → `facts_status = 'failed'`, import continues (§5.2).
+- **Model judges, code verifies (design §16):** the LLM interprets needs and gives a verdict per listing; every verdict must cite evidence from the listing dossier (quote, nearby place, field), and C# (`EvidenceVerifier`) downgrades anything unverifiable to `unknown`. Hard filters, grouping order and distances are deterministic C#.
+- **LLM calls:** prompts only in versioned files under `prompts/` (`search-intent.v2.md`, `listing-summary.v1.md`, `listing-judge.v1.md`); a changed prompt is a new version file. Structured output with `strict: true`; output validated (schema, `AnchorValidator`, `SearchIntentNormalizer`) before use. Every call has the design's failure path: chat → `IntentFallbackParser` with `fallbackReason` (§7.7), never 5xx; enrich → `facts_status = 'failed'`, import continues (§5.2); judge batch failure → its listings `unknown` with a notice (§16.2).
 - **HTML is never rendered.** Descriptions are shown as text (`description_text`, `white-space: pre-line`); no `dangerouslySetInnerHTML`.
 - **User-facing text is Polish and comes verbatim from `ui-spec.md` §7.** English strings in `design.md` are glosses. Do not invent copy; if a string is missing from §7, ask.
 - **Secrets:** never in code, `appsettings.json`, commits or logs. Local `.env` (gitignored), Railway variables in production; `.env.example` carries keys with placeholder values only. Never read or print `.env`.

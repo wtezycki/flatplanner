@@ -98,6 +98,7 @@ There are no layers inside the projects: `DbContext` is used directly, without r
 | `create-vite` template `react-ts` | 9.3.3: react 19.3.1, vite ^8.3.5, @vitejs/plugin-react ^6.1.2, typescript ~7.0.2 | take the versions from the template, do not change |
 | `react-router` | 8.5.1 | |
 | `@tanstack/react-query` | 5.105.3 | |
+| `leaflet` / `@types/leaflet` | 1.9.4 / 1.9.22 | map on the details page (R20); loaded lazily, OSM tiles; circle markers only, so no marker image assets are needed |
 
 No other packages. HTML → text and extracting `__NEXT_DATA__` is done by regex, without AngleSharp (section 4). The two `Microsoft.Extensions.*` rows were compiled together with Pomelo 9.0.0 and OpenAI 2.14.0 in a trial net9.0 console project on 2026-11-04.
 
@@ -138,7 +139,8 @@ CREATE TABLE listings (
   external_id          VARCHAR(32)   NOT NULL,
   url                  VARCHAR(512)  NOT NULL,
   title                VARCHAR(300)  NOT NULL,
-  description_text     MEDIUMTEXT    NOT NULL,         -- plain text (4.2); this is what the UI shows and what the LLM sees
+  description_text     MEDIUMTEXT    NOT NULL,         -- plain text (4.2); what the LLM sees and what search and anchors use
+  description_markup   MEDIUMTEXT    NULL,             -- the same text with bold and italic kept as `**` and `*` (4.2, R23); the UI shows this
   search_text          MEDIUMTEXT    NOT NULL,         -- 3.5
   city_slug            VARCHAR(16)   NOT NULL,         -- gdansk | gdynia | sopot
   district_slug        VARCHAR(80)   NULL,             -- last segment of the reverseGeocoding id, e.g. 'wrzeszcz-gorny'
@@ -157,6 +159,10 @@ CREATE TABLE listings (
   market               VARCHAR(16)   NOT NULL,         -- primary | secondary
   finish_condition     VARCHAR(24)   NULL,             -- ready_to_use | to_completion | to_renovation
   ownership            VARCHAR(24)   NULL,             -- full_ownership | limited_ownership
+  heating              VARCHAR(24)   NULL,             -- urban | gas | boiler_room | electrical (R24)
+  building_type        VARCHAR(24)   NULL,             -- block | apartment | tenement (R24)
+  windows_type         VARCHAR(24)   NULL,             -- plastic | wooden | aluminium (R24)
+  building_material    VARCHAR(24)   NULL,             -- brick | silikat | breezeblock | concrete_plate | concrete | cellular_concrete | reinforced_concrete | other (R24)
   rent_pln             INT           NULL,             -- Rent <= 0 -> NULL
   has_lift             TINYINT(1)    NULL,             -- 1 or NULL ("no information"); never 0
   has_balcony          TINYINT(1)    NULL,             -- as above
@@ -208,6 +214,10 @@ CREATE TABLE listing_facts (                         -- result of mini-W2, one r
 | `advertiser_type` | `agency`, `private` | real estate agency, private individual |
 | `finish_condition` | `ready_to_use`, `to_completion`, `to_renovation` | ready to move in, to be finished, for renovation |
 | `ownership` | `full_ownership`, `limited_ownership` | full ownership, cooperative ownership right to the premises (verified at the first import, 2026-11-05: `target.Building_ownership` = `limited_ownership` in 13 of 197 listings) |
+| `heating` | `urban`, `gas`, `boiler_room`, `electrical` | municipal, gas, boiler room, electric (R24; the values seen in the 2026-11-05 import) |
+| `building_type` | `block`, `apartment`, `tenement` | block of flats, apartment building, tenement (R24) |
+| `windows_type` | `plastic`, `wooden`, `aluminium` | plastic, wooden, aluminium (R24) |
+| `building_material` | `brick`, `silikat`, `breezeblock`, `concrete_plate`, `concrete`, `cellular_concrete`, `reinforced_concrete`, `other` | brick, silicate block, breezeblock, large panel, concrete, aerated concrete, reinforced concrete, other (R24) |
 | `raw_listings.normalize_status` | `accepted`, `rejected` (`NULL` = not normalized yet) | — |
 | `facts_status` | `pending`, `done`, `skipped`, `failed` | — |
 | `listing_facts.fact_key` | `parking`, `storage` | parking space, storage unit / cellar |
@@ -223,6 +233,8 @@ A value from otodom outside the list yields `NULL` and the flag `unknown_value:<
 Where labels live: `/api/meta.enums` (6.5) carries the labels of `market`, `advertiserType`, `finishCondition`, `ownership`, `factStatus`, `sort` and `provenance`. The labels of detail fields, quality flags (3.6) and fact keys are frontend constants in `web/src/format.ts` (section 9, `docs/ui-spec.md` §7.2). The labels of `preferences` and `outOfScope` reach the UI only as chip labels (7.6), because they are never shown outside a chip.
 
 ### 3.4 Data provenance (W1)
+
+Superseded for the details page by R19 (14.1): the details response carries no provenance. The text below stays as background for the dossier (16.1).
 
 **Mechanism: provenance is a constant assigned to the field, not a column.** In this scope no field has two possible sources:
 - fields from otodom → `listing`,
@@ -310,10 +322,15 @@ All paths are relative to `ad`. Numbers from otodom are sometimes a JSON number 
 | `target.Build_year` | `build_year` | `int` 1800–(year + 6) | NULL; outside the range → NULL + flag |
 | `target.Construction_status[0]` | `finish_condition` | value from 3.3 | NULL; other → NULL + `unknown_value:finish_condition` |
 | `target.Building_ownership[0]` | `ownership` | value from 3.3 | NULL; other → NULL + `unknown_value:ownership` |
+| `target.Heating[0]` | `heating` | value from 3.3 | NULL; other → NULL + `unknown_value:heating` |
+| `target.Building_type[0]` | `building_type` | value from 3.3 | NULL; other → NULL + `unknown_value:building_type` |
+| `target.Windows_type[0]` | `windows_type` | value from 3.3 | NULL; other → NULL + `unknown_value:windows_type` |
+| `target.Building_material[0]` | `building_material` | value from 3.3 | NULL; other → NULL + `unknown_value:building_material` |
 | `target.Rent` | `rent_pln` | `int`; **≤ 0 → NULL + `rent_zero_as_missing`** (in the sample `Rent = 0` in 7/20 listings, [product-scope.md](product-scope.md) §2); outside 50–5 000 → NULL + `rent_out_of_range` | NULL |
 | `target.Extras_types[]` | `has_lift`, `has_balcony`, `has_garage`, `has_basement` | contains `lift` / `balcony` / `garage` / `basement` → `true`, otherwise **NULL** (`Extras_types` is a list, absence of an element ≠ “no”; in 14 listings `additionalInformation.lift` has only `::y` or is empty, there is no “no” value) | NULL (the array can be `null`) |
 | `target.user_type` | `advertiser_type` | `agency`/`private` | NULL; other → NULL + `unknown_value:advertiser_type` |
 | `description` | `description_text` | `HtmlText.ToPlain` (below) | `""` |
+| `description` | `description_markup` | `HtmlText.ToMarkup`: as `ToPlain`, but `<strong>`/`<b>` become `**…**` and `<em>`/`<i>` become `*…*`; literal `*` and `\` are escaped with `\`; empty emphasis is dropped | `NULL` |
 | (computed) | `search_text` | 3.5 | — |
 | `images[].medium` | `image_urls` | first 10 non-empty | `[]` (the UI shows a placeholder) |
 | `createdAt` | `created_at_source` | ISO 8601 → UTC | `scraped_at` + flag `created_at_missing` |
@@ -468,9 +485,9 @@ Common rules:
 - **one serialization rule** (follows the Microsoft REST guidelines: do not send fields with a `null` value):
   - fields whose value is `null` are **omitted**: `builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)`;
   - arrays are **always present** (empty = `[]`), booleans are **always present**;
-  - the only exception is `Sourced<T>.Value` in details (6.2): it is always written, also as `null`, because there `null` carries the information “no data”. In C#: `record Sourced<T>([property: JsonIgnore(Condition = JsonIgnoreCondition.Never)] T? Value, string Provenance)`;
+  - there is no exception: a missing value in details is an omitted field, which the UI shows as “brak danych” (6.2, 14.1);
   - TypeScript types in `web/src/api.ts` mark every omittable field as optional (`why?: string`);
-  - the options live in one static `ApiJson.Options` used both by `ConfigureHttpJsonOptions` and by `ApiSerializationTests` (section 12), which serialize sample DTOs and assert: no `:null` in the list response, `"value":null` for a missing field in details, `null` kept inside `remove`. `ConfigureHttpJsonOptions` verified in #1 for endpoints that return a DTO (`/api/meta` omits `dataAsOf` when it is `null`); `Results.Json` is given `ApiJson.Options` explicitly. **[TO BE VERIFIED]** for `TypedResults` in .NET 9 (aspnetcore issue #45872); the smoke test (11.5, step 7) checks the real HTTP response;
+  - the options live in one static `ApiJson.Options` used both by `ConfigureHttpJsonOptions` and by `ApiSerializationTests` (section 12), which serialize sample DTOs and assert: no `:null` in the list response, `null` kept inside `remove`. `ConfigureHttpJsonOptions` verified in #1 for endpoints that return a DTO (`/api/meta` omits `dataAsOf` when it is `null`); `Results.Json` is given `ApiJson.Options` explicitly. **[TO BE VERIFIED]** for `TypedResults` in .NET 9 (aspnetcore issue #45872); the smoke test (11.5, step 7) checks the real HTTP response;
 - **compression:** after the first deploy check `curl -sI -H 'Accept-Encoding: br, gzip' $URL/api/listings`. If the response has no `content-encoding`, add `builder.Services.AddResponseCompression(o => o.EnableForHttps = true)` and `app.UseResponseCompression()` before `UseStaticFiles` (Kestrel does not compress on its own; behind the proxy the request scheme is `https` after `UseForwardedHeaders`). BREACH needs a secret in the response next to reflected input; this API has no auth, cookies or CSRF tokens, so the risk is negligible. Compression is the only change with a real effect on transfer: JSON shrinks by ~70–85%, and the SPA bundle gains the most.
 
 ### 6.1 `GET /api/listings`
@@ -557,7 +574,7 @@ The list response does **not** echo the intent. The URL is the single source of 
 
 ### 6.2 `GET /api/listings/{id}` (`id`: long)
 
-`404` ProblemDetails when the listing does not exist. Every substantive field has the shape `{ "value": T | null, "provenance": "listing|description|computed|missing" }` (C#: `record Sourced<T>(T? Value, string Provenance)` with `Value` always written, see the serialization rule in §6). A missing field therefore looks like `"buildYear": { "value": null, "provenance": "missing" }`. `Sourced<T>` costs ~35 B per field (~600 B per response, once per view) and is deliberate: it carries W1 and keeps “no data” distinct from “no” (`has_lift` is 1 or NULL, never 0).
+`404` ProblemDetails when the listing does not exist (a non-numeric id does not match the route and gives the `/api/{**rest}` `404`). The response is a flat `ListingDetail` (agreed simplification, 14.1 and 16.5): no `Sourced<T>`, no provenance, no `facts`, `realPrice`, `qualityFlags` or `askSeller`. A value the listing does not give is an omitted field (the serialization rule in §6), so “no data” is never confused with a value; `hasLift`, `hasBalcony`, `hasGarage` and `hasBasement` are `true` or omitted, never `false`.
 
 ```json
 {
@@ -566,52 +583,17 @@ The list response does **not** echo the intent. The URL is the single source of 
   "scrapedAt": "2026-11-04T08:10:00Z", "createdAtSource": "2026-11-04T07:49:54Z",
   "imageUrls": ["https://ireland.apollo.olxcdn.com/..."],
   "descriptionText": "Na sprzedaż 2-pokojowe mieszkanie położone na 4. piętrze z 6 ...",
-  "citySlug": "gdansk", "cityName": "Gdańsk",
-  "fields": {
-    "pricePln":        { "value": 799000, "provenance": "listing" },
-    "areaM2":          { "value": 41.86, "provenance": "listing" },
-    "pricePerM2":      { "value": 19087, "provenance": "computed" },
-    "rooms":           { "value": 2, "provenance": "listing" },
-    "floor":           { "value": 4, "provenance": "listing" },
-    "buildingFloors":  { "value": 6, "provenance": "listing" },
-    "buildYear":       { "value": 2019, "provenance": "listing" },
-    "market":          { "value": "secondary", "provenance": "listing" },
-    "finishCondition": { "value": "ready_to_use", "provenance": "listing" },
-    "ownership":       { "value": "full_ownership", "provenance": "listing" },
-    "rentPln":         { "value": 700, "provenance": "listing" },
-    "hasLift":         { "value": true, "provenance": "listing" },
-    "hasBalcony":      { "value": true, "provenance": "listing" },
-    "hasGarage":       { "value": true, "provenance": "listing" },
-    "hasBasement":     { "value": true, "provenance": "listing" },
-    "advertiserType":  { "value": "agency", "provenance": "listing" },
-    "districtName":    { "value": "Letnica", "provenance": "listing" },
-    "street":          { "value": "ul. Starowiejska", "provenance": "listing" }
-  },
+  "descriptionMarkup": "Na sprzedaż **2-pokojowe mieszkanie** położone na 4. piętrze z 6 ...",
+  "citySlug": "gdansk", "cityName": "Gdańsk", "districtName": "Letnica", "street": "ul. Starowiejska", "lat": 54.3912, "lng": 18.6224,
   "locationApproximate": false,
-  "facts": [
-    { "factKey": "parking", "status": "extra_cost", "amountPln": 60000,
-      "quote": "Miejsce postojowe w hali garażowej: 60 000 zł - dodatkowo płatne", "provenance": "description" }
-  ],
-  "realPrice": { "basePricePln": 799000, "extras": [ { "factKey": "parking", "amountPln": 60000 } ], "totalPln": 859000 },
-  "qualityFlags": [],
-  "askSeller": []
+  "pricePln": 799000, "areaM2": 41.86, "pricePerM2": 19087, "rooms": 2,
+  "floor": 4, "floorHigherThan10": false, "floorIsGarret": false, "buildingFloors": 6, "buildYear": 2019,
+  "market": "secondary", "finishCondition": "ready_to_use", "ownership": "full_ownership", "heating": "urban", "buildingType": "block", "windowsType": "plastic", "buildingMaterial": "brick", "rentPln": 700,
+  "hasLift": true, "hasBalcony": true, "hasGarage": true, "hasBasement": true, "advertiserType": "agency"
 }
 ```
 
-`realPrice` is omitted when there are no `extra_cost` facts with an amount; `facts[].amountPln` and `facts[].quote` are omitted when null. The stale-data note (text in [ui-spec.md](ui-spec.md) §7.1) is UI copy built in the frontend from `scrapedAt`, not an API field. `facts` contains only `validation_status = 'accepted'`. A missing fact does not generate an entry; the UI then shows “Parking space (description): no data”. The UI translates enum values using labels from `/api/meta`.
-
-**`askSeller` (W7):** a list of strings in this order, generated by rules in `AskSellerRules`:
-
-| Condition | Question |
-|---|---|
-| `rent_pln IS NULL` | “The amount of the rent (czynsz, maintenance fee) and what it covers” |
-| `build_year IS NULL` | “The year the building was built” |
-| `floor IS NULL` | “The floor of the flat” |
-| `floor` set, `building_floors IS NULL` | “The number of floors in the building” |
-| `ownership IS NULL` | “The form of ownership and the land and mortgage register (KW, Księga Wieczysta)” |
-| no `parking` fact, `has_garage IS NULL` | “Whether there is a parking space and whether it is included in the price” |
-| no `parking` fact, `has_garage = 1` | “Whether the parking space is included in the price of the flat” |
-| `parking` fact = `extra_cost` without an amount | “The price of the parking space” |
+`lat` and `lng` feed the details map (R20). `descriptionMarkup` carries the emphasised description (R23) and is omitted when null; the UI falls back to `descriptionText`. `floorHigherThan10` and `floorIsGarret` come from the `floor_higher_10` and `floor_garret` quality flags and drive the floor label (ui-spec §7.4). The stale-data note is UI copy built in the frontend from `scrapedAt`. The UI translates enum values using labels from `/api/meta`.
 
 ### 6.3 `POST /api/search/interpret`
 
@@ -706,6 +688,10 @@ The source of the lists for the filters. `MetaService` in Api takes `SearchMeta`
     "advertiserType": [ { "value": "agency", "label": "estate agency" }, { "value": "private", "label": "private individual" } ],
     "finishCondition": [ { "value": "ready_to_use", "label": "ready to use" }, { "value": "to_completion", "label": "to be finished" }, { "value": "to_renovation", "label": "to be renovated" } ],
     "ownership": [ { "value": "full_ownership", "label": "full ownership" }, { "value": "limited_ownership", "label": "cooperative ownership right to the premises" } ],
+    "heating": [ { "value": "urban", "label": "miejskie" } ],
+    "buildingType": [ { "value": "block", "label": "blok" } ],
+    "windowsType": [ { "value": "plastic", "label": "plastikowe" } ],
+    "buildingMaterial": [ { "value": "brick", "label": "cegła" } ],
     "factStatus": [ { "value": "included", "label": "included in the price" }, { "value": "extra_cost", "label": "extra charge" }, { "value": "not_available", "label": "none" } ],
     "sort": [ { "value": "newest", "label": "newest" }, { "value": "price_asc", "label": "cheapest" }, { "value": "price_desc", "label": "most expensive" }, { "value": "price_per_m2_asc", "label": "lowest price/m²" }, { "value": "relevance", "label": "best match" } ],
     "provenance": [ { "value": "listing", "label": "from the advertisement" }, { "value": "description", "label": "from the description" }, { "value": "computed", "label": "calculated" }, { "value": "missing", "label": "no data" } ]
@@ -1075,7 +1061,7 @@ Example: “Gdańsk Morena kawalerka” in search, then a price of up to 500 000
 **Details:**
 - a table of fields with a provenance badge (labels from `/api/meta.enums.provenance`), “no data” instead of empty spots;
 - a “Real price” block with a quote, “Approximate location”, “Data quality notes” (flags with labels), “Ask the seller about:”, a link to otodom, and the stale-data note built from `scrapedAt` (text in [ui-spec.md](ui-spec.md) §7.1) (not an API field, 6.2);
-- the description as **text** (`description_text`, CSS `white-space: pre-line`). HTML is never rendered, so there is no XSS;
+- the description as **text with light markup** (`description_markup`: bold, italic, paragraphs and bullet lists, turned into React elements by our own parser; falls back to `description_text`). HTML is never rendered, so there is no XSS;
 - photos as `<img loading="lazy" referrerPolicy="no-referrer">`.
 
 **Libraries:**
@@ -1268,7 +1254,7 @@ The `main` branch requires both jobs to pass before a squash merge. A `docker bu
   - **assertions:** `rent_pln == null` + `rent_zero_as_missing`; `location_approximate`; `floor == 0`; `has_lift == true` or `null` (never `false`); `district_slug` from `reverseGeocoding`; `price_per_m2`; `description_text` without tags and without U+00A0; a record without a price (fixture modified in the test) → rejected with `missing_price`; a description with “tel. 501 234 567” and “jan@example.com” (fixture modified in the test) → both masked, “799 000 zł” untouched (4.2 step 9).
 - **`AnchorValidatorTests`:** a quote with nbsp and “—” vs a description with a space and “-” → `accepted`; a paraphrase → `quote_not_found`; “60 000 zł” in the quote vs `60000` → `accepted`; “25 tys.” vs `25000` → `accepted`; an amount outside the quote → `amount_not_in_quote`.
 - **`ApiSerializationTests`** (no `WebApplicationFactory`, no database): serialize sample list and details DTOs with `ApiJson.Options` (§6) and assert, growing with the items that add the fields:
-  - from §13 #4: no `:null` in the list response; from #6: `"value":null` for a missing field in details;
+  - from §13 #4: no `:null` in the list response; from #6: no `:null` in the details response, `imageUrls` always present;
   - from #12: `blockers` absent when not computed and `[]` when computed with no helpful removal;
   - from #13: `"remove":{"areaMin":null,...}` keeps `null` inside the map.
 - **`SearchIntentSchemaTests`:**
@@ -1331,7 +1317,7 @@ Items are carried out in sequence; each ends with a verifiable definition of don
 | 3 | Scraper + normalization + test | `scrape`, `normalize`, `report` (4.1–4.4), masked fixtures, `NormalizationTests` (12); a first draft of `docs/one-pager.md` with the numbers from the report | Ingest, Tests | ≥ 100 rows in `listings`, `docs/ingest-report.md` generated, tests green, the one-pager draft has the data section filled in |
 | 4 | List API + text search | `SearchMeta` + `SearchMetaLoader` (7.1), `SearchIntent` (7.1) + `SearchIntentNormalizer` (7.3); `ApiJson.Options` with the serialization rule (§6); `GET /api/listings`: filters 7.4, `text` 3.5, sort without `relevance`, offset (6.1); **minimal** `InterpretationBuilder`: `summary` + `chips` with `key` and `label`, without `remove`; `ApiSerializationTests` (12, the #4 assertions) | Core, Api, Tests | `?cities=gdansk&areaMin=40&areaMax=80` returns `total` = the result of a manual `SELECT COUNT(*)` and contains no `:null`; `?text=morena` returns only listings whose `search_text` contains it; tests green |
 | 5 | React list + filters + text search + URL | `ListingsPage`, `SearchBar` (search mode sets `text=`, error display), `Filters` (owned parameters and the two “Apply” rules), `ListingCard`, `Pagination`, `intent.ts`, display of `warnings` (section 9) | web | scenario A in the browser; the search field sets `text`, filters narrow the result; setting `areaMax` after `areaApprox` leaves only the explicit range; page refresh and “back” restore the state |
-| 6 | Details | `GET /api/listings/{id}` with `Sourced<T>` (6.2), `ListingDetailPage` | Api, web | every field has a provenance badge, NULL = “no data”, link to otodom |
+| 6 | Details (minimal, §16.5) | `GET /api/listings/{id}` returning a flat `ListingDetail` (6.2), `ListingDetailPage` (fields, description, link to otodom) | Api, web | every field is shown, a missing value is “brak danych”, link to otodom, 404 page for an unknown id |
 | 7 | Chat → `SearchIntent` | `SearchIntentSchema` (7.2), `KeywordRules` + `IntentFallbackParser` (7.7), `LlmJsonClient`, `IntentInterpreter`, `POST /api/search/interpret`, chat mode in `SearchBar`, `prompts/search-intent.v1.md` (7.1–7.3, 7.7); `scopeBlocked` (6.1) and the notices `city_out_of_scope`, `rent_out_of_scope`, `house_out_of_scope`, `metro_not_available` (7.6); `SearchIntentSchemaTests` (12) | Core, Api, web, Tests | B and “2 pokoje w Krakowie” give the expected intent; `CHAT_MODE=fallback` gives an intent without the network; “chcę wynająć coś blisko metra” gives `scopeBlocked` with both notices; schema tests green |
 | 8 | Ranking + interpretation | `sort=relevance`, medians excluding `price_outlier` (filter by the `price_per_m2` range, 7.4), `why`, the `median_fallback` notice (7.4–7.6) | Api | scenario B: `sort=relevance`, `why` on every card, `summary` with the median and `n` |
 | 9 | 10 test queries | `tests/search-queries.json`, `FallbackParserTests`, `eval-intents` (12) | Tests, Ingest | fallback test green; `eval-intents` prints the X/10 score |
@@ -1372,6 +1358,12 @@ Places where earlier documents or data allowed two variants, and the variant ado
 | R16 | LLM provider (the task requirements allow any) | OpenAI | credits available on the OpenAI account |
 | R17 | [product-scope.md](product-scope.md) §4 item 4: text search = `LIKE` alone | adopted: filters, `LIKE` text search and chat (LLM); keyword parsing of the search field cut (6.7) | the requirement “text + filters” is met by `LIKE`; parsing intent from text is the chat's job, so a second parser would duplicate it |
 | R18 | response shape of the list: full echo of the intent with every `null`, a separate `cityMedians` field, `remove` as a list of `{param, value}` | no intent echo in `GET /api/listings`, `null` fields omitted (except `Sourced<T>.Value`), no `cityMedians`, `remove` as a map | an echo nobody reads, three copies of the median and `null` sentinels make the response harder to read without adding information; transfer size is handled by compression (§6) |
+| R19 | Details contract after the AI pivot (#6) | Flat `ListingDetail` without `Sourced<T>` and provenance badges; `facts`, `realPrice`, `askSeller` and `qualityFlags` are not returned. Missing value = omitted field = “brak danych” in the UI | §16.5 cuts badges, real price, “Ask the seller” and the quality-flag UI; with no provenance to carry, `Sourced<T>` has no purpose. Facts return with the dossier (#11′) |
+| R20 | Details page UI after review of #6 (map, lightbox, description formatting) | A single-column page with a map of the (approximate) location, a photo lightbox and a structured description. Map: a non-interactive preview that opens an interactive fullscreen map on click; Leaflet + OSM tiles, a circle of 500 m (`APPROXIMATE_RADIUS_M`, otodom gives no radius in our data) when `locationApproximate`, a circle marker otherwise. Photo lightbox and map share one native `<dialog>` component. Description: `description_text` split into headings (a line of up to 40 characters ending with “:”), bullet lists (“- ”, “•”) and paragraphs, rendered as React elements | the plain page looked empty next to the original; the fields stay the same, `description_html` stays cut (§14.5) and HTML is still never rendered. Overrides the “Map” and “lightbox” exclusions in product-scope §8 and ui-spec §9 for the details page only |
+| R21 | Details page: icons and key facts panel (review of #6) | A panel of six key facts (area, rooms, floor, year built, street, city) above the parameter list; a bold location line with a pin; inline SVG icons (own `Icon` component, hand-written paths, no library, no new dependency) in the panel and in the parameter rows | the page read as a flat list; the panel gives the buyer the essentials at a glance. Overrides “no SVG” in ui-spec §9 for the details page; icons are decorative (`aria-hidden`) |
+| R22 | Details page layout after the second review of #6 | A mosaic of three photos on desktop (carousel on mobile); one key facts panel (area, rooms, floor, year built, ownership, location = street + city) beside the map, so the map is no longer at the bottom; the parameter list drops what the panel shows; the description sits in a card; the otodom link is a secondary button. A key fact without a value keeps its cell and reads “brak danych” | the buyer should see photos, essentials and the place without scrolling; the original listing is a reference, not the main action. Supersedes the layout parts of R20 and R21 |
+| R23 | Description formatting (#6 review) | A nullable `description_markup` column (migration `DescriptionMarkup`) keeps the original bold and italic as `**` and `*`; the details page renders paragraphs, bullet lists and emphasis from it. `description_text` stays plain for search, the LLM and quote anchors. The earlier heading heuristic is dropped (the original has no headings, only bold lines) | the plain text lost the emphasis the seller used. HTML is still never stored or rendered, so no sanitiser package is needed. Needs `normalize` to be re-run after the migration, and the dump to be refreshed (11.4) |
+| R24 | More details fields (#6 review) | Four more otodom fields on `listings` and in `ListingDetail`: `heating`, `building_type`, `windows_type`, `building_material` (migration `BuildingCharacteristics`), with labels in `/api/meta.enums`, shown as parameter rows on the details page. Values are the ones seen in the import; any other value gives NULL + `unknown_value:<column>` | the brief leaves the choice of data to us, and these four have the best coverage in the import (heating 183, building type 175, windows 151, material 120 of 198). Not added: free-from date (71), media, security, equipment, energy certificate (too sparse or too heterogeneous). `normalize` must be re-run and the dump refreshed (11.4) |
 
 ### 14.2 Technical decisions
 

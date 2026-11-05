@@ -67,7 +67,7 @@ Environment: `set -a; source .env; set +a` before `dotnet run` (design §10). `e
 ## Hard rules
 
 - **Names are final.** Tables, columns, C# types, endpoints, JSON fields, query parameters, environment variables and file names are copied 1:1 from the design. URL parameters = `SearchIntent` property names (R2).
-- **Serialization rule (design §6):** null fields are omitted (`JsonIgnoreCondition.WhenWritingNull` in `ApiJson.Options`); arrays and booleans are always present; the only exception is `Sourced<T>.Value`, always written, also as `null`. TypeScript marks every omittable field as optional.
+- **Serialization rule (design §6):** null fields are omitted (`JsonIgnoreCondition.WhenWritingNull` in `ApiJson.Options`); arrays and booleans are always present; no exceptions (a missing value in details is an omitted field). TypeScript marks every omittable field as optional.
 - **Migrations:** every entity or model-configuration change gets `dotnet ef migrations add <Name>` in the same commit. EF Core 9 raises `PendingModelChangesWarning` in `Migrate()`, and the API migrates at startup, so a missing migration is a production restart loop.
 - **No layers:** `DbContext` used directly. No repository pattern, unit of work, MediatR, CQRS, generic services, AutoMapper, controllers. Four projects only: Core, Api, Ingest, Tests (design §2).
 - **Enums are `VARCHAR`** with `string` constants (`Flatplanner.Core/Data/Enums.cs`); no C# `enum` + `HasConversion`. Unknown source value → `NULL` + `unknown_value:<column>` flag, never silently mapped.
@@ -84,7 +84,7 @@ Environment: `set -a; source .env; set +a` before `dotnet run` (design §10). `e
 
 - `Directory.Build.props`: `net9.0`, `Nullable=enable`, `ImplicitUsings=enable`. The design sets no warnings-as-errors or analyzer packages; do not add them.
 - File-scoped namespaces; one public type per file, named after the type.
-- `sealed record` for DTOs and value types; `Sourced<T>` exactly as in §6.
+- `sealed record` for DTOs and value types.
 - `async` all the way with `CancellationToken` passed through; no `.Result` / `.Wait()`.
 - Configuration only through `FlatplannerOptions` (`[ConfigurationKeyName]`, `ValidateOnStart`); no direct `Environment.GetEnvironmentVariable`.
 - Logging via `ILogger<T>` with message templates (`"Rejected {ExternalId}: {Reason}"`), no string interpolation, no `Console.WriteLine` except Ingest command output the design specifies (`report`, `eval-intents`, `scrape` counters).
@@ -95,10 +95,10 @@ Environment: `set -a; source .env; set +a` before `dotnet run` (design §10). `e
 ## TypeScript conventions
 
 - `strict` from the template; no `any`, no non-null `!` to silence the compiler.
-- Optional API fields are `field?: T` and are `undefined` when absent, never `null`. The exception mirrors the API: `Sourced<T>.value: T | null`.
+- Optional API fields are `field?: T` and are `undefined` when absent, never `null`. 
 - DTO types by hand in `web/src/api.ts`; no OpenAPI generator. State lives in the URL (`useSearchParams`), server data in TanStack Query; no global store.
 - Comments: the same rule as for C# (default is none).
-- Only `react-router` and `@tanstack/react-query` beyond the template. One `web/src/styles.css`, tokens from ui-spec §2; no component library.
+- Only `react-router`, `@tanstack/react-query` and `leaflet` (details map, design R20) beyond the template. One `web/src/styles.css`, tokens from ui-spec §2; no component library.
 
 ## Testing
 

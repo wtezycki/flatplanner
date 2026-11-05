@@ -128,7 +128,8 @@ public static partial class ListingNormalizer
         }
 
         var street = ad.Get("location", "address", "street", "name").GetString()?.Trim();
-        var description = ad.Get("description").GetString() is { } html ? HtmlText.ToPlain(html) : "";
+        var descriptionHtml = ad.Get("description").GetString();
+        var description = descriptionHtml is null ? "" : HtmlText.ToPlain(descriptionHtml);
 
         return NormalizeResult.Accept(new Listing
         {
@@ -137,6 +138,7 @@ public static partial class ListingNormalizer
             Url = url,
             Title = title.Length > MaxTitleLength ? title[..MaxTitleLength] : title,
             DescriptionText = description,
+            DescriptionMarkup = descriptionHtml is null ? null : HtmlText.ToMarkup(descriptionHtml),
             SearchText = TextFolding.Fold(
                 $"{title} {description} {districtName} {street} {CityNames[citySlug]}"),
             CitySlug = citySlug,
@@ -158,6 +160,11 @@ public static partial class ListingNormalizer
             Market = market,
             FinishCondition = ReadEnum(target.Get("Construction_status").First(), FinishCondition.All, "finish_condition", flags),
             Ownership = ReadEnum(target.Get("Building_ownership").First(), Ownership.All, "ownership", flags),
+            Heating = ReadEnum(target.Get("Heating").First(), Heating.All, "heating", flags),
+            BuildingType = ReadEnum(target.Get("Building_type").First(), BuildingType.All, "building_type", flags),
+            WindowsType = ReadEnum(target.Get("Windows_type").First(), WindowsType.All, "windows_type", flags),
+            BuildingMaterial = ReadEnum(
+                target.Get("Building_material").First(), BuildingMaterial.All, "building_material", flags),
             RentPln = ReadRent(target.Get("Rent"), flags),
             HasLift = HasExtra(target, "lift"),
             HasBalcony = HasExtra(target, "balcony"),

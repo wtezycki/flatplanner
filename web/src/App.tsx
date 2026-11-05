@@ -2,6 +2,7 @@ import { Link, Route, Routes, useMatch } from 'react-router'
 import wordmark from './assets/flatbanner.svg'
 import logo from './assets/flatplanner.svg'
 import SearchBar from './components/SearchBar.tsx'
+import ListingDetailPage from './pages/ListingDetailPage.tsx'
 import ListingsPage from './pages/ListingsPage.tsx'
 
 export default function App() {
@@ -24,6 +25,7 @@ export default function App() {
       <main>
         <Routes>
           <Route path="/" element={<ListingsPage />} />
+          <Route path="/listings/:id" element={<ListingDetailPage />} />
         </Routes>
       </main>
     </>

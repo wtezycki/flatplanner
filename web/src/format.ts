@@ -30,3 +30,26 @@ export function formatFloor(floor: number, buildingFloors: number | undefined, h
   const label = `piętro ${floor}${higherThan10 ? '+' : ''}`
   return buildingFloors === undefined ? label : `${label}/${buildingFloors}`
 }
+
+export const formatDate = (iso: string) => new Date(iso).toLocaleDateString('pl-PL')
+
+export function formatDetailFloor(
+  floor: number | undefined,
+  buildingFloors: number | undefined,
+  higherThan10: boolean,
+  garret: boolean,
+): string | undefined {
+  if (floor === undefined) {
+    return garret ? 'poddasze' : undefined
+  }
+  if (floor < 0) {
+    return 'suterena'
+  }
+  if (floor === 0) {
+    return 'parter'
+  }
+  const label = `${floor}${higherThan10 ? '+' : ''}`
+  return buildingFloors === undefined ? label : `${label} z ${buildingFloors}`
+}
+
+export const formatPhotosCount = (count: number) => `${count} ${pluralPl(count, 'zdjęcie', 'zdjęcia', 'zdjęć')}`

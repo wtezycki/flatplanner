@@ -47,6 +47,49 @@ public static class Ownership
     public static readonly string[] All = [Full, Limited];
 }
 
+public static class Heating
+{
+    public const string Urban = "urban";
+    public const string Gas = "gas";
+    public const string BoilerRoom = "boiler_room";
+    public const string Electrical = "electrical";
+
+    public static readonly string[] All = [Urban, Gas, BoilerRoom, Electrical];
+}
+
+public static class BuildingType
+{
+    public const string Block = "block";
+    public const string Apartment = "apartment";
+    public const string Tenement = "tenement";
+
+    public static readonly string[] All = [Block, Apartment, Tenement];
+}
+
+public static class WindowsType
+{
+    public const string Plastic = "plastic";
+    public const string Wooden = "wooden";
+    public const string Aluminium = "aluminium";
+
+    public static readonly string[] All = [Plastic, Wooden, Aluminium];
+}
+
+public static class BuildingMaterial
+{
+    public const string Brick = "brick";
+    public const string Silikat = "silikat";
+    public const string Breezeblock = "breezeblock";
+    public const string ConcretePlate = "concrete_plate";
+    public const string Concrete = "concrete";
+    public const string CellularConcrete = "cellular_concrete";
+    public const string ReinforcedConcrete = "reinforced_concrete";
+    public const string Other = "other";
+
+    public static readonly string[] All =
+        [Brick, Silikat, Breezeblock, ConcretePlate, Concrete, CellularConcrete, ReinforcedConcrete, Other];
+}
+
 public static class FactsStatus
 {
     public const string Pending = "pending";

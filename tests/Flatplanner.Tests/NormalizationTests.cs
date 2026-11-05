@@ -40,6 +40,35 @@ public sealed class NormalizationTests
     }
 
     [Fact]
+    public void Normalize_BuildingCharacteristics_ReadFromTarget()
+    {
+        var ad = Load(Secondary);
+        ad["target"]!["Heating"] = new JsonArray("gas");
+        ad["target"]!["Building_type"] = new JsonArray("tenement");
+        ad["target"]!["Windows_type"] = new JsonArray("wooden");
+        ad["target"]!["Building_material"] = new JsonArray("silikat");
+
+        var listing = Accept(ad);
+
+        Assert.Equal(Heating.Gas, listing.Heating);
+        Assert.Equal(BuildingType.Tenement, listing.BuildingType);
+        Assert.Equal(WindowsType.Wooden, listing.WindowsType);
+        Assert.Equal(BuildingMaterial.Silikat, listing.BuildingMaterial);
+    }
+
+    [Fact]
+    public void Normalize_UnknownHeating_IsNullWithFlag()
+    {
+        var ad = Load(Secondary);
+        ad["target"]!["Heating"] = new JsonArray("geothermal");
+
+        var listing = Accept(ad);
+
+        Assert.Null(listing.Heating);
+        Assert.Contains(QualityFlag.UnknownValue("heating"), listing.QualityFlags);
+    }
+
+    [Fact]
     public void Normalize_NoLiftInExtras_HasLiftIsNullNeverFalse()
     {
         var ad = Load(Secondary);
@@ -86,6 +115,39 @@ public sealed class NormalizationTests
 
         Assert.Null(result.Listing);
         Assert.Equal(RejectReason.MissingPrice, result.RejectReason);
+    }
+
+    [Fact]
+    public void Normalize_EmphasisInDescription_MarkupKeepsItAndPlainTextDoesNot()
+    {
+        var ad = Load(Primary);
+        ad["description"] = "<p><strong>Cisza:</strong> blisko <em>parku</em> *</p><p><b> </b>Koniec</p>";
+
+        var listing = Accept(ad);
+
+        Assert.Equal("**Cisza:** blisko *parku* \\*\nKoniec", listing.DescriptionMarkup);
+        Assert.Equal("Cisza: blisko parku *\nKoniec", listing.DescriptionText);
+    }
+
+    [Fact]
+    public void Normalize_AdjacentBoldRuns_NotTreatedAsEmpty()
+    {
+        var ad = Load(Primary);
+        ad["description"] = "<p><b>a</b> <b>b</b></p>";
+
+        Assert.Equal("**a** **b**", Accept(ad).DescriptionMarkup);
+    }
+
+    [Fact]
+    public void Normalize_PhoneSplitByEmphasis_MarkupDroppedSoNoNumberLeaks()
+    {
+        var ad = Load(Primary);
+        ad["description"] = "<p>Zadzwoń: <b>501</b> 234 567</p>";
+
+        var listing = Accept(ad);
+
+        Assert.Contains(HtmlText.PhoneMask, listing.DescriptionText);
+        Assert.Null(listing.DescriptionMarkup);
     }
 
     [Fact]

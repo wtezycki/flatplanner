@@ -50,6 +50,16 @@ namespace Flatplanner.Core.Migrations
                         .HasColumnType("tinyint unsigned")
                         .HasColumnName("building_floors");
 
+                    b.Property<string>("BuildingMaterial")
+                        .HasMaxLength(24)
+                        .HasColumnType("varchar(24)")
+                        .HasColumnName("building_material");
+
+                    b.Property<string>("BuildingType")
+                        .HasMaxLength(24)
+                        .HasColumnType("varchar(24)")
+                        .HasColumnName("building_type");
+
                     b.Property<string>("CitySlug")
                         .IsRequired()
                         .HasMaxLength(16)
@@ -59,6 +69,10 @@ namespace Flatplanner.Core.Migrations
                     b.Property<DateTime>("CreatedAtSource")
                         .HasColumnType("datetime(6)")
                         .HasColumnName("created_at_source");
+
+                    b.Property<string>("DescriptionMarkup")
+                        .HasColumnType("mediumtext")
+                        .HasColumnName("description_markup");
 
                     b.Property<string>("DescriptionText")
                         .IsRequired()
@@ -113,6 +127,11 @@ namespace Flatplanner.Core.Migrations
                     b.Property<bool?>("HasLift")
                         .HasColumnType("tinyint(1)")
                         .HasColumnName("has_lift");
+
+                    b.Property<string>("Heating")
+                        .HasMaxLength(24)
+                        .HasColumnType("varchar(24)")
+                        .HasColumnName("heating");
 
                     b.Property<string>("ImageUrls")
                         .IsRequired()
@@ -194,6 +213,11 @@ namespace Flatplanner.Core.Migrations
                         .HasMaxLength(512)
                         .HasColumnType("varchar(512)")
                         .HasColumnName("url");
+
+                    b.Property<string>("WindowsType")
+                        .HasMaxLength(24)
+                        .HasColumnType("varchar(24)")
+                        .HasColumnName("windows_type");
 
                     b.HasKey("Id");
 

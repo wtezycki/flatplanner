@@ -14,7 +14,7 @@ Complements [design.md](design.md) §9 (frontend), §6 (API contract) and §7 (i
 2. **Lots of white.** The page background is white, surfaces (filter panel, boxes) use `--color-surface`, dividers are thin lines instead of shadows.
 3. **Green only with a reason:** action (primary button, link), active state (selected page, selected mode, focus), highlight (“Real price”, “Why here”, chips). Green is not a decorative colour.
 4. **Density of an advertisement portal.** On desktop 4–5 cards on the screen, a horizontal card ~180 px high; no huge heroes and empty sections.
-5. **Data honesty visible in the UI.** Every field in the details has a provenance badge, absence is an explicit “no data”, a quote from the description always sits next to a value taken from the description.
+5. **Data honesty visible in the UI.** Absence in the details is an explicit “brak danych”, never an empty place or “nie”.
 
 ---
 
@@ -177,38 +177,34 @@ Between 641 and 959 px: like mobile (collapsible filters), but a horizontal card
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │ Flatplanner                                                                  │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ ‹ Back to results                                                            │
-│ Słoneczne | Do wprowadzenia | Widok na zielone patio          (h1, 22px)    │
-│ Letnica, ul. Starowiejska, Gdańsk   · Approximate location (if true)         │
-├────────────────────────────────────────────────┬─────────────────────────────┤
-│ ┌────────────────────────────────────────────┐ │ 799 000 zł   (28px bold)    │
-│ │ ‹             photo 16:10             ›    │ │ 19 087 zł/m² [computed]     │
-│ │                                   3 / 12   │ │ ┌─────────────────────────┐ │
-│ └────────────────────────────────────────────┘ │ │ Real price: 859 000 zł  │ │  green-50, left
-│ [▫][▫][▣][▫][▫][▫] → thumbnails 72×54, scroll-x│ │ 799 000 zł + 60 000 zł  │ │  edge green-500
-│                                                │ │ (parking space)         │ │
-│ Parameters                                     │ │ “Parking space …”       │ │
-│ Area            41,86 m²             [from ad]│ │  [from description]     │ │
-│ Rooms           2                    [from ad]│ └─────────────────────────┘ │
-│ Floor           4 of 6               [from ad]│ [ View on otodom ↗ ]        │
-│ Year built      ┆no data┆                      │ Data from 2026-11-04. Listing…│
-│ Lift            yes                  [from ad]│ ┌─────────────────────────┐ │
-│ Balcony         ┆no information┆               │ │ Ask the seller about:   │ │
-│ Parking space (from description)               │ │ • Year of construction  │
-│                 extra charge, 60 000 zł [from description] │ • Form of ownership … │ │
-│                 “Parking space in the hall …”  │ └─────────────────────────┘ │
-│ …                                              │                             │
-│ Data quality notes (if there are flags)        │                             │
-│ Description  (white-space: pre-line, max 70ch) │                             │
-│ Source: otodom.pl · fetched 4.11.2026 · added 4.11.2026                      │
-└────────────────────────────────────────────────┴─────────────────────────────┘
+│ ‹ Back to results                                          (max-width 1200 px)│
+│ ┌──────────────────────────────────────────────────────────────────────────┐ │
+│ │ ┌──────────────────────────────────┐ ┌─────────────────────┐             │ │
+│ │ │                                  │ │  photo 2            │  mosaic     │ │
+│ │ │   photo 1 (click = lightbox)     │ ├─────────────────────┤  (§5.9)     │ │
+│ │ └──────────────────────────────────┘ └─────────────────────┘ +5 zdjęć    │ │
+│ │ Słoneczne | Do wprowadzenia | Widok na zielone patio                     │ │
+│ │ ⌖ Letnica, ul. Starowiejska, Gdańsk (bold)  Approximate location         │ │
+│ │ 799 000 zł                       Data from 2026-11-04.  [ View on otodom ↗]│ │
+│ │ 19 087 zł/m²                                                             │ │
+│ │ ──────────────────────────────────────────────────────────────────────── │ │
+│ │ ⛶ 41,86 m² │ ▯ 2 │ ≋ 4 of 6 │ ▦ 2019 │ ⚷ full ownership │ ⌖ ul. Star…, Gdańsk│ │
+│ │ ──────────────────────────────────────────────────────────────────────── │ │
+│ │ Parameters                          ┌───────────────────────────────────┐│ │
+│ │ ⌂ Market        secondary           │ map preview, circle if approx.    ││ │
+│ │ …                                   │ [Lokalizacja przybliżona] [Powiększ]││ │
+│ │ ──────────────────────────────────  └───────────────────────────────────┘│ │
+│ │ Description  (paragraphs, bullets, bold and italic as in the original)   │ │
+│ │ Source: otodom.pl · fetched 4.11.2026 · added 4.11.2026                  │ │
+│ └──────────────────────────────────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Grid: `grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: var(--space-6)`. The right column is not sticky.
+One column, `max-width: 1200px`, and one white sheet (`--color-surface`, 1 px `--color-border`, `--radius-md`) that holds the whole listing; sections inside are separated by 1 px lines, not by separate cards. Order: mosaic, title and location, price bar, key facts strip, a split row with Parameters on the left and the map on the right, Description, source line. Minimal details after the AI pivot (design.md §16.5, R19–R23): no provenance badges, real price, “Ask the seller” or quality notes.
 
 ### 4.4 Details, mobile (≤ 640 px)
 
-One column in this order: “Back” → title and location → gallery (photo 100% width, 4:3; thumbnails scroll-x) → price box with the “Real price” and the otodom button (full width) → “Ask the seller about:” → Parameters (label above value, badge in the value line) → Quality notes → Description → Source.
+One column inside the same sheet, in the same order as on desktop: “Back” → gallery (swipeable carousel, 4:3, instead of the mosaic) → title and location → price, then the stale-data note and the full-width button → key facts (2 columns) → Parameters → map (240 px) → Description → Source.
 
 ---
 
@@ -273,16 +269,20 @@ With `scopeBlocked` the list is not shown at all (no “No listings”); the not
 
 ### 5.9 `ListingDetailPage`
 - **“‹ Back to results”:** `navigate(-1)` when `location.key !== "default"`; otherwise `<Link to="/">` “‹ All listings”.
-- **Gallery:** main image `aspect-ratio: 16/10`, `max-height: 420px`, `object-fit: cover`, `--radius-md`; “‹” / “›” buttons 40×40 (white, semi-transparent `rgba(255,255,255,.9)`, at the sides) with `aria-label` “Previous photo” / “Next photo”, wrapping at the ends; counter “3 / 12” in the corner. Thumbnails: `<button>` 72×54, horizontal scroll, the selected one with a 2 px `--green-500` outline. Empty `imageUrls` → placeholder “No photos” 16:10. No lightbox.
-- **Price box:** `fields.pricePln` (`--fs-2xl`, bold) with a “from ad” badge, `fields.pricePerM2` with a “computed” badge (every field has a badge, design.md §13 #6). **Real price** (when `realPrice` is present): background `--green-50`, `border-left: 4px solid var(--green-500)`, padding 16 px; “Real price: {totalPln}” (`--fs-lg`, bold); “{basePricePln} (price from the ad) + {amountPln} ({label of factKey})” for each of `extras`; below it a quote from `facts` for that `factKey` in a `<blockquote>` “…” (`--fs-sm`, italic) and a “from description” badge. Next the primary button “View on otodom ↗” (`target="_blank" rel="noopener noreferrer"`) and the stale-data note built from `scrapedAt` (§7.1; `--fs-xs`, secondary).
-- **Parameters:** `<dl class="params">`, `grid-template-columns: 200px 1fr`, rows separated by 1 px `--color-border`, padding 8 px; ≤ 640 px label above the value. Order and labels in §7.2. Value + provenance badge (§5.10) on one line (`flex-wrap`). The `parking`/`storage` facts as separate rows “Parking space (from description)”, “Storage unit (from description)”: “{status from meta.factStatus}[, {amountPln}]” + a “from description” badge + a quote underneath (as in the Real price); no fact → “no data”.
-- **Approximate location:** with `locationApproximate`, in the line under the title the text “· Approximate location” (`--color-warning-text`, `--fs-sm`) with `title="The advertiser did not provide the exact location."`.
-- **“Ask the seller about:”** (when `askSeller` is non-empty): white box, `--color-border` outline, `--radius-md`, padding 16 px; h2 heading `--fs-md`; `<ul>` with items 1:1 from the API.
-- **Data quality notes** (when `qualityFlags` has a flag with a label, §7.2): h2 + `<ul>` `--fs-sm`, each item in the compact `.notice--warning` style.
-- **Description:** h2 “Description”, `descriptionText` in `<p style="white-space: pre-line">`, `max-width: 70ch`. HTML is never rendered.
-- **Source:** “Source: otodom.pl · fetched {scrapedAt} · added {createdAtSource}” (`--fs-xs`, secondary).
+- **Gallery (desktop):** a mosaic of up to three photos in a 480 px high block, `--radius-md`, gap 8 px: with three or more photos the first fills the left two thirds, the second and third are stacked on the right; two photos sit side by side; one photo fills the block; the last visible tile carries the badge „+{n} zdjęć” when more photos exist (`n` with the Polish plural, §7.4). Each tile is a button (`aria-label` „Powiększ zdjęcie {i} z {n}”, `alt=""`) that opens the lightbox at that photo. No photos → placeholder „Brak zdjęcia”. A photo that fails to load drops out of the mosaic.
+- **Gallery (mobile, ≤ 640 px):** the swipeable `PhotoCarousel` as on the card (counter “3 / 12”), 4:3; a click opens the lightbox.
+- **Fullscreen dialog (photo lightbox and map):** one `FullscreenDialog` component, native `<dialog>` (`showModal`), full viewport on `rgba(42,38,35,.94)`; “×” 44×44 (`aria-label` „Zamknij”, top right); closes on Escape, on a click outside the content and on “×”. The photo lightbox shows the photo `object-fit: contain`, buttons “‹” / “›” („Poprzednie zdjęcie” / „Następne zdjęcie”, wrapping at the ends), counter “3 / 12”, arrows on the keyboard, `alt` „{title}, zdjęcie {i} z {n}”.
+- **Title and price bar:** inside the sheet, `<h1>` (`--fs-xl`) and the location line (below); then the price bar: `pricePln` (28 px, bold) with `pricePerM2` (`--fs-sm`, secondary) on the left, and on the right the stale-data note built from `scrapedAt` (§7.1; `--fs-xs`, secondary, right-aligned) next to the primary button “Zobacz na otodom ↗” (`target="_blank" rel="noopener noreferrer"`). On mobile the price comes first, then the full-width button with the note under it.
+- **Map:** right half of the split row (same height as Parameters, at least 240 px), a Leaflet map, OSM tiles with attribution, loaded lazily. The preview is not interactive (no drag, zoom control or wheel zoom); the whole preview is a button („Powiększ mapę”, `cursor: zoom-in`, label in the corner) that opens the map in the fullscreen dialog, where it is fully interactive. With `locationApproximate` a circle of 500 m around `lat`/`lng` and a „Lokalizacja przybliżona” chip in the top left corner of the preview; otherwise a circle marker. `role="region"` with `aria-label` „Mapa lokalizacji”.
+- **Key facts strip:** `<ul class="key-facts" aria-label="Najważniejsze parametry">`, full width of the sheet, one row of six cells divided by 1 px vertical lines and framed by 1 px lines above and below (2 columns on mobile). Order: `areaM2` (Powierzchnia), `rooms` (Pokoje), floor (Piętro, §7.4), `buildYear` (Rok budowy), `ownership` (Forma własności, label from `/api/meta`), location (Lokalizacja: `street` and `cityName` joined with “, ”, just `cityName` without a street); the last two cells are wider. A cell is a column: a 24 px teal icon, the value (`--fs-md`, bold) and the label (`--fs-xs`, secondary). A cell without a value keeps its place and reads „brak danych” (`--fs-sm`, secondary).
+- **Parameters:** left half of the split row, `<dl class="params">`, one column; each row has the label with an 18 px teal icon on the left and the value on the right (right-aligned), rows separated by 1 px `--color-border`, padding 8 px. Rows: Rynek, Stan wykończenia, Typ budynku, Materiał budynku, Okna, Ogrzewanie, Czynsz, Winda, Balkon, Garaż / miejsce postojowe, Piwnica, Ogłaszający, Dzielnica (what the key facts strip does not show; labels in §7.2). A missing value is a `.value--missing` element: text “brak danych”, white background, 1 px **dashed** `--color-border-strong` outline. Two-state values (`hasLift`, `hasBalcony`, `hasGarage`, `hasBasement`: `true` or omitted): `true` → “tak”; omitted → `.value--missing` with “brak informacji” (not “nie”).
+- **Location line:** under the title, in bold with a 20 px teal pin icon: `districtName`, `street`, `cityName` joined with “, ”. With `locationApproximate` the text „Lokalizacja przybliżona” follows (`--color-warning-text`, `--fs-sm`) with `title="Ogłaszający nie podał dokładnej lokalizacji."`.
+- **Description:** h2 “Opis” under a 1 px line, then `descriptionMarkup` (falling back to `descriptionText`) as in the original listing: lines starting with “- ” or “•” form a `<ul>`, other lines are paragraphs whose lines break with `<br>`, blank lines separate paragraphs; `**…**` is `<strong>`, `*…*` is `<em>`, `\` escapes the next character. Parsed by our own code into React elements; HTML is never rendered. Line height 1.65, text width up to 90 characters.
+- **Source:** “Źródło: otodom.pl · pobrano {scrapedAt} · dodano {createdAtSource}” (`--fs-xs`, secondary).
 
 ### 5.10 Provenance badge `.badge--{provenance}`
+Not built (design.md R19): the details page shows no provenance badges. The section stays as background for the dossier (design.md §16.1).
+
 Inline, height 20 px, padding `0 6px`, `--radius-sm`, `--fs-xs`, `--fw-semibold`, text = label from `meta.enums.provenance` (no icons):
 
 | `provenance` | Text | Style | Additionally |
@@ -332,7 +332,7 @@ Inline, height 20 px, padding `0 6px`, `--radius-sm`, `--fs-xs`, `--fw-semibold`
 | filters (legends) | „Miasto”, „Dzielnica”, „Cena (zł)”, „Powierzchnia (m²)”, „Pokoje”, „Piętro”, „Rynek”, „Ogłaszający”, „Udogodnienia”; fields „od” / „do”; radio „dowolny”; checkboxes „Tylko z windą”, „Tylko z balkonem”; hint „Oferty bez tej informacji zostaną pominięte.”; „Wybierz miasto, aby zobaczyć dzielnice.” |
 | results bar | „{n} {oferta/oferty/ofert}”, „Sortuj” |
 | card | „Dlaczego tutaj:”, „Brak zdjęcia”, „lokalizacja przybliżona”, „nietypowa cena, sprawdź opis” |
-| details | „Parametry”, „Realna cena:”, „(cena z ogłoszenia)”, „Zapytaj sprzedającego o:”, „Uwagi o jakości danych”, „Opis”, „Lokalizacja przybliżona”, „brak danych”, „brak informacji”, „tak”; stale-data note from `scrapedAt`: „Dane z {data}. Aktualną ofertę sprawdź na otodom.” |
+| details | „Parametry”, „Opis”, „Lokalizacja”, „Lokalizacja przybliżona”, „Mapa lokalizacji”, „Powiększ zdjęcie {i} z {n}”, „+{n} zdjęć”, „Najważniejsze parametry”, „Forma własności”, „Lokalizacja”, „Powiększ mapę”, „Zamknij”, „{tytuł}, zdjęcie {i} z {n}”, „brak danych”, „brak informacji”, „tak”, „Źródło: otodom.pl · pobrano {data} · dodano {data}”, „‹ Wszystkie oferty”; stale-data note from `scrapedAt`: „Dane z {data}. Aktualną ofertę sprawdź na otodom.” |
 | summary prefix after chat | „Zrozumiałem: ” |
 | loading / empty / errors | „Ładowanie…”; zero results: „Brak ofert dla tych kryteriów.”, „Wyniki pojawią się, jeśli zmienisz jedno kryterium:”, „Żadna pojedyncza zmiana nie wystarczy.”; „Nie udało się pobrać ofert.”; „Nieprawidłowe parametry wyszukiwania.” + link „Wyczyść wyszukiwanie”; „Nie udało się wczytać filtrów.”; „Nie znaleziono oferty.” + link „Wróć do listy ofert” |
 | chat errors (under the field) | 429: „Za dużo zapytań. Spróbuj ponownie za {Retry-After} s.”; 400: „Wpisz od 1 do {max} znaków.”; network or 5xx: „Nie udało się połączyć. Skorzystaj z filtrów poniżej.” |
@@ -346,13 +346,13 @@ Inline, height 20 px, padding `0 6px`, `--radius-sm`, `--fs-xs`, `--fw-semibold`
 
 ### 7.2 Detail field labels (row order) and flags
 
-`areaM2` Powierzchnia · `rooms` Pokoje · `floor` Piętro (with `buildingFloors`: „4 z 6”) · `buildYear` Rok budowy · `market` Rynek · `finishCondition` Stan wykończenia · `ownership` Forma własności · `rentPln` Czynsz (zł/mies.) · `hasLift` Winda · `hasBalcony` Balkon · `hasGarage` Garaż / miejsce postojowe · `hasBasement` Piwnica · `advertiserType` Ogłaszający · `districtName` Dzielnica · `street` Ulica · fact `parking` Miejsce postojowe (z opisu) · fact `storage` Komórka lokatorska (z opisu). `pricePln` and `pricePerM2` are in the price box.
+`areaM2` Powierzchnia · `rooms` Pokoje · `floor` Piętro (with `buildingFloors`: „4 z 6”) · `buildYear` Rok budowy · `market` Rynek · `finishCondition` Stan wykończenia · `buildingType` Typ budynku · `buildingMaterial` Materiał budynku · `windowsType` Okna · `heating` Ogrzewanie · `ownership` Forma własności · `rentPln` Czynsz (zł/mies.) · `hasLift` Winda · `hasBalcony` Balkon · `hasGarage` Garaż / miejsce postojowe · `hasBasement` Piwnica · `advertiserType` Ogłaszający · `districtName` Dzielnica · `street` Ulica · fact `parking` Miejsce postojowe (z opisu) · fact `storage` Komórka lokatorska (z opisu). `pricePln` and `pricePerM2` are in the price box.
 
 Flags (design.md §3.6, only those visible in the details): `price_outlier` „Nietypowa cena za m² (poza zakresem 7 000–40 000 zł). Sprawdź opis.” · `rent_zero_as_missing` „Ogłoszenie podaje czynsz 0 zł; traktujemy to jako brak danych.” · `rent_out_of_range` „Czynsz z ogłoszenia poza zakresem 50–5 000 zł; pominięty.” · `floor_higher_10` „Ogłoszenie podaje piętro powyżej 10; dokładny numer nieznany.” · `floor_garret` „Poddasze; numer piętra nieznany.” · `build_year_out_of_range` „Nieprawdopodobny rok budowy w ogłoszeniu; pominięty.” · `area_out_of_range` „Nietypowa powierzchnia; sprawdź ogłoszenie.” · `coordinates_outside_bbox` „Współrzędne poza Trójmiastem; lokalizacja może być błędna.” · `missing_district` „Ogłoszenie nie podaje dzielnicy.” · `unknown_value:*` „Nierozpoznana wartość pola w ogłoszeniu.” · `created_at_missing` is not shown.
 
 ### 7.3 Texts generated by the API (the UI displays them verbatim)
 
-**Enum labels** (`/api/meta.enums`, design.md §3.3): `market` primary „rynek pierwotny”, secondary „rynek wtórny” · `advertiserType` agency „biuro nieruchomości”, private „osoba prywatna” · `finishCondition` ready_to_use „do zamieszkania”, to_completion „do wykończenia”, to_renovation „do remontu” · `ownership` full_ownership „pełna własność”, limited_ownership „spółdzielcze własnościowe prawo do lokalu” · `factStatus` included „w cenie”, extra_cost „dodatkowo płatne”, not_available „brak” · `sort` newest „najnowsze”, price_asc „najtańsze”, price_desc „najdroższe”, price_per_m2_asc „najniższa cena za m²”, relevance „najlepiej dopasowane” · `provenance` listing „z ogłoszenia”, description „z opisu”, computed „wyliczone”, missing „brak danych”.
+**Enum labels** (`/api/meta.enums`, design.md §3.3): `heating` urban „miejskie”, gas „gazowe”, boiler_room „kotłownia”, electrical „elektryczne” · `buildingType` block „blok”, apartment „apartamentowiec”, tenement „kamienica” · `windowsType` plastic „plastikowe”, wooden „drewniane”, aluminium „aluminiowe” · `buildingMaterial` brick „cegła”, silikat „silikat”, breezeblock „pustak”, concrete_plate „wielka płyta”, concrete „beton”, cellular_concrete „beton komórkowy”, reinforced_concrete „żelbet”, other „inny” · `market` primary „rynek pierwotny”, secondary „rynek wtórny” · `advertiserType` agency „biuro nieruchomości”, private „osoba prywatna” · `finishCondition` ready_to_use „do zamieszkania”, to_completion „do wykończenia”, to_renovation „do remontu” · `ownership` full_ownership „pełna własność”, limited_ownership „spółdzielcze własnościowe prawo do lokalu” · `factStatus` included „w cenie”, extra_cost „dodatkowo płatne”, not_available „brak” · `sort` newest „najnowsze”, price_asc „najtańsze”, price_desc „najdroższe”, price_per_m2_asc „najniższa cena za m²”, relevance „najlepiej dopasowane” · `provenance` listing „z ogłoszenia”, description „z opisu”, computed „wyliczone”, missing „brak danych”.
 
 **Chips** (`chips[].label`, design.md §7.6): cities „Gdańsk”, with an out-of-scope city „Gdańsk (zamiast: Kraków)” · districts „Letnica, Wrzeszcz Górny” · price „do 600 000 zł”, „od 300 000 zł”, „300 000–600 000 zł” · area „40–80 m²”, „ok. 40 m² (35–45 m²)” · rooms „2 pokoje”, „2–3 pokoje”, „od 3 pokoi” · floor „parter”, „piętro 0–2” · market „rynek wtórny” · advertiser „osoba prywatna” · „z windą”, „z balkonem” · text „„{text}”” · `preferences:cheap` „tanie: niższa cena za m² niż mediana miasta” · `preferences:good_condition` „ładne: stan „do zamieszkania”” · `outOfScope:rent` „wynajem: mamy tylko sprzedaż” · `outOfScope:house` „dom: mamy tylko mieszkania” · `outOfScope:metro` „metro: w Trójmieście go nie ma”.
 
@@ -398,9 +398,9 @@ Flags (design.md §3.6, only those visible in the details): `price_outlier` „N
 - **Animations and transitions:** none (also a skeleton without shimmer, no `scroll-behavior: smooth`).
 - **Dark mode:** out of scope.
 - **Component library, CSS-in-JS, Tailwind, CSS Modules:** no; a single `styles.css` (design.md §9).
-- **Icons:** no library and no SVG. The Unicode characters “×”, “‹”, “›”, “↗”, “▾” and text (badges, notices) are enough. Every icon character in a button has an `aria-label`.
-- **Modal, lightbox, sticky elements, infinite scroll, remembering the mode in `localStorage`:** no.
-- **Map, travel time, contradictions, deduplication:** out of scope ([product-scope.md](product-scope.md) §8).
+- **Icons:** no icon library. Unicode characters “×”, “‹”, “›”, “↗”, “▾” and text serve buttons, badges and notices. The details page uses one small set of inline SVG icons (`Icon` component, 24 px grid, 2 px stroke, `currentColor`, `aria-hidden`) for the location pin, the key facts panel and the parameter rows (design.md R21).
+- **Modal (other than the photo and map fullscreen dialog on the details page), sticky elements, infinite scroll, remembering the mode in `localStorage`:** no.
+- **Travel time, contradictions, deduplication:** out of scope ([product-scope.md](product-scope.md) §8). A map exists only as the location map on the details page (design.md R20).
 
 ---
 
@@ -408,7 +408,7 @@ Flags (design.md §3.6, only those visible in the details): `price_outlier` „N
 
 All UI decisions that touch the API or the application state have been carried over to `design.md` (§6.1: optional `imageUrl`, `floorHigherThan10`; §9: `format.ts`, `keepPreviousData` and `retry`, “Clear filters”, `relevance` visibility, `location.state` after a chip is removed). In case of a discrepancy `design.md` prevails, except for user-facing texts, whose single source is §7 of this document.
 
-**Optional fields are `undefined`, never `null`:** the API omits fields whose value is `null` (design.md §6), so the UI checks presence (`x != null`, `x?.y`), not `!== null`. The exception is `Sourced<T>.value` in details, where `null` is sent and means „brak danych”.
+**Optional fields are `undefined`, never `null`:** the API omits fields whose value is `null` (design.md §6), so the UI checks presence (`x != null`, `x?.y`), not `!== null`.
 
 ---
 

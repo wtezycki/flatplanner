@@ -518,7 +518,7 @@ The list response does **not** echo the intent. The URL is the single source of 
       "id": 17, "title": "Słoneczne | Do wprowadzenia | Widok na zielone patio",
       "pricePln": 799000, "areaM2": 41.86, "pricePerM2": 19087, "rooms": 2,
       "floor": 4, "floorHigherThan10": false, "buildingFloors": 6, "citySlug": "gdansk", "cityName": "Gdańsk",
-      "districtName": "Letnica", "imageUrl": "https://ireland.apollo.olxcdn.com/v1/files/.../image;s=655x491;q=80",
+      "districtName": "Letnica", "imageUrls": ["https://ireland.apollo.olxcdn.com/v1/files/.../image;s=655x491;q=80"],
       "market": "secondary", "createdAtSource": "2026-11-04T07:49:54Z",
       "locationApproximate": false, "priceOutlier": false
     }
@@ -539,7 +539,7 @@ The list response does **not** echo the intent. The URL is the single source of 
 `why` is omitted because the intent has no preferences; `blockers` is omitted because `total > 0`. The numbers in the examples are illustrative.
 
 **List item fields that are easy to misread:**
-- `imageUrl?: string`: the first URL from `image_urls`; omitted when the listing has no photos (the card shows the placeholder „Brak zdjęcia”);
+- `imageUrls: string[]`: `image_urls` (at most 10, 3.2), always present; `[]` when the listing has no photos (the card shows the placeholder „Brak zdjęcia”). The card swipes through all of them, so the list carries every URL instead of the first one;
 - `floorHigherThan10: boolean`: `true` when `quality_flags` contains `floor_higher_10`. Then `floor` = 11 is a lower bound, and the card shows “floor 11+”, not “floor 11”.
 
 **Shapes of the auxiliary fields** (the same in every response, C#: records in `Flatplanner.Api/Listings/Dto.cs`):
@@ -1058,7 +1058,7 @@ Example: “Gdańsk Morena kawalerka” in search, then a price of up to 500 000
 - the list component computes `intent = intentFromSearchParams(searchParams)` and calls `useQuery({ queryKey: ['listings', searchParams.toString()], queryFn: () => fetchListings(searchParams), placeholderData: keepPreviousData, retry: (count, err) => isServerOrNetworkError(err) && count < 1 })` (TanStack Query v5 object syntax). `keepPreviousData` keeps the previous list while the new one loads (no layout jump); 4xx errors, including 429, are not retried, while 5xx and network errors get one retry;
 - **“Clear filters”** removes only the filter panel parameters (`cities`, `districts`, `priceMin/Max`, `areaMin/Max/Approx`, `roomsMin/Max`, `floorMin/Max`, `market`, `advertiserType`, `requireLift`, `requireBalcony`) and `page`. `text` and `preferences` stay, because they come from search and chat; they are removed with a chip;
 - **sorting `relevance`** is visible in the select only when `intent.preferences` is non-empty; without preferences there is nothing to rank by (3.3);
-- **filter form:** local state initialized from the URL, “Apply” writes the URL (`page` removed) via `setSearchParams`; numeric fields replace `,` with `.` before saving. The form owns exactly the parameters listed under “Clear filters” above; it never touches `text`, `preferences`, `requestedCityOutOfScope` or `outOfScope`, with two exceptions applied on “Apply”:
+- **filter form:** local state initialized from the URL; there is no “Apply” button: every change writes the URL (`page` removed) via `setSearchParams`, immediately for pills and checkboxes and after 500 ms without typing for the numeric fields. A URL change that the current form did not cause (back/forward, “Clear filters”) resets the form to the URL. Numeric fields replace `,` with `.` before saving. The form owns exactly the parameters listed under “Clear filters” above; it never touches `text`, `preferences`, `requestedCityOutOfScope` or `outOfScope`, with two exceptions applied on every write:
   - setting `areaMin` or `areaMax` **removes `areaApprox`** (otherwise the approximate area from the chat stays in the URL next to the explicit range, and the normalizer warns about it on every page and sort);
   - clearing `cities` **removes `requestedCityOutOfScope`** (otherwise the normalizer puts `gdansk` back, and the form shows “no city” next to results from Gdańsk);
 - **errors of the chat** (shown under the field, the field keeps its text):

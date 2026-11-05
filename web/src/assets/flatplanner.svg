@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <defs>
+    <!-- Sylwetka dymka: jedna gładka ścieżka, z której powstają wszystkie warstwy -->
+    <path id="bubble" d="
+      M 75 0
+      H 225
+      A 75 75 0 0 1 300 75
+      V 225
+      A 75 75 0 0 1 225 300
+      H 145
+      Q 132 300 120 305
+      L 38 340
+      Q 14 350 8 326
+      L 0 270
+      V 75
+      A 75 75 0 0 1 75 0
+      Z" />
+    <clipPath id="bubble-clip">
+      <use href="#bubble" />
+    </clipPath>
+  </defs>
+
+  <g transform="translate(50, 45)">
+    <g clip-path="url(#bubble-clip)">
+      <!-- Miętowe wnętrze -->
+      <use href="#bubble" fill="#DFF9F2" />
+      <!-- Biały pierścień (pasek 12 px) pod ramką -->
+      <use href="#bubble" fill="none" stroke="#FFFFFF" stroke-width="80" stroke-linejoin="round" />
+      <!-- Ciemnomorska ramka (pasek 28 px) -->
+      <use href="#bubble" fill="none" stroke="#006A59" stroke-width="56" stroke-linejoin="round" />
+      <!-- Krzyż szprosów okna -->
+      <rect x="136" y="-10" width="28" height="320" fill="#006A59" />
+      <rect x="-10" y="136" width="320" height="28" fill="#006A59" />
+    </g>
+  </g>
+</svg>

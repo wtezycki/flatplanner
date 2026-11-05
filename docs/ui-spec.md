@@ -323,12 +323,12 @@ Inline, height 20 px, padding `0 6px`, `--radius-sm`, `--fs-xs`, `--fw-semibold`
 
 | Place | Text |
 |---|---|
-| browser tab title | list: „Flatplanner: mieszkania na sprzedaż w Trójmieście”; details: „{title} · Flatplanner” |
+| browser tab title | list: „Flatplanner: Przeczytamy ogłoszenia za Ciebie” (the motto, without its full stop); details: „{title} · Flatplanner” |
 | mode switch | „Szukaj” / „Czat AI” |
 | search placeholder | „np. Morena, Wrzeszcz, balkon” |
 | chat placeholder (scenario B) | „np. chcę ładne, tanie mieszkanie, 40 m w Gdańsku” |
 | chat annotation when `chatMode = fallback` | „Tryb uproszczony, bez AI” |
-| buttons | „Szukaj”, „Zapytaj”, „Zastosuj”, „Wyczyść filtry”, „Spróbuj ponownie”, „Zobacz na otodom ↗”, „‹ Wróć do wyników” |
+| buttons | „Szukaj”, „Zapytaj”, „Wyczyść filtry”, „Spróbuj ponownie”, „Zobacz na otodom ↗”, „‹ Wróć do wyników” |
 | filters (legends) | „Miasto”, „Dzielnica”, „Cena (zł)”, „Powierzchnia (m²)”, „Pokoje”, „Piętro”, „Rynek”, „Ogłaszający”, „Udogodnienia”; fields „od” / „do”; radio „dowolny”; checkboxes „Tylko z windą”, „Tylko z balkonem”; hint „Oferty bez tej informacji zostaną pominięte.”; „Wybierz miasto, aby zobaczyć dzielnice.” |
 | results bar | „{n} {oferta/oferty/ofert}”, „Sortuj” |
 | card | „Dlaczego tutaj:”, „Brak zdjęcia”, „lokalizacja przybliżona”, „nietypowa cena, sprawdź opis” |
@@ -337,6 +337,12 @@ Inline, height 20 px, padding `0 6px`, `--radius-sm`, `--fs-xs`, `--fw-semibold`
 | loading / empty / errors | „Ładowanie…”; zero results: „Brak ofert dla tych kryteriów.”, „Wyniki pojawią się, jeśli zmienisz jedno kryterium:”, „Żadna pojedyncza zmiana nie wystarczy.”; „Nie udało się pobrać ofert.”; „Nieprawidłowe parametry wyszukiwania.” + link „Wyczyść wyszukiwanie”; „Nie udało się wczytać filtrów.”; „Nie znaleziono oferty.” + link „Wróć do listy ofert” |
 | chat errors (under the field) | 429: „Za dużo zapytań. Spróbuj ponownie za {Retry-After} s.”; 400: „Wpisz od 1 do {max} znaków.”; network or 5xx: „Nie udało się połączyć. Skorzystaj z filtrów poniżej.” |
 | list 429 | „Za dużo zapytań. Spróbuj ponownie za {Retry-After} s.” |
+| motto (top bar, under the wordmark, hidden ≤ 640 px) | „Przeczytamy ogłoszenia za Ciebie.” |
+| search field | `aria-label` „Szukaj w ofertach” |
+| card photo gallery | `aria-label` „Zdjęcia oferty”; buttons „Poprzednie zdjęcie” / „Następne zdjęcie”; counter „{n} / {total}” |
+| filters | form `aria-label` „Filtry”; mobile toggle „Filtry ({n})”; `aria-label` of the range fields „Cena od” / „Cena do”, „Powierzchnia od” / „Powierzchnia do”, „Pokoje od” / „Pokoje do”, „Piętro od” / „Piętro do”; district summary „Dzielnica” + „ ({n})” with n selected districts; with `areaApprox` and no range „Teraz: ok. {areaApprox} m². Wpisany zakres zastąpi przybliżenie.” |
+| pagination | `aria-label` „Paginacja”; „‹ Poprzednia”, „Następna ›”; `aria-label` of the arrows „Poprzednia strona”, „Następna strona” |
+| warnings | visually hidden prefix „Uwaga: ” |
 
 ### 7.2 Detail field labels (row order) and flags
 
@@ -492,3 +498,19 @@ Green tokens from §2 map to teal (`--green-600` → `--teal-700`, `--green-50` 
 | classic link | Wolisz klasyczne filtry? |
 | AI unavailable | AI chwilowo niedostępne — pokazujemy wyniki według podstawowych kryteriów. |
 | no results | Żadne ogłoszenie nie spełnia wszystkich warunków. Spróbuj opisać to inaczej albo usuń jeden z warunków. |
+
+### 11.4 Classic list `/` as built (item #5, restyled)
+
+The classic list uses the §11.1 tokens. Until `ask` exists (design §16.2) `/` stays the list; the text search sits in the top bar (no hero heading, no example chips, no progress card). Deviations from §4.1, §5.4 and §9, decided with the restyle:
+
+- **One top bar, no hero:** a single 72 px bar (64 px ≤ 640 px) on `--color-surface` with a 1 px `--color-border` bottom edge holds, in one row, the logo, the wordmark, the search field and the „Szukaj” button. There is no teal header or hero band and no gradient (the §11.2 teal bands are dropped for the classic list; the teal stays in buttons, pills, links and the focus ring). The search field is a 52 px pill on `--color-bg`. ≤ 640 px the wordmark is hidden. No tagline or data date, so the §5.1 right-hand text and the §7.1 header string are dropped.
+- **Brand assets:** `web/src/assets/flatplanner.svg` (logo, 40 px; the supplied file without its `#F5F2EF` background tile) and `flatbanner.svg` (wordmark, 26 px high, the supplied file as is) with the motto from §7.1 under it (`--fs-xs`, secondary). The logo link has `aria-label` „Flatplanner”. The logo is also the favicon (`index.html`).
+- **Pills in the filter panel:** city, market, advertiser and the two amenities are pill toggles (hidden native `checkbox`/`radio`, styled label) instead of checkbox and radio rows. Labels and counts are unchanged, e.g. „Gdańsk (108)”.
+- **Districts:** a `<details>` titled „Dzielnica” ({n} selected) closed by default; inside, district pills grouped by city (the §5.4 scroll limit of 240 px stays).
+- **No Apply button:** the filters write the URL on every change (design §9). „Wyczyść filtry” is a link at the top of the panel; nothing in the panel is sticky. On mobile the panel stays open until the „Filtry ({n})” toggle is pressed again.
+- **Bigger cards, swipeable photos:** the container is 1280 px and the photo column is 42 % of the card (min 260 px, 4:3), so the photo is roughly twice as large as in §5.6. The photo is a gallery of all `imageUrls` (design §6.1): CSS scroll-snap track (native swipe on touch, trackpad and drag-scroll), a „{n} / {total}” counter, and „‹” / „›” buttons on hover on devices with a pointer (hidden on touch and at the ends). A click on the photo opens the listing. The card is an `<article>`; the title is the link (stretched over the whole card, focus ring on the card) instead of the whole card being one `<a>`, because the gallery buttons cannot live inside a link. The §5.6 title line is two lines instead of one.
+- **No floor hint:** the „parter = 0” note under the floor fields (§5.4) is dropped.
+- **Fields:** filter fields are 44 px (`--field-height`), the search field 52 px.
+- **`--color-border-strong`** is `#8a8279`, not `#b6aea5`: the §11.1 value gives 2.19:1 on white, below the 3:1 §2 requires for field outlines (`#8a8279`: 3.78:1 on white, 3.39:1 on `--color-bg`).
+- **Contrast checked** with the WCAG formula: `--on-teal` on `--teal-900` 6.26:1 and on `--teal-700` 4.91:1; `--teal-900` on `--color-bg` 5.87:1; white on `--teal-700` 5.14:1; `--color-text-secondary` on `--color-bg` 4.64:1.
+- Provenance, verdict and info tokens are not defined in `styles.css` until a view uses them.

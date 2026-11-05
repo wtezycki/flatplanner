@@ -1,26 +1,16 @@
-import { useQuery } from '@tanstack/react-query'
 import { Link, Route, Routes } from 'react-router'
-import { metaQuery } from './api.ts'
-import { formatDate } from './format.ts'
+import logo from './assets/flatplanner.svg'
 import ListingsPage from './pages/ListingsPage.tsx'
 
 export default function App() {
-  const meta = useQuery(metaQuery)
-  const dataAsOf = meta.data?.dataAsOf
-
   return (
     <>
       <header className="header">
         <div className="container header__inner">
-          <Link to="/" className="header__brand">
-            Flatplanner
+          <Link to="/" className="header__brand" aria-label="Flatplanner">
+            <img className="header__logo" src={logo} alt="" />
+            <span className="header__wordmark" aria-hidden="true" />
           </Link>
-          {dataAsOf && (
-            <span className="header__meta">
-              <span className="header__meta-long">Mieszkania na sprzedaż · Trójmiasto · dane z </span>
-              {formatDate(dataAsOf)}
-            </span>
-          )}
         </div>
       </header>
       <main>

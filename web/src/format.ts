@@ -20,8 +20,6 @@ export const formatRooms = (rooms: number) => `${rooms} ${pluralPl(rooms, 'pokó
 
 export const formatListingsCount = (count: number) => `${count} ${pluralPl(count, 'oferta', 'oferty', 'ofert')}`
 
-export const formatDate = (iso: string) => new Date(iso).toLocaleDateString('pl-PL')
-
 export function formatFloor(floor: number, buildingFloors: number | undefined, higherThan10: boolean): string {
   if (floor < 0) {
     return 'suterena'

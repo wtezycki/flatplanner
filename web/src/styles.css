@@ -51,11 +51,12 @@ button, input, select { font: inherit; color: inherit; }
 .container { max-width: var(--container-max); margin: 0 auto; padding: 0 var(--space-5); }
 
 .header { background: var(--teal-900); color: var(--on-teal); }
-.header__inner { display: flex; align-items: center; justify-content: space-between; height: 64px; }
-.header__brand, .header__brand:hover { color: var(--on-teal); font-size: var(--fs-xl); font-weight: var(--fw-bold); text-decoration: none; }
-.header__meta { font-size: var(--fs-sm); }
+.header__inner { display: flex; align-items: center; height: 48px; }
+.header__brand { display: flex; align-items: center; gap: var(--space-3); border-radius: var(--radius-md); }
+.header__logo { width: 36px; height: 36px; }
+.header__wordmark { width: 149px; height: 26px; background: var(--on-teal); mask: url('./assets/flatbanner.svg') no-repeat left center / contain; }
 
-.hero { padding: var(--space-5) 0 var(--space-6); background: var(--teal-900); }
+.hero { padding: var(--space-4) 0 var(--space-5); background: linear-gradient(135deg, var(--teal-700), var(--teal-900)); }
 .hero :focus-visible, .header :focus-visible { box-shadow: 0 0 0 2px var(--teal-900), 0 0 0 4px var(--on-teal); }
 
 .btn { display: inline-flex; align-items: center; justify-content: center; height: var(--field-height); padding: 0 var(--space-5); border: 1px solid transparent; border-radius: var(--radius-pill); background: none; font-size: var(--fs-sm); font-weight: var(--fw-semibold); cursor: pointer; }
@@ -90,7 +91,7 @@ button, input, select { font: inherit; color: inherit; }
 .layout { display: grid; grid-template-columns: var(--sidebar-width) minmax(0, 1fr); gap: var(--space-5); margin: var(--space-5) 0 var(--space-7); }
 
 .filters__toggle { display: none; width: 100%; }
-.filters__panel { padding: var(--space-4) var(--space-4) 0; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); }
+.filters__panel { padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); }
 .filters__form { display: flex; flex-direction: column; gap: var(--space-4); }
 .filters__group { min-width: 0; margin: 0; padding: 0; border: 0; }
 .filters__group legend, .filters__details summary { padding: 0; margin-bottom: var(--space-2); font-size: var(--fs-sm); font-weight: var(--fw-semibold); }
@@ -103,8 +104,7 @@ button, input, select { font: inherit; color: inherit; }
 .filters__hint { margin-top: var(--space-1); font-size: var(--fs-xs); color: var(--color-text-secondary); }
 .filters__districts { display: flex; flex-direction: column; gap: var(--space-2); max-height: 240px; overflow-y: auto; }
 .filters__city-title { margin-bottom: var(--space-1); font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--color-text-secondary); }
-.filters__actions { position: sticky; bottom: 0; display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) 0 var(--space-4); border-top: 1px solid var(--color-border); background: var(--color-surface); }
-.filters__apply { flex: 1; }
+.filters__head { display: flex; justify-content: flex-end; }
 
 .results__bar { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-3); }
 .results__count { font-size: var(--fs-lg); font-weight: var(--fw-semibold); }
@@ -143,13 +143,11 @@ button, input, select { font: inherit; color: inherit; }
   .filters__toggle { display: inline-flex; }
   .filters__panel { margin-top: var(--space-2); }
   .filters__panel--collapsed { display: none; }
-  .filters__actions { padding-bottom: var(--space-3); }
-}
+  }
 
 @media (max-width: 640px) {
   .container { padding: 0 var(--space-4); }
-  .header__meta-long { display: none; }
-  .hero { padding: var(--space-4) 0 var(--space-5); }
+  .hero { padding: var(--space-3) 0 var(--space-4); }
   .search .btn { padding: 0 var(--space-4); }
   .card { grid-template-columns: 1fr; gap: var(--space-3); }
   .card__image { width: 100%; height: auto; aspect-ratio: 16 / 9; }

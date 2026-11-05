@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { useId, useState } from 'react'
-import type { FormEvent, InputHTMLAttributes, ReactNode } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
+import type { InputHTMLAttributes, ReactNode } from 'react'
 import { useSearchParams } from 'react-router'
 import { metaQuery } from '../api.ts'
 import type { EnumOption, MetaResponse, SearchIntent } from '../api.ts'
@@ -25,6 +25,8 @@ interface FilterForm {
 }
 
 type RangeField = 'price' | 'area' | 'rooms' | 'floor'
+
+const TEXT_DEBOUNCE_MS = 500
 
 const fieldText = (value: number | undefined) => (value === undefined ? '' : String(value))
 
@@ -200,30 +202,71 @@ function Radios({ legend, name, value, options, onChange }: RadiosProps) {
 interface FieldsProps {
   meta: MetaResponse
   intent: SearchIntent
-  onApply: () => void
 }
 
-function FilterFields({ meta, intent, onApply }: FieldsProps) {
+function FilterFields({ meta, intent }: FieldsProps) {
   const [searchParams, setSearchParams] = useSearchParams()
-  const [form, setForm] = useState(() => formFromIntent(intent))
-  const patch = (changes: Partial<FilterForm>) => setForm((current) => ({ ...current, ...changes }))
+  const latestParams = useRef(searchParams)
+  const timer = useRef<number | undefined>(undefined)
+  const urlForm = formFromIntent(intent)
+  const urlKey = JSON.stringify(urlForm)
+  const [form, setForm] = useState(urlForm)
+  const [seenUrlKey, setSeenUrlKey] = useState(urlKey)
+
+  if (urlKey !== seenUrlKey) {
+    setSeenUrlKey(urlKey)
+    if (urlKey !== JSON.stringify(formFromIntent(intentFromSearchParams(applyFilters(searchParams, form))))) {
+      setForm(urlForm)
+    }
+  }
+
+  useEffect(() => {
+    latestParams.current = searchParams
+  })
+  useEffect(() => () => window.clearTimeout(timer.current), [])
+
+  const commit = (next: FilterForm) => {
+    const params = applyFilters(latestParams.current, next)
+    if (params.toString() === latestParams.current.toString()) {
+      return
+    }
+    setSearchParams(params)
+  }
+
+  const change = (changes: Partial<FilterForm>, delayMs = 0) => {
+    const next = { ...form, ...changes }
+    setForm(next)
+    window.clearTimeout(timer.current)
+    if (delayMs === 0) {
+      commit(next)
+    } else {
+      timer.current = window.setTimeout(() => commit(next), delayMs)
+    }
+  }
+  const patch = (changes: Partial<FilterForm>) => change(changes)
+  const patchText = (changes: Partial<FilterForm>) => change(changes, TEXT_DEBOUNCE_MS)
 
   const toggleCity = (slug: string) => {
     const cities = toggle(form.cities, slug)
     patch({ cities, districts: form.districts.filter((key) => cities.includes(key.split(':')[0])) })
   }
 
-  const submit = (event: FormEvent) => {
-    event.preventDefault()
-    setSearchParams(applyFilters(searchParams, form))
-    onApply()
+  const clear = () => {
+    window.clearTimeout(timer.current)
+    setSearchParams(clearFilters(searchParams))
   }
 
   const selectedCities = meta.cities.filter((city) => form.cities.includes(city.slug))
   const approximateArea = intent.areaMin === undefined && intent.areaMax === undefined ? intent.areaApprox : undefined
 
   return (
-    <form className="filters__form" aria-label="Filtry" onSubmit={submit}>
+    <form className="filters__form" aria-label="Filtry" onSubmit={(event) => event.preventDefault()}>
+      <div className="filters__head">
+        <button className="btn btn--link" type="button" onClick={clear}>
+          Wyczyść filtry
+        </button>
+      </div>
+
       <fieldset className="filters__group">
         <legend>Miasto</legend>
         <div className="filters__pills">
@@ -267,7 +310,7 @@ function FilterFields({ meta, intent, onApply }: FieldsProps) {
         label="Cena"
         field="price"
         form={form}
-        onChange={patch}
+        onChange={patchText}
         inputProps={{ type: 'text', inputMode: 'numeric' }}
       />
       <Range
@@ -275,7 +318,7 @@ function FilterFields({ meta, intent, onApply }: FieldsProps) {
         label="Powierzchnia"
         field="area"
         form={form}
-        onChange={patch}
+        onChange={patchText}
         inputProps={{ type: 'text', inputMode: 'decimal' }}
         hint={
           approximateArea === undefined
@@ -288,7 +331,7 @@ function FilterFields({ meta, intent, onApply }: FieldsProps) {
         label="Pokoje"
         field="rooms"
         form={form}
-        onChange={patch}
+        onChange={patchText}
         inputProps={{ type: 'number', min: 1, max: 10 }}
       />
       <Range
@@ -296,7 +339,7 @@ function FilterFields({ meta, intent, onApply }: FieldsProps) {
         label="Piętro"
         field="floor"
         form={form}
-        onChange={patch}
+        onChange={patchText}
         inputProps={{ type: 'number', min: -1, max: 40 }}
         hint="parter = 0"
       />
@@ -328,22 +371,6 @@ function FilterFields({ meta, intent, onApply }: FieldsProps) {
         </div>
         <p className="filters__hint">Oferty bez tej informacji zostaną pominięte.</p>
       </fieldset>
-
-      <div className="filters__actions">
-        <button className="btn btn--primary filters__apply" type="submit">
-          Zastosuj
-        </button>
-        <button
-          className="btn btn--link"
-          type="button"
-          onClick={() => {
-            setSearchParams(clearFilters(searchParams))
-            onApply()
-          }}
-        >
-          Wyczyść filtry
-        </button>
-      </div>
     </form>
   )
 }
@@ -354,11 +381,10 @@ export default function Filters() {
   const [expanded, setExpanded] = useState(false)
   const panelId = useId()
   const intent = intentFromSearchParams(searchParams)
-  const formKey = FILTER_PARAMS.map((param) => searchParams.getAll(param).join(',')).join('|')
 
   let content
   if (meta.data) {
-    content = <FilterFields key={formKey} meta={meta.data} intent={intent} onApply={() => setExpanded(false)} />
+    content = <FilterFields meta={meta.data} intent={intent} />
   } else if (meta.isError) {
     content = (
       <div className="notice notice--error">

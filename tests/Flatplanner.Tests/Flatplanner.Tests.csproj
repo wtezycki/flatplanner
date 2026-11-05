@@ -15,8 +15,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="Fixtures\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\Flatplanner.Api\Flatplanner.Api.csproj" />
     <ProjectReference Include="..\..\src\Flatplanner.Core\Flatplanner.Core.csproj" />
+    <ProjectReference Include="..\..\src\Flatplanner.Ingest\Flatplanner.Ingest.csproj" />
   </ItemGroup>
 
 </Project>

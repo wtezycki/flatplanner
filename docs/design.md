@@ -207,7 +207,8 @@ CREATE TABLE listing_facts (                         -- result of mini-W2, one r
 | `market` | `primary`, `secondary` | primary market, secondary market (Polish labels: [ui-spec.md](ui-spec.md) §7.3) |
 | `advertiser_type` | `agency`, `private` | real estate agency, private individual |
 | `finish_condition` | `ready_to_use`, `to_completion`, `to_renovation` | ready to move in, to be finished, for renovation |
-| `ownership` | `full_ownership`, `limited_ownership` | full ownership, cooperative ownership right to the premises (**[TO BE VERIFIED]** at the first import: the `limited_ownership` label is not yet confirmed in the data) |
+| `ownership` | `full_ownership`, `limited_ownership` | full ownership, cooperative ownership right to the premises (verified at the first import, 2026-11-05: `target.Building_ownership` = `limited_ownership` in 13 of 197 listings) |
+| `raw_listings.normalize_status` | `accepted`, `rejected` (`NULL` = not normalized yet) | — |
 | `facts_status` | `pending`, `done`, `skipped`, `failed` | — |
 | `listing_facts.fact_key` | `parking`, `storage` | parking space, storage unit / cellar |
 | `listing_facts.status` | `included`, `extra_cost`, `not_available` | included in the price, extra charge, none |
@@ -275,7 +276,7 @@ Format: a JSON array of strings, sorted alphabetically, without duplicates. A fl
 - **Discovery:** `https://www.otodom.pl/pl/wyniki/sprzedaz/mieszkanie/pomorskie/{city}/{city}/{city}?by=LATEST&direction=DESC&market={PRIMARY|SECONDARY}&limit=36&page={n}`, where `city` ∈ {`gdansk`, `gdynia`, `sopot`}. The `market` parameter was verified: otodom redirects to `/mieszkanie,rynek-pierwotny/...`, and `HttpClient` follows the redirect.
   - List elements: `props.pageProps.data.searchAds.items[]`. We take only `estate == "FLAT"` and `hidePrice == false`, deduplication by `id` (promoted listings repeat across pages).
   - Quotas (constants in code, not in configuration): Gdańsk 55 primary + 55 secondary, Gdynia 30 + 30, Sopot 15 + 15. About 200 listings in total, ~150 after rejections.
-- **Listing:** `https://www.otodom.pl/pl/oferta/{slug}`, regex `<script id="__NEXT_DATA__" type="application/json">(.*?)</script>` (Singleline), `JsonDocument`, node `props.pageProps.ad`.
+- **Listing:** `https://www.otodom.pl/pl/oferta/{slug}`, regex `<script id="__NEXT_DATA__" type="application/json"[^>]*>(.*?)</script>` (Singleline; otodom adds `crossorigin="anonymous"` to the tag), `JsonDocument`, node `props.pageProps.ad`.
 - **Transport:** one `HttpClient` with a browser User-Agent header and `AutomaticDecompression = All`. Delay of 1.5–3 s with random jitter, sequential.
   - 429/5xx: 3 retries after 5, 15 and 45 s.
   - 403 or no `__NEXT_DATA__` on the results page: the run ends with an error. The block page goes neither to the LLM nor to the database.

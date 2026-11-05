@@ -13,7 +13,10 @@ export default function App() {
         <div className="container header__inner">
           <Link to="/" className="header__brand" aria-label="Flatplanner">
             <img className="header__logo" src={logo} alt="" />
-            <img className="header__wordmark" src={wordmark} alt="" />
+            <span className="header__titles">
+              <img className="header__wordmark" src={wordmark} alt="" />
+              <span className="header__motto">Twój asystent do mieszkań</span>
+            </span>
           </Link>
           {onList && <SearchBar />}
         </div>

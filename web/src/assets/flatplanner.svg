@@ -1,53 +1,36 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <defs>
+    <!-- Sylwetka dymka: jedna gładka ścieżka, z której powstają wszystkie warstwy -->
+    <path id="bubble" d="
+      M 75 0
+      H 225
+      A 75 75 0 0 1 300 75
+      V 225
+      A 75 75 0 0 1 225 300
+      H 145
+      Q 132 300 120 305
+      L 38 340
+      Q 14 350 8 326
+      L 0 270
+      V 75
+      A 75 75 0 0 1 75 0
+      Z" />
+    <clipPath id="bubble-clip">
+      <use href="#bubble" />
+    </clipPath>
+  </defs>
 
   <g transform="translate(50, 45)">
-    <!-- 1. Zewnętrzna ciemnomorska ramka z delikatnie zaokrąglonym czubkiem dzioba (#006A59) -->
-    <path fill="#006A59" d="
-      M 75 0 
-      L 225 0 
-      A 75 75 0 0 1 300 75 
-      L 300 225 
-      A 75 75 0 0 1 225 300 
-      L 115 300 
-      L 31 342 
-      A 6 6 0 0 1 22 338 
-      L 14 250 
-      A 75 75 0 0 1 0 225 
-      L 0 75 
-      A 75 75 0 0 1 75 0 Z" />
-
-    <!-- 2. Wewnętrzny biały dymek (#FFFFFF) -->
-    <path fill="#FFFFFF" d="
-      M 70 28 
-      L 215 28 
-      A 52 52 0 0 1 267 80 
-      L 267 210 
-      A 52 52 0 0 1 215 262 
-      L 105 262 
-      L 48 298 
-      L 33 288 
-      L 33 238 
-      A 52 52 0 0 1 28 210 
-      L 28 80 
-      A 52 52 0 0 1 70 28 Z" />
-
-    <!-- 3. Powiększone miętowe wnętrze (#DFF9F2) -->
-    <path fill="#DFF9F2" d="
-      M 72 40 
-      L 205 40 
-      A 45 45 0 0 1 250 85 
-      L 250 198 
-      A 45 45 0 0 1 205 243 
-      L 102 243 
-      L 58 274 
-      L 45 264 
-      L 45 220 
-      A 45 45 0 0 1 40 198 
-      L 40 85 
-      A 45 45 0 0 1 72 40 Z" />
-
-    <!-- 4. Krzyż szprosów okna (#006A59) -->
-    <rect x="136" y="0" width="28" height="300" fill="#006A59" />
-    <rect x="0" y="136" width="300" height="28" fill="#006A59" />
+    <g clip-path="url(#bubble-clip)">
+      <!-- Miętowe wnętrze -->
+      <use href="#bubble" fill="#DFF9F2" />
+      <!-- Biały pierścień (pasek 12 px) pod ramką -->
+      <use href="#bubble" fill="none" stroke="#FFFFFF" stroke-width="80" stroke-linejoin="round" />
+      <!-- Ciemnomorska ramka (pasek 28 px) -->
+      <use href="#bubble" fill="none" stroke="#006A59" stroke-width="56" stroke-linejoin="round" />
+      <!-- Krzyż szprosów okna -->
+      <rect x="136" y="-10" width="28" height="320" fill="#006A59" />
+      <rect x="-10" y="136" width="320" height="28" fill="#006A59" />
+    </g>
   </g>
 </svg>

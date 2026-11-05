@@ -52,9 +52,11 @@ button, input, select { font: inherit; color: inherit; }
 
 .header { background: var(--color-surface); border-bottom: 1px solid var(--color-border); }
 .header__inner { display: flex; align-items: center; gap: var(--space-5); min-height: 72px; }
-.header__brand { display: flex; flex: none; align-items: center; gap: var(--space-3); border-radius: var(--radius-md); }
+.header__brand, .header__brand:hover { display: flex; flex: none; align-items: center; gap: var(--space-3); border-radius: var(--radius-md); text-decoration: none; }
 .header__logo { width: 40px; height: 40px; }
+.header__titles { display: flex; flex-direction: column; gap: 2px; }
 .header__wordmark { width: 149px; height: 26px; }
+.header__motto { font-size: var(--fs-xs); line-height: 1.2; color: var(--color-text-secondary); }
 
 .btn { display: inline-flex; align-items: center; justify-content: center; height: var(--field-height); padding: 0 var(--space-5); border: 1px solid transparent; border-radius: var(--radius-pill); background: none; font-size: var(--fs-sm); font-weight: var(--fw-semibold); cursor: pointer; }
 .btn--primary { background: var(--teal-700); color: var(--on-teal); }
@@ -143,7 +145,7 @@ button, input, select { font: inherit; color: inherit; }
 @media (max-width: 640px) {
   .container { padding: 0 var(--space-4); }
   .header__inner { gap: var(--space-3); min-height: 64px; }
-  .header__wordmark { display: none; }
+  .header__titles { display: none; }
   .search .btn { padding: 0 var(--space-4); }
   .card { grid-template-columns: 1fr; gap: var(--space-3); }
   .card__image { width: 100%; height: auto; aspect-ratio: 16 / 9; }

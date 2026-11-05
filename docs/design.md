@@ -139,7 +139,8 @@ CREATE TABLE listings (
   external_id          VARCHAR(32)   NOT NULL,
   url                  VARCHAR(512)  NOT NULL,
   title                VARCHAR(300)  NOT NULL,
-  description_text     MEDIUMTEXT    NOT NULL,         -- plain text (4.2); this is what the UI shows and what the LLM sees
+  description_text     MEDIUMTEXT    NOT NULL,         -- plain text (4.2); what the LLM sees and what search and anchors use
+  description_markup   MEDIUMTEXT    NULL,             -- the same text with bold and italic kept as `**` and `*` (4.2, R23); the UI shows this
   search_text          MEDIUMTEXT    NOT NULL,         -- 3.5
   city_slug            VARCHAR(16)   NOT NULL,         -- gdansk | gdynia | sopot
   district_slug        VARCHAR(80)   NULL,             -- last segment of the reverseGeocoding id, e.g. 'wrzeszcz-gorny'
@@ -317,6 +318,7 @@ All paths are relative to `ad`. Numbers from otodom are sometimes a JSON number 
 | `target.Extras_types[]` | `has_lift`, `has_balcony`, `has_garage`, `has_basement` | contains `lift` / `balcony` / `garage` / `basement` → `true`, otherwise **NULL** (`Extras_types` is a list, absence of an element ≠ “no”; in 14 listings `additionalInformation.lift` has only `::y` or is empty, there is no “no” value) | NULL (the array can be `null`) |
 | `target.user_type` | `advertiser_type` | `agency`/`private` | NULL; other → NULL + `unknown_value:advertiser_type` |
 | `description` | `description_text` | `HtmlText.ToPlain` (below) | `""` |
+| `description` | `description_markup` | `HtmlText.ToMarkup`: as `ToPlain`, but `<strong>`/`<b>` become `**…**` and `<em>`/`<i>` become `*…*`; literal `*` and `\` are escaped with `\`; empty emphasis is dropped | `NULL` |
 | (computed) | `search_text` | 3.5 | — |
 | `images[].medium` | `image_urls` | first 10 non-empty | `[]` (the UI shows a placeholder) |
 | `createdAt` | `created_at_source` | ISO 8601 → UTC | `scraped_at` + flag `created_at_missing` |
@@ -569,6 +571,7 @@ The list response does **not** echo the intent. The URL is the single source of 
   "scrapedAt": "2026-11-04T08:10:00Z", "createdAtSource": "2026-11-04T07:49:54Z",
   "imageUrls": ["https://ireland.apollo.olxcdn.com/..."],
   "descriptionText": "Na sprzedaż 2-pokojowe mieszkanie położone na 4. piętrze z 6 ...",
+  "descriptionMarkup": "Na sprzedaż **2-pokojowe mieszkanie** położone na 4. piętrze z 6 ...",
   "citySlug": "gdansk", "cityName": "Gdańsk", "districtName": "Letnica", "street": "ul. Starowiejska", "lat": 54.3912, "lng": 18.6224,
   "locationApproximate": false,
   "pricePln": 799000, "areaM2": 41.86, "pricePerM2": 19087, "rooms": 2,
@@ -578,7 +581,7 @@ The list response does **not** echo the intent. The URL is the single source of 
 }
 ```
 
-`lat` and `lng` feed the details map (R20). `floorHigherThan10` and `floorIsGarret` come from the `floor_higher_10` and `floor_garret` quality flags and drive the floor label (ui-spec §7.4). The stale-data note is UI copy built in the frontend from `scrapedAt`. The UI translates enum values using labels from `/api/meta`.
+`lat` and `lng` feed the details map (R20). `descriptionMarkup` carries the emphasised description (R23) and is omitted when null; the UI falls back to `descriptionText`. `floorHigherThan10` and `floorIsGarret` come from the `floor_higher_10` and `floor_garret` quality flags and drive the floor label (ui-spec §7.4). The stale-data note is UI copy built in the frontend from `scrapedAt`. The UI translates enum values using labels from `/api/meta`.
 
 ### 6.3 `POST /api/search/interpret`
 
@@ -1042,7 +1045,7 @@ Example: “Gdańsk Morena kawalerka” in search, then a price of up to 500 000
 **Details:**
 - a table of fields with a provenance badge (labels from `/api/meta.enums.provenance`), “no data” instead of empty spots;
 - a “Real price” block with a quote, “Approximate location”, “Data quality notes” (flags with labels), “Ask the seller about:”, a link to otodom, and the stale-data note built from `scrapedAt` (text in [ui-spec.md](ui-spec.md) §7.1) (not an API field, 6.2);
-- the description as **text** (`description_text`, CSS `white-space: pre-line`). HTML is never rendered, so there is no XSS;
+- the description as **text with light markup** (`description_markup`: bold, italic, paragraphs and bullet lists, turned into React elements by our own parser; falls back to `description_text`). HTML is never rendered, so there is no XSS;
 - photos as `<img loading="lazy" referrerPolicy="no-referrer">`.
 
 **Libraries:**
@@ -1343,6 +1346,7 @@ Places where earlier documents or data allowed two variants, and the variant ado
 | R20 | Details page UI after review of #6 (map, lightbox, description formatting) | A single-column page with a map of the (approximate) location, a photo lightbox and a structured description. Map: a non-interactive preview that opens an interactive fullscreen map on click; Leaflet + OSM tiles, a circle of 500 m (`APPROXIMATE_RADIUS_M`, otodom gives no radius in our data) when `locationApproximate`, a circle marker otherwise. Photo lightbox and map share one native `<dialog>` component. Description: `description_text` split into headings (a line of up to 40 characters ending with “:”), bullet lists (“- ”, “•”) and paragraphs, rendered as React elements | the plain page looked empty next to the original; the fields stay the same, `description_html` stays cut (§14.5) and HTML is still never rendered. Overrides the “Map” and “lightbox” exclusions in product-scope §8 and ui-spec §9 for the details page only |
 | R21 | Details page: icons and key facts panel (review of #6) | A panel of six key facts (area, rooms, floor, year built, street, city) above the parameter list; a bold location line with a pin; inline SVG icons (own `Icon` component, hand-written paths, no library, no new dependency) in the panel and in the parameter rows | the page read as a flat list; the panel gives the buyer the essentials at a glance. Overrides “no SVG” in ui-spec §9 for the details page; icons are decorative (`aria-hidden`) |
 | R22 | Details page layout after the second review of #6 | A mosaic of three photos on desktop (carousel on mobile); one key facts panel (area, rooms, floor, year built, ownership, location = street + city) beside the map, so the map is no longer at the bottom; the parameter list drops what the panel shows; the description sits in a card; the otodom link is a secondary button. A key fact without a value keeps its cell and reads “brak danych” | the buyer should see photos, essentials and the place without scrolling; the original listing is a reference, not the main action. Supersedes the layout parts of R20 and R21 |
+| R23 | Description formatting (#6 review) | A nullable `description_markup` column (migration `DescriptionMarkup`) keeps the original bold and italic as `**` and `*`; the details page renders paragraphs, bullet lists and emphasis from it. `description_text` stays plain for search, the LLM and quote anchors. The earlier heading heuristic is dropped (the original has no headings, only bold lines) | the plain text lost the emphasis the seller used. HTML is still never stored or rendered, so no sanitiser package is needed. Needs `normalize` to be re-run after the migration, and the dump to be refreshed (11.4) |
 
 ### 14.2 Technical decisions
 

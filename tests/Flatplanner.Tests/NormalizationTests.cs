@@ -89,6 +89,27 @@ public sealed class NormalizationTests
     }
 
     [Fact]
+    public void Normalize_EmphasisInDescription_MarkupKeepsItAndPlainTextDoesNot()
+    {
+        var ad = Load(Primary);
+        ad["description"] = "<p><strong>Cisza:</strong> blisko <em>parku</em> *</p><p><b> </b>Koniec</p>";
+
+        var listing = Accept(ad);
+
+        Assert.Equal("**Cisza:** blisko *parku* \\*\nKoniec", listing.DescriptionMarkup);
+        Assert.Equal("Cisza: blisko parku *\nKoniec", listing.DescriptionText);
+    }
+
+    [Fact]
+    public void Normalize_AdjacentBoldRuns_NotTreatedAsEmpty()
+    {
+        var ad = Load(Primary);
+        ad["description"] = "<p><b>a</b> <b>b</b></p>";
+
+        Assert.Equal("**a** **b**", Accept(ad).DescriptionMarkup);
+    }
+
+    [Fact]
     public void Normalize_ContactDataInDescription_MaskedAndPriceUntouched()
     {
         var ad = Load(Primary);

@@ -128,7 +128,8 @@ public static partial class ListingNormalizer
         }
 
         var street = ad.Get("location", "address", "street", "name").GetString()?.Trim();
-        var description = ad.Get("description").GetString() is { } html ? HtmlText.ToPlain(html) : "";
+        var descriptionHtml = ad.Get("description").GetString();
+        var description = descriptionHtml is null ? "" : HtmlText.ToPlain(descriptionHtml);
 
         return NormalizeResult.Accept(new Listing
         {
@@ -137,6 +138,7 @@ public static partial class ListingNormalizer
             Url = url,
             Title = title.Length > MaxTitleLength ? title[..MaxTitleLength] : title,
             DescriptionText = description,
+            DescriptionMarkup = descriptionHtml is null ? null : HtmlText.ToMarkup(descriptionHtml),
             SearchText = TextFolding.Fold(
                 $"{title} {description} {districtName} {street} {CityNames[citySlug]}"),
             CitySlug = citySlug,

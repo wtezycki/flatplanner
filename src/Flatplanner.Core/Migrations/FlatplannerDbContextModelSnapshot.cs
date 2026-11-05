@@ -60,6 +60,10 @@ namespace Flatplanner.Core.Migrations
                         .HasColumnType("datetime(6)")
                         .HasColumnName("created_at_source");
 
+                    b.Property<string>("DescriptionMarkup")
+                        .HasColumnType("mediumtext")
+                        .HasColumnName("description_markup");
+
                     b.Property<string>("DescriptionText")
                         .IsRequired()
                         .HasColumnType("mediumtext")

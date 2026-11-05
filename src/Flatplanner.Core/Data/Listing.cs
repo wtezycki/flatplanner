@@ -28,6 +28,9 @@ public class Listing
     [Column("description_text", TypeName = "mediumtext")]
     public required string DescriptionText { get; set; }
 
+    [Column("description_markup", TypeName = "mediumtext")]
+    public string? DescriptionMarkup { get; set; }
+
     [Column("search_text", TypeName = "mediumtext")]
     public required string SearchText { get; set; }
 

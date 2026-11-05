@@ -8,6 +8,7 @@ public sealed record ListingDetail(
     DateTime CreatedAtSource,
     IReadOnlyList<string> ImageUrls,
     string DescriptionText,
+    string? DescriptionMarkup,
     string CitySlug,
     string CityName,
     string? DistrictName,

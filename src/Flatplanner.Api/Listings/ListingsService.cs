@@ -61,7 +61,7 @@ public sealed class ListingsService(FlatplannerDbContext db)
                 listing.Id, listing.Url, listing.Title,
                 DateTime.SpecifyKind(listing.ScrapedAt, DateTimeKind.Utc),
                 DateTime.SpecifyKind(listing.CreatedAtSource, DateTimeKind.Utc),
-                listing.ImageUrls, listing.DescriptionText, listing.CitySlug, EnumLabels.CityNames[listing.CitySlug],
+                listing.ImageUrls, listing.DescriptionText, listing.DescriptionMarkup, listing.CitySlug, EnumLabels.CityNames[listing.CitySlug],
                 listing.DistrictName, listing.Street, listing.Lat, listing.Lng, listing.LocationApproximate,
                 listing.PricePln, listing.AreaM2, listing.PricePerM2, listing.Rooms, listing.Floor, listing.QualityFlags.Contains(QualityFlag.FloorHigher10),
                 listing.QualityFlags.Contains(QualityFlag.FloorGarret), listing.BuildingFloors, listing.BuildYear,

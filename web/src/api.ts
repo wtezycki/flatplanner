@@ -111,6 +111,7 @@ export interface ListingDetail {
   createdAtSource: string
   imageUrls: string[]
   descriptionText: string
+  descriptionMarkup?: string
   citySlug: string
   cityName: string
   districtName?: string

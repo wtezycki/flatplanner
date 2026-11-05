@@ -22,7 +22,6 @@ import {
   formatDetailFloor,
   formatPrice,
   formatPricePerM2,
-  formatRooms,
 } from '../format.ts'
 
 const labelOf = (options: EnumOption[] | undefined, value: string | undefined) =>
@@ -92,14 +91,14 @@ function Details({ listing }: { listing: ListingDetail }) {
       <div className="detail__back">
         <BackLink />
       </div>
-      <div className="detail__gallery detail__gallery--mosaic">
-        <PhotoMosaic urls={listing.imageUrls} onOpen={setOpenedPhoto} />
-      </div>
-      <div className="detail__gallery detail__gallery--carousel">
-        <PhotoCarousel urls={listing.imageUrls} onOpen={setOpenedPhoto} />
-      </div>
-      <section className="detail__head">
-        <div>
+      <article className="sheet">
+        <div className="detail__gallery detail__gallery--mosaic">
+          <PhotoMosaic urls={listing.imageUrls} onOpen={setOpenedPhoto} />
+        </div>
+        <div className="detail__gallery detail__gallery--carousel">
+          <PhotoCarousel urls={listing.imageUrls} onOpen={setOpenedPhoto} />
+        </div>
+        <header className="sheet__head">
           <h1 className="detail__title">{listing.title}</h1>
           <p className="detail__location">
             <span className="detail__address">
@@ -112,19 +111,19 @@ function Details({ listing }: { listing: ListingDetail }) {
               </span>
             )}
           </p>
+        </header>
+        <div className="sheet__price">
+          <div>
+            <p className="detail__price num">{formatPrice(listing.pricePln)}</p>
+            <p className="detail__price-per-m2 num">{formatPricePerM2(listing.pricePerM2)}</p>
+          </div>
+          <div className="sheet__source-link">
+            <p className="detail__stale">Dane z {formatDate(listing.scrapedAt)}. Aktualną ofertę sprawdź na otodom.</p>
+            <a className="btn btn--primary" href={listing.url} target="_blank" rel="noopener noreferrer">
+              Zobacz na otodom ↗
+            </a>
+          </div>
         </div>
-        <div className="detail__buy">
-          <p className="detail__price num">{formatPrice(listing.pricePln)}</p>
-          <p className="detail__price-per-m2 num">
-            {formatPricePerM2(listing.pricePerM2)} · {formatArea(listing.areaM2)} · {formatRooms(listing.rooms)}
-          </p>
-          <a className="btn btn--secondary" href={listing.url} target="_blank" rel="noopener noreferrer">
-            Zobacz na otodom ↗
-          </a>
-          <p className="detail__stale">Dane z {formatDate(listing.scrapedAt)}. Aktualną ofertę sprawdź na otodom.</p>
-        </div>
-      </section>
-      <div className="detail__overview">
         <ul className="key-facts" aria-label="Najważniejsze parametry">
           <KeyFact icon="area" label="Powierzchnia" value={formatArea(listing.areaM2)} />
           <KeyFact icon="rooms" label="Pokoje" value={listing.rooms} />
@@ -133,25 +132,44 @@ function Details({ listing }: { listing: ListingDetail }) {
           <KeyFact icon="ownership" label="Forma własności" value={labelOf(meta?.enums.ownership, listing.ownership)} />
           <KeyFact icon="pin" label="Lokalizacja" value={[listing.street, listing.cityName].filter(Boolean).join(', ')} />
         </ul>
-        <LocationSection lat={listing.lat} lng={listing.lng} approximate={listing.locationApproximate} />
-      </div>
-      <h2 className="detail__heading">Parametry</h2>
-      <dl className="params">
-        <Row icon="market" label="Rynek" value={labelOf(meta?.enums.market, listing.market)} />
-        <Row icon="finish" label="Stan wykończenia" value={labelOf(meta?.enums.finishCondition, listing.finishCondition)} />
-        <Row icon="rent" label="Czynsz (zł/mies.)" value={rent} />
-        <Row icon="lift" label="Winda" value={yesOrUnknown(listing.hasLift)} missing="brak informacji" />
-        <Row icon="balcony" label="Balkon" value={yesOrUnknown(listing.hasBalcony)} missing="brak informacji" />
-        <Row icon="garage" label="Garaż / miejsce postojowe" value={yesOrUnknown(listing.hasGarage)} missing="brak informacji" />
-        <Row icon="basement" label="Piwnica" value={yesOrUnknown(listing.hasBasement)} missing="brak informacji" />
-        <Row icon="advertiser" label="Ogłaszający" value={labelOf(meta?.enums.advertiserType, listing.advertiserType)} />
-        <Row icon="district" label="Dzielnica" value={listing.districtName} />
-      </dl>
-      <h2 className="detail__heading">Opis</h2>
-      <Description text={listing.descriptionText} />
-      <p className="detail__source">
-        Źródło: otodom.pl · pobrano {formatDate(listing.scrapedAt)} · dodano {formatDate(listing.createdAtSource)}
-      </p>
+        <div className="sheet__split">
+          <section>
+            <h2 className="detail__heading">Parametry</h2>
+            <dl className="params">
+              <Row icon="market" label="Rynek" value={labelOf(meta?.enums.market, listing.market)} />
+              <Row
+                icon="finish"
+                label="Stan wykończenia"
+                value={labelOf(meta?.enums.finishCondition, listing.finishCondition)}
+              />
+              <Row icon="rent" label="Czynsz (zł/mies.)" value={rent} />
+              <Row icon="lift" label="Winda" value={yesOrUnknown(listing.hasLift)} missing="brak informacji" />
+              <Row icon="balcony" label="Balkon" value={yesOrUnknown(listing.hasBalcony)} missing="brak informacji" />
+              <Row
+                icon="garage"
+                label="Garaż / miejsce postojowe"
+                value={yesOrUnknown(listing.hasGarage)}
+                missing="brak informacji"
+              />
+              <Row icon="basement" label="Piwnica" value={yesOrUnknown(listing.hasBasement)} missing="brak informacji" />
+              <Row
+                icon="advertiser"
+                label="Ogłaszający"
+                value={labelOf(meta?.enums.advertiserType, listing.advertiserType)}
+              />
+              <Row icon="district" label="Dzielnica" value={listing.districtName} />
+            </dl>
+          </section>
+          <LocationSection lat={listing.lat} lng={listing.lng} approximate={listing.locationApproximate} />
+        </div>
+        <section className="sheet__section">
+          <h2 className="detail__heading">Opis</h2>
+          <Description source={listing.descriptionMarkup ?? listing.descriptionText} />
+        </section>
+        <p className="detail__source">
+          Źródło: otodom.pl · pobrano {formatDate(listing.scrapedAt)} · dodano {formatDate(listing.createdAtSource)}
+        </p>
+      </article>
       {openedPhoto && (
         <PhotoLightbox
           urls={listing.imageUrls}

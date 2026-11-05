@@ -178,33 +178,33 @@ Between 641 and 959 px: like mobile (collapsible filters), but a horizontal card
 │ Flatplanner                                                                  │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │ ‹ Back to results                                          (max-width 960 px)│
-│ ┌──────────────────────────────────┐ ┌─────────────────────┐                 │
-│ │                                  │ │  photo 2            │  mosaic, 420 px │
-│ │   photo 1 (click = lightbox)     │ ├─────────────────────┤  (§5.9)         │
-│ │                                  │ │  photo 3    +5 zdjęć│                 │
-│ └──────────────────────────────────┘ └─────────────────────┘                 │
-│ Słoneczne | Do wprowadzenia | Widok na zielone…        799 000 zł (28px bold)│
-│ ⌖ Letnica, ul. Starowiejska, Gdańsk (bold)             19 087 zł/m² · 41,86 m²│
-│ Approximate location                                   [ View on otodom ↗ ]  │
-│                                                        Data from 2026-11-04. │
-│ ┌─────────────────────────────┐ ┌──────────────────────────────────────────┐ │
-│ │ ⛶ 41,86 m²  │ ▯ 2           │ │ map preview, circle if approx.           │ │
-│ │ ≋ 4 of 6    │ ▦ 2019        │ │ [Lokalizacja przybliżona]  [Powiększ mapę]│ │
-│ │ ⚷ full own. │ ⌖ ul. Star…   │ │                                          │ │
-│ └─────────────────────────────┘ └──────────────────────────────────────────┘ │
-│ Parameters                                                                   │
-│ ⌂ Market        secondary     │ ▤ Finish condition  ready to use             │
-│ …                             │ …                                            │
-│ Description  (white card: headings with an accent bar, lists, paragraphs)    │
-│ Source: otodom.pl · fetched 4.11.2026 · added 4.11.2026                      │
+│ ┌──────────────────────────────────────────────────────────────────────────┐ │
+│ │ ┌──────────────────────────────────┐ ┌─────────────────────┐             │ │
+│ │ │                                  │ │  photo 2            │  mosaic     │ │
+│ │ │   photo 1 (click = lightbox)     │ ├─────────────────────┤  (§5.9)     │ │
+│ │ └──────────────────────────────────┘ └─────────────────────┘ +5 zdjęć    │ │
+│ │ Słoneczne | Do wprowadzenia | Widok na zielone patio                     │ │
+│ │ ⌖ Letnica, ul. Starowiejska, Gdańsk (bold)  Approximate location         │ │
+│ │ 799 000 zł                       Data from 2026-11-04.  [ View on otodom ↗]│ │
+│ │ 19 087 zł/m²                                                             │ │
+│ │ ──────────────────────────────────────────────────────────────────────── │ │
+│ │ ⛶ 41,86 m² │ ▯ 2 │ ≋ 4 of 6 │ ▦ 2019 │ ⚷ full ownership │ ⌖ ul. Star…, Gdańsk│ │
+│ │ ──────────────────────────────────────────────────────────────────────── │ │
+│ │ Parameters                          ┌───────────────────────────────────┐│ │
+│ │ ⌂ Market        secondary           │ map preview, circle if approx.    ││ │
+│ │ …                                   │ [Lokalizacja przybliżona] [Powiększ]││ │
+│ │ ──────────────────────────────────  └───────────────────────────────────┘│ │
+│ │ Description  (paragraphs, bullets, bold and italic as in the original)   │ │
+│ │ Source: otodom.pl · fetched 4.11.2026 · added 4.11.2026                  │ │
+│ └──────────────────────────────────────────────────────────────────────────┘ │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-One column, `max-width: 960px`. Under the gallery a header row: title and location on the left, price block with the otodom button on the right (stacked on mobile). Then one overview row: the key facts panel on the left and the location map on the right (stacked on mobile, panel first). Parameters list only what the panel does not show. Minimal details after the AI pivot (design.md §16.5, R19–R22): no provenance badges, real price, “Ask the seller” or quality notes.
+One column, `max-width: 960px`, and one white sheet (`--color-surface`, 1 px `--color-border`, `--radius-md`) that holds the whole listing; sections inside are separated by 1 px lines, not by separate cards. Order: mosaic, title and location, price bar, key facts strip, a split row with Parameters on the left and the map on the right, Description, source line. Minimal details after the AI pivot (design.md §16.5, R19–R23): no provenance badges, real price, “Ask the seller” or quality notes.
 
 ### 4.4 Details, mobile (≤ 640 px)
 
-One column in the same order as on desktop: “Back” → gallery (swipeable carousel, 4:3, instead of the mosaic) → title and location → price block with the otodom button (full width) → key facts panel (2 columns) → map (240 px) → Parameters (one column) → Description → Source.
+One column inside the same sheet, in the same order as on desktop: “Back” → gallery (swipeable carousel, 4:3, instead of the mosaic) → title and location → price, then the stale-data note and the full-width button → key facts (2 columns) → Parameters → map (240 px) → Description → Source.
 
 ---
 
@@ -272,12 +272,12 @@ With `scopeBlocked` the list is not shown at all (no “No listings”); the not
 - **Gallery (desktop):** a mosaic of up to three photos in a 420 px high block, `--radius-md`, gap 8 px: with three or more photos the first fills the left two thirds, the second and third are stacked on the right; two photos sit side by side; one photo fills the block; the last visible tile carries the badge „+{n} zdjęć” when more photos exist (`n` with the Polish plural, §7.4). Each tile is a button (`aria-label` „Powiększ zdjęcie {i} z {n}”, `alt=""`) that opens the lightbox at that photo. No photos → placeholder „Brak zdjęcia”. A photo that fails to load drops out of the mosaic.
 - **Gallery (mobile, ≤ 640 px):** the swipeable `PhotoCarousel` as on the card (counter “3 / 12”), 4:3; a click opens the lightbox.
 - **Fullscreen dialog (photo lightbox and map):** one `FullscreenDialog` component, native `<dialog>` (`showModal`), full viewport on `rgba(42,38,35,.94)`; “×” 44×44 (`aria-label` „Zamknij”, top right); closes on Escape, on a click outside the content and on “×”. The photo lightbox shows the photo `object-fit: contain`, buttons “‹” / “›” („Poprzednie zdjęcie” / „Następne zdjęcie”, wrapping at the ends), counter “3 / 12”, arrows on the keyboard, `alt` „{title}, zdjęcie {i} z {n}”.
-- **Header row:** under the gallery, `<h1>` (`--fs-xl`) and the location line on the left; on the right (right-aligned) `pricePln` (28 px, bold), `{pricePerM2} · {areaM2} · {rooms}` (`--fs-sm`, secondary), the secondary (outlined) button “Zobacz na otodom ↗” (`target="_blank" rel="noopener noreferrer"`) and the stale-data note built from `scrapedAt` (§7.1; `--fs-xs`, secondary). On mobile the price block goes under the title, left-aligned, the button full width.
-- **Map:** right of the key facts panel (same height, at least 240 px), a Leaflet map, OSM tiles with attribution, loaded lazily. The preview is not interactive (no drag, zoom control or wheel zoom); the whole preview is a button („Powiększ mapę”, `cursor: zoom-in`, label in the corner) that opens the map in the fullscreen dialog, where it is fully interactive. With `locationApproximate` a circle of 500 m around `lat`/`lng` and a „Lokalizacja przybliżona” chip in the top left corner of the preview; otherwise a circle marker. `role="region"` with `aria-label` „Mapa lokalizacji”.
-- **Key facts panel:** `<ul class="key-facts" aria-label="Najważniejsze parametry">`, one bordered card (`--color-border`, `--radius-md`) divided into 2 columns × 3 rows by 1 px lines, left of the map. Six cells in this order: `areaM2` (Powierzchnia), `rooms` (Pokoje), floor (Piętro, §7.4), `buildYear` (Rok budowy), `ownership` (Forma własności, label from `/api/meta`), location (Lokalizacja: `street` and `cityName` joined with “, ”, just `cityName` without a street). A cell: a 26 px teal icon, the value (`--fs-md`, bold) and the label (`--fs-xs`, secondary). A cell without a value keeps its place and reads „brak danych” (`--fs-sm`, secondary), so the panel never changes shape.
-- **Parameters:** `<dl class="params">`, two columns on desktop, one on mobile; each row has the label with an 18 px teal icon on the left and the value on the right (right-aligned), rows separated by 1 px `--color-border`, padding 8 px. Order and labels in §7.2. A missing value is a `.value--missing` element: text “brak danych”, white background, 1 px **dashed** `--color-border-strong` outline. Two-state values (`hasLift`, `hasBalcony`, `hasGarage`, `hasBasement`: `true` or omitted): `true` → “tak”; omitted → `.value--missing` with “brak informacji” (not “nie”).
+- **Title and price bar:** inside the sheet, `<h1>` (`--fs-xl`) and the location line (below); then the price bar: `pricePln` (28 px, bold) with `pricePerM2` (`--fs-sm`, secondary) on the left, and on the right the stale-data note built from `scrapedAt` (§7.1; `--fs-xs`, secondary, right-aligned) next to the primary button “Zobacz na otodom ↗” (`target="_blank" rel="noopener noreferrer"`). On mobile the price comes first, then the full-width button with the note under it.
+- **Map:** right half of the split row (same height as Parameters, at least 240 px), a Leaflet map, OSM tiles with attribution, loaded lazily. The preview is not interactive (no drag, zoom control or wheel zoom); the whole preview is a button („Powiększ mapę”, `cursor: zoom-in`, label in the corner) that opens the map in the fullscreen dialog, where it is fully interactive. With `locationApproximate` a circle of 500 m around `lat`/`lng` and a „Lokalizacja przybliżona” chip in the top left corner of the preview; otherwise a circle marker. `role="region"` with `aria-label` „Mapa lokalizacji”.
+- **Key facts strip:** `<ul class="key-facts" aria-label="Najważniejsze parametry">`, full width of the sheet, one row of six cells divided by 1 px vertical lines and framed by 1 px lines above and below (2 columns on mobile). Order: `areaM2` (Powierzchnia), `rooms` (Pokoje), floor (Piętro, §7.4), `buildYear` (Rok budowy), `ownership` (Forma własności, label from `/api/meta`), location (Lokalizacja: `street` and `cityName` joined with “, ”, just `cityName` without a street); the last two cells are wider. A cell is a column: a 24 px teal icon, the value (`--fs-md`, bold) and the label (`--fs-xs`, secondary). A cell without a value keeps its place and reads „brak danych” (`--fs-sm`, secondary).
+- **Parameters:** left half of the split row, `<dl class="params">`, one column; each row has the label with an 18 px teal icon on the left and the value on the right (right-aligned), rows separated by 1 px `--color-border`, padding 8 px. Rows: Rynek, Stan wykończenia, Czynsz, Winda, Balkon, Garaż / miejsce postojowe, Piwnica, Ogłaszający, Dzielnica (what the key facts strip does not show; labels in §7.2). A missing value is a `.value--missing` element: text “brak danych”, white background, 1 px **dashed** `--color-border-strong` outline. Two-state values (`hasLift`, `hasBalcony`, `hasGarage`, `hasBasement`: `true` or omitted): `true` → “tak”; omitted → `.value--missing` with “brak informacji” (not “nie”).
 - **Location line:** under the title, in bold with a 20 px teal pin icon: `districtName`, `street`, `cityName` joined with “, ”. With `locationApproximate` the text „Lokalizacja przybliżona” follows (`--color-warning-text`, `--fs-sm`) with `title="Ogłaszający nie podał dokładnej lokalizacji."`.
-- **Description:** h2 “Opis” and a white card (`--color-border`, `--radius-md`, padding 16–24 px, line height 1.65) with `descriptionText` split into blocks (text `max-width: 85ch`): a line of up to 40 characters ending with “:” is an `<h3>` with a 3 px teal bar on the left, lines starting with “- ” or “•” form a `<ul>`, other lines are `<p style="white-space: pre-line">`. HTML is never rendered.
+- **Description:** h2 “Opis” under a 1 px line, then `descriptionMarkup` (falling back to `descriptionText`) as in the original listing: lines starting with “- ” or “•” form a `<ul>`, other lines are paragraphs whose lines break with `<br>`, blank lines separate paragraphs; `**…**` is `<strong>`, `*…*` is `<em>`, `\` escapes the next character. Parsed by our own code into React elements; HTML is never rendered. Line height 1.65.
 - **Source:** “Źródło: otodom.pl · pobrano {scrapedAt} · dodano {createdAtSource}” (`--fs-xs`, secondary).
 
 ### 5.10 Provenance badge `.badge--{provenance}`

@@ -361,6 +361,8 @@ Printed to stdout and saved to `docs/ingest-report.md`, overwritten on every run
    - number of calls, errors (`failed`) and `skipped`,
    - `accepted` / `rejected` facts per `fact_key`, rejections per `reject_reason`,
    - **share of rejected facts** = `rejected / (accepted + rejected)`.
+10. **Duplicate candidates** (assumption #6): pairs of listings in the same `district_slug` with `rooms` equal, `area_m2` within ±0.5 m², `floor` equal (or both `NULL`) and `price_pln` within ±3 %; printed as the number of pairs, the share of listings in at least one pair and up to 10 pairs (`external_id`, `advertiser_type`) for manual review. Computed in memory (≤ 150 rows, O(n²) is trivial); nothing is flagged or grouped.
+11. **Primary market in the “cheap” ranking** (assumption #7): share of `market = primary` among all listings vs among the 20 listings with the lowest `price_per_m2 / city median`, so the 1-pager can state whether “cheap” pushes developers down.
 
 ---
 
@@ -1087,6 +1089,7 @@ Example: “Gdańsk Morena kawalerka” in search, then a price of up to 500 000
 No component library and no design system: a single `web/src/styles.css`. DTO types written by hand in `web/src/api.ts` (~10 types). An OpenAPI generator is an additional build step with no gain at this number of types.
 
 **Files:**
+- `web/index.html` with `<meta name="robots" content="noindex">`: the demo republishes scraped listings and must not compete with the source in search engines;
 - `main.tsx`, `App.tsx` (routes), `api.ts`, `intent.ts`, `styles.css` (tokens and styles, `docs/ui-spec.md` §2);
 - `format.ts`: Polish labels of detail fields, quality flags and fact keys (`docs/ui-spec.md` §7.2), price and area formatting, plural forms, floor (“ground floor”, “11+”). The labels are frontend constants and not part of `/api/meta`, because they are interface text, not data;
 - `pages/ListingsPage.tsx`, `pages/ListingDetailPage.tsx`;
@@ -1321,7 +1324,7 @@ The `main` branch requires both jobs to pass before a squash merge. A `docker bu
 
 ## 13. Implementation order
 
-Items are carried out in sequence; each ends with a verifiable definition of done. Items #12–#14 are built only if #15–#17 are not at risk; otherwise they go to the one-pager's “with more time” section.
+Items are carried out in sequence; each ends with a verifiable definition of done. Items #12–#14 are built only if #15–#17 are not at risk; otherwise they go to the one-pager's “with more time” section. If only one of #13 and #14 fits, build #14 (“Ask the seller about”) first: it has the higher user value, while chips have a fallback path through the filter panel (14.4).
 
 **Rule for every item:** each entity change is followed by `dotnet ef migrations add <Name>` in the same commit. EF Core 9 throws `PendingModelChangesWarning` as an error in `Migrate()`, and with migrations at startup (11.3) a forgotten migration means a restart loop in production.
 
@@ -1343,7 +1346,7 @@ Items are carried out in sequence; each ends with a verifiable definition of don
 | 14 | “Ask the seller about” (W7) | `askSeller` (6.2) | Api, web | a listing without rent (czynsz, maintenance fee) shows a question about the maintenance fee |
 | 15 | Data to production + smoke | 11.4, 11.5; `CHAT_MODE=llm` | — | number of listings in prod = local; smoke A, B, Kraków, 429 pass |
 | 16 | 1-pager | final edit of the `docs/one-pager.md` draft from #3, with the `eval-intents` result | — | the 7 points required by the task description on 1 page |
-| 17 | README | how to run, scenarios A and B, reason for choosing C#, ranking weights, failure mode “ładne” (“nice”) | — | a fresh clone runs according to the README |
+| 17 | README | how to run; a 2-minute demo script with deep links (scenario A, a listing with a real price, a listing with a quality flag, the scenario B sentence and Kraków in the chat) and a note that the task's Kraków example runs on Gdańsk; reason for choosing C#; ranking weights; failure mode “ładne” (“nice”); a data note (demo use only, link to the source, contact data removed, not indexed) | — | a fresh clone runs according to the README; every demo link opens the described state |
 
 ---
 
@@ -1430,8 +1433,8 @@ The design adds to the items from [product-scope.md](product-scope.md) §4:
 Already cut before implementation: keyword parsing of the search field (6.7) and the count of listings hidden by `requireLift`/`requireBalcony` (the filter hint in the UI says that listings without the information are skipped).
 
 Order of cuts when time runs out (the list from [product-scope.md](product-scope.md) §9):
-1. “Ask the seller about” (W7);
-2. chips with removal (`summary` stays);
+1. chips with removal (`summary` stays; filters remain a way to correct the interpretation);
+2. “Ask the seller about” (W7), the only feature that turns missing data into an action;
 3. `blockers`;
 4. `why`;
 5. “ładne” (“nice”);

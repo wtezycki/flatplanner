@@ -403,3 +403,92 @@ Flags (design.md §3.6, only those visible in the details): `price_outlier` „N
 All UI decisions that touch the API or the application state have been carried over to `design.md` (§6.1: optional `imageUrl`, `floorHigherThan10`; §9: `format.ts`, `keepPreviousData` and `retry`, “Clear filters”, `relevance` visibility, `location.state` after a chip is removed). In case of a discrepancy `design.md` prevails, except for user-facing texts, whose single source is §7 of this document.
 
 **Optional fields are `undefined`, never `null`:** the API omits fields whose value is `null` (design.md §6), so the UI checks presence (`x != null`, `x?.y`), not `!== null`. The exception is `Sourced<T>.value` in details, where `null` is sent and means „brak danych”.
+
+---
+
+## 11. AI-first visual direction (2026-11-05)
+
+Supersedes §1 points 2 and 4, the colour and radius tokens in §2, and the §4.1 layout for `/`. Follows [design.md](design.md) §16. The look follows the visual language of Docplanner's patient-facing products (warm neutral background, deep teal, pill-shaped controls, white rounded cards, one large search field), measured on the live site on 2026-11-05. No logo, name, illustrations or other brand assets are reused.
+
+### 11.1 Tokens (replace the §2 values of the same role)
+
+```css
+:root {
+  --color-bg: #f5f2ef;              /* warm page background */
+  --color-surface: #ffffff;         /* cards, panels, inputs */
+  --color-surface-strong: #eee8e3;  /* hover, skeleton, neutral badge */
+  --color-border: #dad3ca;          /* inputs, card outline */
+  --color-border-strong: #b6aea5;
+  --color-text: #2a2623;
+  --color-text-secondary: #736c64;
+
+  --teal-900: #006a59;  /* header and hero background, links */
+  --teal-700: #007c68;  /* primary button background */
+  --teal-50:  #dff9f2;  /* AI blocks: "Dlaczego pasuje", needs chips */
+  --on-teal:  #f2fcf8;  /* text on teal */
+
+  --verdict-yes: #007c68;     /* ✓ */
+  --verdict-partly: #8a5a00;  /* ◐, reuses the warning palette */
+  --verdict-no: #b42318;      /* ✗ */
+  --verdict-unknown: #736c64; /* ? */
+
+  --radius-md: 16px;     /* cards, inputs, panels */
+  --radius-pill: 999px;  /* buttons, chips */
+  --control-height: 52px;
+}
+```
+
+Green tokens from §2 map to teal (`--green-600` → `--teal-700`, `--green-50` → `--teal-50`, `--green-500` focus ring → `--teal-900`). Contrast: `--on-teal` on `--teal-700` and `--teal-900`, and `--teal-900` on `--color-bg`, are above 4.5:1 (to be confirmed with the §2 formula when the CSS is written).
+
+### 11.2 Layout of `/`
+
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ Flatplanner                                         teal-900 header, 64 px    │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                 Opisz, czego szukasz. Resztę przeczytamy za Ciebie.           │  hero, teal-900, white
+│   ┌───────────────────────────────────────────────────────────┐ ┌─────────┐  │  heading 32 px / 600
+│   │ np. Pracuję na nocki i mam psa, szukam czegoś w Gdańsku…  │ │ Szukaj  │  │  input: white, 52 px,
+│   └───────────────────────────────────────────────────────────┘ └─────────┘  │  radius 16; button pill
+│   (Ukrainiec, szkoła na Morenie) (Muzyk, ćwiczę codziennie) (Pies i park)     │  example chips, pill,
+├──────────────────────────────────────────────────────────────────────────────┤  fill the input on click
+│ Zrozumiałem: Gdańsk · podstawówka blisko · zakup bez zezwolenia MSWiA        │  summary + need chips
+│ (podstawówka w zasięgu spaceru) (zakup bez zezwolenia MSWiA)                  │  (teal-50, pill)
+│ ⓘ Nie oceniamy okolic po tym, kto w nich mieszka. Sprawdziliśmy za to: …     │  declined / notices
+├──────────────────────────────────────────────────────────────────────────────┤
+│ ┌────────┬──────────────────────────────┬─────────────────────────────────┐  │  card: white, radius 16
+│ │ photo  │ 680 000 zł                   │ DLACZEGO PASUJE                 │  │  right column = AI,
+│ │ 200×150│ 45,92 m² · 2 pokoje · 4/4    │ ✓ Szkoła podstawowa 2 min pieszo│  │  teal-50 background
+│ │ radius │ Ujeścisko-Łostowice, Gdańsk  │   „szkoła podstawowa - 2 minuty │  │  (the place where the
+│ │ 12     │ AI: Jasne 2 pokoje na ost.   │    pieszo”                      │  │  booking calendar sits
+│ │        │ piętrze, gotowe do wejścia…  │ ◐ Hipoteka banku do spłaty z    │  │  on a doctor card)
+│ │        │                              │   ceny – zapytaj o harmonogram  │  │
+│ └────────┴──────────────────────────────┴─────────────────────────────────┘  │
+│ ▸ Ogłoszenie o tym nie mówi (4)                                               │  collapsed group
+│ Wolisz klasyczne filtry? → link to the filter view (§4.1 layout, restyled)    │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+- Before the first question the page shows only the hero and the example chips; no list. The classic list with filters (§4.1) moves behind the link "Wolisz klasyczne filtry?".
+- While `ask` runs (5–10 s): the hero input stays, below it a progress card with three steps that light up in turn: "Rozumiem pytanie" → "Czytam ogłoszenia" → "Sprawdzam dowody". This is a fixed animation on a timer, not real progress.
+- Card desktop: `grid-template-columns: 200px 1fr 320px`; ≤ 959 px the AI column goes under the content; ≤ 640 px vertical card. Per need: verdict icon in its colour, reason (`--fs-sm`), evidence under it (`--fs-xs`, secondary; quotes in „…”, places as "Nazwa · 148 m", fields as "Pole: wartość").
+- Details page: same tokens, no provenance badges (design §16.5).
+
+### 11.3 Copy for §7 (to be moved into §7.1 when implemented)
+
+| Key | Text |
+|---|---|
+| hero heading | Opisz, czego szukasz. Resztę przeczytamy za Ciebie. |
+| input placeholder | np. Pracuję na nocki i mam psa, szukam czegoś w Gdańsku do 700 tys. |
+| button | Szukaj |
+| example chips | Ukrainiec, szkoła na Morenie · Muzyk, ćwiczę codziennie · Pies i park · Rodzice na wózku |
+| progress steps | Rozumiem pytanie · Czytam ogłoszenia · Sprawdzam dowody |
+| summary prefix | Zrozumiałem: |
+| AI column heading | Dlaczego pasuje |
+| verdicts (aria-label) | pasuje · częściowo · nie pasuje · brak danych |
+| AI summary prefix | AI: |
+| approximate location | lokalizacja przybliżona, odległość orientacyjna |
+| unknown group | Ogłoszenie o tym nie mówi ({n}) |
+| classic link | Wolisz klasyczne filtry? |
+| AI unavailable | AI chwilowo niedostępne — pokazujemy wyniki według podstawowych kryteriów. |
+| no results | Żadne ogłoszenie nie spełnia wszystkich warunków. Spróbuj opisać to inaczej albo usuń jeden z warunków. |

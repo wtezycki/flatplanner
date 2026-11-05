@@ -2,13 +2,13 @@
 
 The binding build scope: who the product is for, which features go into the MVP, what is deliberately left out of scope and why.
 
-As of 2026-11-04.
+As of 2026-11-05 (AI-first pivot, section P).
 
 Basis of decisions: a sample of the 20 newest flat sale listings in Gdańsk from otodom (2026-11-04) and [scraping-plan.md](scraping-plan.md).
 
-**Value proposition.** Flatplanner turns messy listings into facts with a stated source and shows why a listing matches what the buyer is looking for.
+**Value proposition.** The buyer describes their life in their own words; Flatplanner reads every listing for them and says which flats fit and why, with evidence for every claim. Filters exist for data the listing does not have as fields: the description and the surroundings of the flat.
 
-**Why a portal would build it.** Buyers who see verified facts (real price including paid parking, what is missing and what to ask) and results that match their intent reach the seller better qualified, with fewer dead ends and fewer contacts spent on information the ad should have given. For the portal that means more qualified leads per search and listings whose quality is visible and measurable (fill rate, quality flags, rejected facts), which is a lever towards advertisers as well.
+**Why a portal would build it.** Buyers who get listings judged against their actual needs, with evidence and visible risks, reach the seller better qualified, with fewer dead ends and fewer contacts spent on information the ad should have given. For the portal that means more qualified leads per search and listings whose quality is visible and measurable (fill rate, quality flags, rejected facts), which is a lever towards advertisers as well.
 
 **Identifiers.** UC are use cases, W are product differentiators. The same numbering applies in all documents in `docs/`:
 
@@ -28,6 +28,44 @@ Basis of decisions: a sample of the 20 newest flat sale listings in Gdańsk from
 | | | W6 | declarations from the description vs facts |
 | | | W7 | “Ask the seller about:” |
 | | | W8 | duplicate grouping |
+
+---
+
+## P. AI-first pivot (2026-11-05)
+
+This section supersedes the rows and paragraphs of sections 0, 3, 4, 7, 8, 9 and 11 it names. The technical design is [design.md](design.md) §16, the UI is [ui-spec.md](ui-spec.md) §11.
+
+**Problem, measured on the import (197 listings).** Portal filters cover only the fields the source has; what matters to a buyer sits in the description or in the surroundings. `kredyt` appears in 81 descriptions, ~77 of them as agency boilerplate; `cisza` in 50, 13 of them only as "cichobieżne windy" (quiet lifts); 20 "pet" hits are all "kotłownia" (boiler room). Keyword search returns noise, fields return nothing.
+
+**Product.** One chat field: "Opisz, czego szukasz. Resztę przeczytamy za Ciebie." The user states any need (night shifts, a dog, a child walking to school, a wheelchair, an EV, a non-EU passport). AI judges every listing against those needs using its dossier: description, fields, an AI summary and nearby places from OpenStreetMap. Every verdict (fits / partly / does not fit / unknown) points at evidence that code verifies: a quote, a place with a distance, or a field. No evidence → "unknown", shown as "Ogłoszenie o tym nie mówi". There is no catalog of criteria.
+
+**Principle.** "The model judges, code verifies." Replaces "the model translates, code decides" (section 7).
+
+**Guardrails.** The system judges flats and places, never people: requests about who lives in an area are declined with a checkable alternative. Personal traits are context, not stored and not logged; they affect a verdict only through a stated legal rule (non-EU citizenship → MSWiA permit for full ownership in the border zone, to be verified).
+
+**Scope changes.**
+
+| Was | Now |
+|---|---|
+| §4 #6 mini-W2 + Real price | listing dossier at import: AI summary + nearby places (design §16.1) |
+| §4 #7 chat → `SearchIntent`, #9 ranking and interpretation | one `ask` endpoint: needs → AI verdict per listing → evidence check → grouping (design §16.2) |
+| §4 #5 details with provenance badges | plain details: fields, description, link to otodom |
+| §4 #10 chips, #11 what blocks, #12 ask the seller | cut |
+| §4 #2–#4 list, filters, text search | kept as built, secondary path ("Wolisz klasyczne filtry?") |
+| §8 full W2 + UC15, UC17 walking distance, UC6 contradictions, UC11 unverifiable criteria | in scope through AI judgement over the dossier (distances, not walking time; contradictions surface as verdict evidence) |
+| §7 "no LLM ranking, no summaries" | the LLM produces verdicts that order results and per-listing summaries; both are bounded by evidence verification |
+
+**Personas, re-read.** P1 mortgage buyer: land register and bank-mortgage risk from the description. P2 newcomer: places around the flat instead of district names. P4 family: school, park, lift from fields and surroundings. New: P5 foreign buyer (MSWiA permit vs cooperative ownership).
+
+**Demo listings:** 70 (one listing, six scenarios, mortgage risk), 97 ("3 rooms" in the field, no kitchen in the description), 166 (cooperative, foreign buyers welcome). Scenarios: design §16.6.
+
+**Key assumption (replaces §11).** Descriptions and surroundings hold enough checkable evidence to answer non-standard needs for a meaningful share of listings. Verified by `eval-intents` on the chat scenarios and by the share of verdicts downgraded to "unknown" for missing evidence.
+
+**Success metric (unchanged in shape).** Share of chat searches where the user opens a listing from the top five and clicks "Zobacz na otodom". Guardrails: share of `unknown` verdicts, fallback share, cost per question (~$0.3, estimate).
+
+**Failure mode (replaces §11).** The judge is only as good as the dossier: 83 of 197 listings have an approximate location, OSM is incomplete, and descriptions are marketing. A listing that does not describe a quality it has is ranked below one that does, which favours verbose agencies over private sellers.
+
+**Cut order (replaces §9).** 1. classic filters page restyle; 2. AI summary on cards; 3. guardrail notices beyond `declined`; 4. domain rules (16.3); never cut: `ask` with evidence verification, demo listings, deploy.
 
 ---
 

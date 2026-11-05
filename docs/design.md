@@ -2,7 +2,7 @@
 
 Implementation specification: architecture, data model, normalization, API, LLM usage, frontend, deploy, tests and order of work.
 
-As of 2026-11-04.
+As of 2026-11-05. **AI-first pivot: section 16 supersedes the parts of sections 5–7, 9, 12–14 it names.**
 
 **Scope:** features from [product-scope.md](product-scope.md) §4, broken down into 17 implementation items in §13. Feature identifiers (UC1–UC17, W1–W8, e.g. mini-W2 = fact extraction from descriptions) are defined in the table in [product-scope.md](product-scope.md). Names (tables, columns, types, endpoints, JSON fields, environment variables) are final and are copied 1:1.
 
@@ -1460,3 +1460,91 @@ Order of cuts when time runs out (the list from [product-scope.md](product-scope
 | K4 | The text anchor rejects correct quotes | share of rejected facts > 30%, mostly `quote_not_found` | rejected rows have the `quote` saved: compare with the description, fix `AnchorText.Normalize` and re-validate the saved quotes (without LLM) with a simple query in `enrich --revalidate`. If still wrong: cut 6 (mini-W2, 14.4) |
 | K5 | Platform proxy: client IP | `/api/health.clientIp` from two networks is identical or private (10.x, 100.64.x) | `X-Real-IP` is the partition key (chosen at #2); if the edge stops overwriting a client-sent `X-Real-IP`, a global limiter (all clients) of 30 req/min on chat. Cost is limited anyway by the hard limit of the OpenAI project |
 | K6 | Migrations on production | container in a restart loop, `Migrate()` exception in the Railway logs | `DB_MIGRATE_ON_STARTUP=false`, `dotnet ef database update` locally via the TCP proxy (`ConnectionStrings__Default` set to `MYSQL_PUBLIC_URL`), then back to `true` |
+
+---
+
+## 16. AI-first pivot (2026-11-05)
+
+**Why.** Portal filters cover only the fields the source happens to have, so the buyer still reads listing after listing to find what matters to them. The product's core value is: **the user states any need in their own words, and AI judges every listing against it**, using data no filter holds: the description, the structured fields and the surroundings of the flat. There is no catalog of criteria and no mapping to categories. Every verdict carries evidence that code checks (a quote, a nearby place, a field). This section supersedes the parts of sections 5, 6, 7, 9, 12, 13 and 14.4 it names; where it is silent, the earlier sections apply.
+
+**The rule changes from "the model translates, code decides" to "the model judges, code verifies".** The model decides whether a listing fits; it cannot invent the reason, because every reason must point at evidence present in the listing's dossier, and code rejects any that does not.
+
+**Measured on the local import (197 listings, 2026-11-05):**
+- `kredyt` (mortgage) appears in 81 descriptions, ~77 of them only as agency boilerplate; the listing-level facts (clean land register in 7, a bank mortgage repaid from the price in 1) need reading, not matching.
+- `cisza`/`cich` (quiet): 50 descriptions, 13 only because of "cichobieżne windy" (quiet lifts). `zwierz`/`kot` (pets): 20 hits, all "kotłownia" (boiler room).
+- No description mentions an Orthodox church or a synagogue, but all 197 listings have `lat`/`lng` (83 approximate). OSM has the Orthodox church of St Nicholas and the New Synagogue in Gdańsk: 8 listings within 1 km of the church (all approximate), listing 97 at 148 m from the synagogue.
+- Morena (Piecki-Migowo): 6 listings, all within 750 m of an OSM `amenity=school`, but for two of them the nearest one is a post-secondary school; all 6 are `full_ownership`, none mentions foreign buyers.
+
+### 16.1 Import: the listing dossier (replaces mini-W2, section 5)
+
+`enrich` (Ingest, local only) builds for each listing:
+- `ai_summary VARCHAR(1000) NULL`: `prompts/listing-summary.v1.md`, 2-3 Polish sentences about the flat itself; agency boilerplate (financing help, commission, disclaimers) ignored.
+- `nearby_json JSON NULL`: places within 1 500 m from OpenStreetMap, fetched once with one Overpass query per listing (`https://overpass-api.de/api/interpreter`, `User-Agent` set, 1 request/s): `amenity` in {school, kindergarten, place_of_worship, pharmacy, clinic, hospital, doctors, university}, `leisure` in {park, playground, dog_park}, `natural=wood`, `landuse=forest`, `railway` in {station, halt, tram_stop}, `highway=bus_stop`, `shop` in {supermarket, convenience}. Stored as `[{ "n": name, "t": "amenity=school", "x": "isced:level=1;religion=…", "d": metres }]`, nearest 60, distances by haversine in C#.
+
+Migration `AiDossier` adds both columns. Failure path as 5.2 (`facts_status = 'failed'`, import continues). Overpass is never called by the API; the data reaches production with the dump (11.4). `listing_facts`, `AnchorValidator` amount rules and real price (5.3) are cut; `AnchorText.Normalize` and the substring check stay for quotes.
+
+### 16.2 `POST /api/search/ask` (replaces `POST /api/search/interpret`, 6.3)
+
+Request `{ "message": string }` (1–300 characters). One endpoint does the whole pipeline; the frontend keeps only `?q=<message>` in the URL, and the response cache makes refresh and "back" free.
+
+1. **Interpret** (`prompts/search-intent.v2.md`, structured output): hard filters from `SearchIntent` (only `cities`, `districts`, `priceMax`, `areaMin`, `areaMax`, `roomsMin`) plus `needs: string[]` (max 4, each one restated in Polish: "podstawówka w zasięgu spaceru dla 7-latki") and `declined: [{ text, reason }]` for requests the system will not judge (16.4). "dom" means a place to live unless a house is named explicitly; "bez kredytu" is context, not a need.
+2. **Narrow** (C#): SQL with the hard filters → candidates (≤ 197).
+3. **Judge** (`prompts/listing-judge.v1.md`): batches of 15 dossiers (id, fields, `ai_summary`, `description_text` truncated to 3 000 characters, `nearby_json`, `location_approximate`), `SemaphoreSlim(4)`. Output per listing: `{ id, needs: [{ verdict: "yes"|"partly"|"no"|"unknown", reason, evidence: [{ kind: "quote"|"place"|"field", ref }] }] }`.
+4. **Verify** (C#, `EvidenceVerifier`): `quote` must be a substring of the description after `AnchorText.Normalize`; `place` must be an index into that listing's `nearby_json`; `field` must name a listing column. A `yes`/`partly`/`no` without valid evidence becomes `unknown`. Unknown ids are dropped. `location_approximate = true` turns a `place`-only `yes` into `partly` with the note that the location is approximate.
+5. **Order** (C#): listings where every need is `yes`, then those with at least one `yes`/`partly` and no `no`, then the rest with no `no` (shown collapsed as "unknown"); any `no` hides the listing. Within a group: more `yes`, then newest.
+
+Response `200`:
+
+```json
+{
+  "summary": "Gdańsk, Piecki-Migowo · szkoła podstawowa blisko · zakup przez obywatela Ukrainy",
+  "needs": ["podstawówka w zasięgu spaceru", "zakup bez zezwolenia MSWiA"],
+  "declined": [],
+  "notices": [],
+  "items": [ { "id": 76, "title": "…", "pricePln": 1850000, "areaM2": 94.33, "rooms": 4, "districtName": "Piecki-Migowo",
+               "imageUrl": "https://…", "aiSummary": "…", "group": "partial",
+               "needs": [ { "verdict": "yes", "reason": "Szkoła Podstawowa nr 30 jest 148 m od budynku.",
+                            "evidence": [ { "kind": "place", "label": "Szkoła Podstawowa nr 30 · 148 m" } ] },
+                          { "verdict": "no", "reason": "…", "evidence": [ { "kind": "field", "label": "Forma własności: pełna własność" } ] } ] } ],
+  "unknownCount": 4,
+  "usedFallback": false
+}
+```
+
+Evidence `label`s are built by code from the dossier, never taken from the model. Serialization rule (§6) applies.
+
+**Failures (never 5xx):** interpret fails → `IntentFallbackParser` (7.7) for hard filters, `needs: []`, `usedFallback: true` with `fallbackReason`; judge fails for a batch → its listings get `unknown` and a notice. `400` for an empty or > 300 characters message, `429` from the rate limiter (section 8, also counts `ask`).
+
+**Cache:** in-memory dictionary keyed by the folded message, process lifetime. **Cost:** a new question ≈ 14 judge calls × ~20k input tokens ≈ $0.3 and 5–10 s with the section 5.2 prices **[estimate]**; the UI shows a progress state.
+
+### 16.3 Domain knowledge the judge may use
+
+`prompts/listing-judge.v1.md` contains a short, versioned list of rules the model may apply, each with the field it rests on:
+- a buyer from outside the EEA in Gdańsk, Gdynia and Sopot (border zone) needs an MSWiA permit for `ownership = full_ownership`, not for `limited_ownership` **[TO VERIFY: act on the acquisition of real estate by foreigners, art. 8]**;
+- a bank financing a purchase expects a land register without encumbrances;
+- an `amenity=school` with `isced:level` other than 1, or a name containing "policealna"/"liceum", is not a primary school.
+
+Anything outside these rules and the dossier is `unknown`.
+
+### 16.4 Guardrails
+
+- The system judges flats and places, never people: no verdicts on who lives in an area ("tolerancyjna okolica", "bez obcokrajowców"). Such parts go to `declined` with a reason, and the model proposes checkable needs instead (e.g. "blisko centrum, komunikacja nocna").
+- Personal traits the user mentions are context: not stored, not logged (7.7). They influence a verdict only through a rule in 16.3 (citizenship → permit).
+- If the stated need and the context look inconsistent (Jewish + Orthodox church), the need is judged as stated and a notice asks whether a synagogue was meant.
+
+### 16.5 Scope: everything else to the minimum
+
+Kept as built: `GET /api/listings` (#4) and the listings page with filters (#5) as the secondary path. Changed: #6 details become a plain page with fields, description and a link to otodom (no provenance badges, no "Ask the seller"). Replaced: #7 → `ask` (16.2); #8 ranking → 16.2 step 5; #11 → dossier (16.1). Cut: #12 blockers, #13 chips with removal, #14 ask the seller, real price, medians, `why`, quality-flag UI.
+
+**New order:** #6′ minimal details → #11′ dossier → #7′ `ask` + judge + verify → #9′ eval → #10 protection → #15 → #16 → #17.
+
+**Tests (§12, no LLM, no network):** `SearchIntentSchemaTests` for `needs`/`declined`; `EvidenceVerifierTests` (quote not in description, place index out of range, approximate location downgrade); grouping order; haversine. `tests/search-queries.json` holds the chat scenarios with the expected behaviour, run by `eval-intents` against the real model.
+
+### 16.6 Demo listings (local import, 2026-11-05)
+
+| Listing | Why it shows the AI | Scenarios |
+|---|---|---|
+| 70 · Ujeścisko-Łostowice, 680 000 zł, 2 rooms, top floor | The description holds what no field has: "nikt nie chodzi nad głową", primary school 2 minutes away, park, bicycle and pram rooms, EV charging in the garage, parking + storage as an optional 40 000 zł extra, and a bank mortgage to be repaid from the price with handover adjustable to the buyer's mortgage. The word "kredyt" here is a real fact, not boilerplate. | night worker, 7-year-old to school, cyclist, EV, mortgage buyer (risk shown) |
+| 97 · Wrzeszcz Górny, 749 000 zł, "3 rooms" | otodom says 3 rooms; the description says the land register shows 2 rooms + kitchen, and the kitchen was turned into a third office, so there is no kitchen today. Ground floor, former service premises. 148 m from the New Synagogue (OSM). | "afraid of being cheated" (field vs description), home office / practice, synagogue |
+| 166 · Grabówek (Gdynia), 495 000 zł, cooperative | States that foreigners can buy without the MSWiA permit, 1930 modernist building, 2.84 m ceilings, separate office room, SKM station nearby. `ownership = limited_ownership` confirms the claim from a field. | Ukrainian buyer, old-building lover, home office |
+

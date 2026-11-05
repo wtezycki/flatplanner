@@ -339,7 +339,7 @@ Inline, height 20 px, padding `0 6px`, `--radius-sm`, `--fs-xs`, `--fw-semibold`
 | list 429 | „Za dużo zapytań. Spróbuj ponownie za {Retry-After} s.” |
 | header | „Mieszkania na sprzedaż · Trójmiasto · dane z {data}” (≤ 640 px: only the date) |
 | search field | `aria-label` „Szukaj w ofertach” |
-| filters | form `aria-label` „Filtry”; mobile toggle „Filtry ({n})”; `aria-label` of the range fields „Cena od” / „Cena do”, „Powierzchnia od” / „Powierzchnia do”, „Pokoje od” / „Pokoje do”, „Piętro od” / „Piętro do”; floor hint „parter = 0”; with `areaApprox` and no range „Teraz: ok. {areaApprox} m². Wpisany zakres zastąpi przybliżenie.” |
+| filters | form `aria-label` „Filtry”; mobile toggle „Filtry ({n})”; `aria-label` of the range fields „Cena od” / „Cena do”, „Powierzchnia od” / „Powierzchnia do”, „Pokoje od” / „Pokoje do”, „Piętro od” / „Piętro do”; district summary „Dzielnica” + „ ({n})” with n selected districts; floor hint „parter = 0”; with `areaApprox` and no range „Teraz: ok. {areaApprox} m². Wpisany zakres zastąpi przybliżenie.” |
 | pagination | `aria-label` „Paginacja”; „‹ Poprzednia”, „Następna ›”; `aria-label` of the arrows „Poprzednia strona”, „Następna strona” |
 | warnings | visually hidden prefix „Uwaga: ” |
 
@@ -497,3 +497,16 @@ Green tokens from §2 map to teal (`--green-600` → `--teal-700`, `--green-50` 
 | classic link | Wolisz klasyczne filtry? |
 | AI unavailable | AI chwilowo niedostępne — pokazujemy wyniki według podstawowych kryteriów. |
 | no results | Żadne ogłoszenie nie spełnia wszystkich warunków. Spróbuj opisać to inaczej albo usuń jeden z warunków. |
+
+### 11.4 Classic list `/` as built (item #5, restyled)
+
+The classic list uses the §11.1 tokens. Until `ask` exists (design §16.2) `/` stays the list; the hero holds only the text search (no heading, no example chips, no progress card). Deviations from §4.1, §5.4 and §9, decided with the restyle:
+
+- **Hero:** full-width `--teal-900` band under the 64 px header; the search field is 52 px high (`--control-height`), the button inverted (`--on-teal` background, `--teal-900` text) so it separates from the band.
+- **Pills in the filter panel:** city, market, advertiser and the two amenities are pill toggles (hidden native `checkbox`/`radio`, styled label) instead of checkbox and radio rows. Labels and counts are unchanged, e.g. „Gdańsk (108)”.
+- **Districts:** a `<details>` titled „Dzielnica” ({n} selected) closed by default; inside, district pills grouped by city (the §5.4 scroll limit of 240 px stays).
+- **Apply bar:** „Zastosuj” and „Wyczyść filtry” sit in a bar with `position: sticky; bottom: 0` inside the panel, so they are visible without scrolling to the end of the form. This lifts the §9 "no sticky elements" rule for this one bar; the panel itself is not sticky.
+- **Fields:** filter fields are 44 px (`--field-height`), the hero input 52 px.
+- **`--color-border-strong`** is `#8a8279`, not `#b6aea5`: the §11.1 value gives 2.19:1 on white, below the 3:1 §2 requires for field outlines (`#8a8279`: 3.78:1 on white, 3.39:1 on `--color-bg`).
+- **Contrast checked** with the WCAG formula: `--on-teal` on `--teal-900` 6.26:1 and on `--teal-700` 4.91:1; `--teal-900` on `--color-bg` 5.87:1; white on `--teal-700` 5.14:1; `--color-text-secondary` on `--color-bg` 4.64:1.
+- Provenance, verdict and info tokens are not defined in `styles.css` until a view uses them.

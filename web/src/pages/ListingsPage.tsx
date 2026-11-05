@@ -105,39 +105,45 @@ export default function ListingsPage() {
 
   return (
     <>
-      <SearchBar />
-      {data?.interpretation.warnings.map((warning) => (
-        <div key={`${warning.field}:${warning.message}`} className="notice notice--warning">
-          <span className="sr-only">Uwaga: </span>
-          {warning.message}
+      <section className="hero">
+        <div className="container">
+          <SearchBar />
         </div>
-      ))}
-      <div className="layout">
-        <Filters />
-        <section className="results" aria-busy={listings.isPending}>
-          <div className="results__bar">
-            <p className="results__count" aria-live="polite">
-              {countLabel}
-            </p>
-            {sortOptions.length > 0 && (
-              <label className="results__sort">
-                Sortuj
-                <select
-                  className="field"
-                  value={data?.sort ?? searchParams.get('sort') ?? 'newest'}
-                  onChange={(event) => changeSort(event.target.value)}
-                >
-                  {sortOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
+      </section>
+      <div className="container">
+        {data?.interpretation.warnings.map((warning) => (
+          <div key={`${warning.field}:${warning.message}`} className="notice notice--warning">
+            <span className="sr-only">Uwaga: </span>
+            {warning.message}
           </div>
-          {body}
-        </section>
+        ))}
+        <div className="layout">
+          <Filters />
+          <section className="results" aria-busy={listings.isPending}>
+            <div className="results__bar">
+              <p className="results__count" aria-live="polite">
+                {countLabel}
+              </p>
+              {sortOptions.length > 0 && (
+                <label className="results__sort">
+                  Sortuj
+                  <select
+                    className="field"
+                    value={data?.sort ?? searchParams.get('sort') ?? 'newest'}
+                    onChange={(event) => changeSort(event.target.value)}
+                  >
+                    {sortOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+            </div>
+            {body}
+          </section>
+        </div>
       </div>
     </>
   )

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useId, useState } from 'react'
-import type { FormEvent, InputHTMLAttributes } from 'react'
+import type { FormEvent, InputHTMLAttributes, ReactNode } from 'react'
 import { useSearchParams } from 'react-router'
 import { metaQuery } from '../api.ts'
 import type { EnumOption, MetaResponse, SearchIntent } from '../api.ts'
@@ -151,6 +151,29 @@ function Range({ legend, label, field, form, onChange, inputProps, hint }: Range
   )
 }
 
+interface PillProps {
+  type: 'checkbox' | 'radio'
+  name?: string
+  checked: boolean
+  onChange: (checked: boolean) => void
+  children: ReactNode
+}
+
+function Pill({ type, name, checked, onChange, children }: PillProps) {
+  return (
+    <label className="pill">
+      <input
+        className="pill__input"
+        type={type}
+        name={name}
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+      />
+      <span className="pill__label">{children}</span>
+    </label>
+  )
+}
+
 interface RadiosProps {
   legend: string
   name: string
@@ -163,17 +186,13 @@ function Radios({ legend, name, value, options, onChange }: RadiosProps) {
   return (
     <fieldset className="filters__group">
       <legend>{legend}</legend>
-      {[{ value: '', label: 'dowolny' }, ...options].map((option) => (
-        <label key={option.value} className="filters__choice">
-          <input
-            type="radio"
-            name={name}
-            checked={value === option.value}
-            onChange={() => onChange(option.value)}
-          />
-          {option.label}
-        </label>
-      ))}
+      <div className="filters__pills">
+        {[{ value: '', label: 'dowolny' }, ...options].map((option) => (
+          <Pill key={option.value} type="radio" name={name} checked={value === option.value} onChange={() => onChange(option.value)}>
+            {option.label}
+          </Pill>
+        ))}
+      </div>
     </fieldset>
   )
 }
@@ -207,16 +226,17 @@ function FilterFields({ meta, intent, onApply }: FieldsProps) {
     <form className="filters__form" aria-label="Filtry" onSubmit={submit}>
       <fieldset className="filters__group">
         <legend>Miasto</legend>
-        {meta.cities.map((city) => (
-          <label key={city.slug} className="filters__choice">
-            <input type="checkbox" checked={form.cities.includes(city.slug)} onChange={() => toggleCity(city.slug)} />
-            {city.name} ({city.count})
-          </label>
-        ))}
+        <div className="filters__pills">
+          {meta.cities.map((city) => (
+            <Pill key={city.slug} type="checkbox" checked={form.cities.includes(city.slug)} onChange={() => toggleCity(city.slug)}>
+              {city.name} ({city.count})
+            </Pill>
+          ))}
+        </div>
       </fieldset>
 
-      <fieldset className="filters__group">
-        <legend>Dzielnica</legend>
+      <details className="filters__details">
+        <summary>Dzielnica{form.districts.length > 0 && ` (${form.districts.length})`}</summary>
         {selectedCities.length === 0 ? (
           <p className="filters__hint">Wybierz miasto, aby zobaczyć dzielnice.</p>
         ) : (
@@ -224,21 +244,23 @@ function FilterFields({ meta, intent, onApply }: FieldsProps) {
             {selectedCities.map((city) => (
               <div key={city.slug}>
                 <p className="filters__city-title">{city.name}</p>
-                {city.districts.map((district) => (
-                  <label key={district.key} className="filters__choice">
-                    <input
+                <div className="filters__pills">
+                  {city.districts.map((district) => (
+                    <Pill
+                      key={district.key}
                       type="checkbox"
                       checked={form.districts.includes(district.key)}
                       onChange={() => patch({ districts: toggle(form.districts, district.key) })}
-                    />
-                    {district.name} ({district.count})
-                  </label>
-                ))}
+                    >
+                      {district.name} ({district.count})
+                    </Pill>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
         )}
-      </fieldset>
+      </details>
 
       <Range
         legend="Cena (zł)"
@@ -296,38 +318,32 @@ function FilterFields({ meta, intent, onApply }: FieldsProps) {
 
       <fieldset className="filters__group">
         <legend>Udogodnienia</legend>
-        <label className="filters__choice">
-          <input
-            type="checkbox"
-            checked={form.requireLift}
-            onChange={(event) => patch({ requireLift: event.target.checked })}
-          />
-          Tylko z windą
-        </label>
-        <label className="filters__choice">
-          <input
-            type="checkbox"
-            checked={form.requireBalcony}
-            onChange={(event) => patch({ requireBalcony: event.target.checked })}
-          />
-          Tylko z balkonem
-        </label>
+        <div className="filters__pills">
+          <Pill type="checkbox" checked={form.requireLift} onChange={(requireLift) => patch({ requireLift })}>
+            Tylko z windą
+          </Pill>
+          <Pill type="checkbox" checked={form.requireBalcony} onChange={(requireBalcony) => patch({ requireBalcony })}>
+            Tylko z balkonem
+          </Pill>
+        </div>
         <p className="filters__hint">Oferty bez tej informacji zostaną pominięte.</p>
       </fieldset>
 
-      <button className="btn btn--primary filters__apply" type="submit">
-        Zastosuj
-      </button>
-      <button
-        className="btn btn--link"
-        type="button"
-        onClick={() => {
-          setSearchParams(clearFilters(searchParams))
-          onApply()
-        }}
-      >
-        Wyczyść filtry
-      </button>
+      <div className="filters__actions">
+        <button className="btn btn--primary filters__apply" type="submit">
+          Zastosuj
+        </button>
+        <button
+          className="btn btn--link"
+          type="button"
+          onClick={() => {
+            setSearchParams(clearFilters(searchParams))
+            onApply()
+          }}
+        >
+          Wyczyść filtry
+        </button>
+      </div>
     </form>
   )
 }

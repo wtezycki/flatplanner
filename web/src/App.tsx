@@ -23,7 +23,7 @@ export default function App() {
           )}
         </div>
       </header>
-      <main className="container">
+      <main>
         <Routes>
           <Route path="/" element={<ListingsPage />} />
         </Routes>

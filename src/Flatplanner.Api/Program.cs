@@ -2,6 +2,7 @@ using Flatplanner.Api;
 using Flatplanner.Api.Endpoints;
 using Flatplanner.Core.Data;
 using Flatplanner.Core.Options;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -15,6 +16,13 @@ builder.Services.AddOptions<FlatplannerOptions>()
 builder.Services.ConfigureHttpJsonOptions(o =>
     o.SerializerOptions.DefaultIgnoreCondition = ApiJson.Options.DefaultIgnoreCondition);
 builder.Services.AddProblemDetails();
+builder.Services.Configure<ForwardedHeadersOptions>(o =>
+{
+    o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    o.KnownNetworks.Clear();
+    o.KnownProxies.Clear();
+    o.ForwardLimit = 1;
+});
 
 builder.Services.AddDbContext<FlatplannerDbContext>((services, db) =>
 {
@@ -31,6 +39,7 @@ if (app.Services.GetRequiredService<IOptions<FlatplannerOptions>>().Value.DbMigr
     scope.ServiceProvider.GetRequiredService<FlatplannerDbContext>().Database.Migrate();
 }
 
+app.UseForwardedHeaders();
 app.UseExceptionHandler();
 app.UseDefaultFiles();
 app.UseStaticFiles();

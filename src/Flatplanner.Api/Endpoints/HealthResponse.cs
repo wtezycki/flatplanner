@@ -1,3 +1,3 @@
 namespace Flatplanner.Api.Endpoints;
 
-public sealed record HealthResponse(string Status, string Db, string? ClientIp);
+public sealed record HealthResponse(string Status, string Db, string? ClientIp, string? XForwardedFor = null, string? XRealIp = null);

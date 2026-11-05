@@ -13,8 +13,7 @@ export default function LocationSection({ lat, lng, approximate }: Props) {
   const [expanded, setExpanded] = useState(false)
 
   return (
-    <section>
-      <h2 className="detail__heading">Lokalizacja</h2>
+    <section className="location">
       <div className="location__preview">
         <Suspense fallback={<div className="map" />}>
           <LocationMap lat={lat} lng={lng} approximate={approximate} interactive={false} />
@@ -22,8 +21,8 @@ export default function LocationSection({ lat, lng, approximate }: Props) {
         <button className="location__open" type="button" aria-label="Powiększ mapę" onClick={() => setExpanded(true)}>
           <span className="location__hint">Powiększ mapę</span>
         </button>
+        {approximate && <span className="location__note">Lokalizacja przybliżona</span>}
       </div>
-      {approximate && <p className="detail__map-note">Lokalizacja przybliżona</p>}
       {expanded && (
         <FullscreenDialog label="Mapa lokalizacji" onClose={() => setExpanded(false)}>
           <Suspense>

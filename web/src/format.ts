@@ -51,3 +51,5 @@ export function formatDetailFloor(
   const label = `${floor}${higherThan10 ? '+' : ''}`
   return buildingFloors === undefined ? label : `${label} z ${buildingFloors}`
 }
+
+export const formatPhotosCount = (count: number) => `${count} ${pluralPl(count, 'zdjęcie', 'zdjęcia', 'zdjęć')}`

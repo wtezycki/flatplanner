@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import {
   ApiError,
@@ -11,6 +11,7 @@ import {
   type ListingDetail,
 } from '../api.ts'
 import Description from '../components/Description.tsx'
+import LocationSection from '../components/LocationSection.tsx'
 import PhotoCarousel from '../components/PhotoCarousel.tsx'
 import PhotoLightbox from '../components/PhotoLightbox.tsx'
 import {
@@ -21,8 +22,6 @@ import {
   formatPricePerM2,
   formatRooms,
 } from '../format.ts'
-
-const LocationMap = lazy(() => import('../components/LocationMap.tsx'))
 
 const labelOf = (options: EnumOption[] | undefined, value: string | undefined) =>
   value === undefined ? undefined : (options?.find((option) => option.value === value)?.label ?? value)
@@ -71,70 +70,57 @@ function Details({ listing }: { listing: ListingDetail }) {
       <div className="detail__back">
         <BackLink />
       </div>
-      <h1 className="detail__title">{listing.title}</h1>
-      <p className="detail__location">
-        {location}
-        {listing.locationApproximate && (
-          <span className="detail__approximate" title="Ogłaszający nie podał dokładnej lokalizacji.">
-            {' '}
-            · Lokalizacja przybliżona
-          </span>
-        )}
-      </p>
-      <div className="detail__layout">
-        <div className="detail__gallery">
-          <PhotoCarousel urls={listing.imageUrls} onOpen={setOpenedPhoto} />
-        </div>
-        <div className="detail__info">
-          <h2 className="detail__heading">Parametry</h2>
-          <dl className="params">
-            <Row label="Powierzchnia" value={formatArea(listing.areaM2)} />
-            <Row label="Pokoje" value={listing.rooms} />
-            <Row label="Piętro" value={floor} />
-            <Row label="Rok budowy" value={listing.buildYear} />
-            <Row label="Rynek" value={labelOf(meta?.enums.market, listing.market)} />
-            <Row label="Stan wykończenia" value={labelOf(meta?.enums.finishCondition, listing.finishCondition)} />
-            <Row label="Forma własności" value={labelOf(meta?.enums.ownership, listing.ownership)} />
-            <Row label="Czynsz (zł/mies.)" value={rent} />
-            <Row label="Winda" value={yesOrUnknown(listing.hasLift)} missing="brak informacji" />
-            <Row label="Balkon" value={yesOrUnknown(listing.hasBalcony)} missing="brak informacji" />
-            <Row
-              label="Garaż / miejsce postojowe"
-              value={yesOrUnknown(listing.hasGarage)}
-              missing="brak informacji"
-            />
-            <Row label="Piwnica" value={yesOrUnknown(listing.hasBasement)} missing="brak informacji" />
-            <Row label="Ogłaszający" value={labelOf(meta?.enums.advertiserType, listing.advertiserType)} />
-            <Row label="Dzielnica" value={listing.districtName} />
-            <Row label="Ulica" value={listing.street} />
-          </dl>
-          <h2 className="detail__heading">Opis</h2>
-          <Description text={listing.descriptionText} />
-          <p className="detail__source">
-            Źródło: otodom.pl · pobrano {formatDate(listing.scrapedAt)} · dodano {formatDate(listing.createdAtSource)}
+      <div className="detail__gallery">
+        <PhotoCarousel urls={listing.imageUrls} onOpen={setOpenedPhoto} />
+      </div>
+      <section className="detail__head">
+        <div>
+          <h1 className="detail__title">{listing.title}</h1>
+          <p className="detail__location">
+            {location}
+            {listing.locationApproximate && (
+              <span className="detail__approximate" title="Ogłaszający nie podał dokładnej lokalizacji.">
+                {' '}
+                · Lokalizacja przybliżona
+              </span>
+            )}
           </p>
         </div>
-        <div className="detail__side">
-          <aside className="detail__price-card">
-            <p className="detail__price num">{formatPrice(listing.pricePln)}</p>
-            <p className="detail__price-per-m2 num">{formatPricePerM2(listing.pricePerM2)}</p>
-            <p className="detail__summary">
-              {formatArea(listing.areaM2)} · {formatRooms(listing.rooms)}
-            </p>
-            <a className="btn btn--primary" href={listing.url} target="_blank" rel="noopener noreferrer">
-              Zobacz na otodom ↗
-            </a>
-            <p className="detail__stale">Dane z {formatDate(listing.scrapedAt)}. Aktualną ofertę sprawdź na otodom.</p>
-          </aside>
-          <section className="detail__map">
-            <h2 className="detail__heading">Lokalizacja</h2>
-            <Suspense fallback={<div className="map" />}>
-              <LocationMap lat={listing.lat} lng={listing.lng} approximate={listing.locationApproximate} />
-            </Suspense>
-            {listing.locationApproximate && <p className="detail__map-note">Lokalizacja przybliżona</p>}
-          </section>
+        <div className="detail__buy">
+          <p className="detail__price num">{formatPrice(listing.pricePln)}</p>
+          <p className="detail__price-per-m2 num">
+            {formatPricePerM2(listing.pricePerM2)} · {formatArea(listing.areaM2)} · {formatRooms(listing.rooms)}
+          </p>
+          <a className="btn btn--primary" href={listing.url} target="_blank" rel="noopener noreferrer">
+            Zobacz na otodom ↗
+          </a>
+          <p className="detail__stale">Dane z {formatDate(listing.scrapedAt)}. Aktualną ofertę sprawdź na otodom.</p>
         </div>
-      </div>
+      </section>
+      <h2 className="detail__heading">Parametry</h2>
+      <dl className="params">
+        <Row label="Powierzchnia" value={formatArea(listing.areaM2)} />
+        <Row label="Pokoje" value={listing.rooms} />
+        <Row label="Piętro" value={floor} />
+        <Row label="Rok budowy" value={listing.buildYear} />
+        <Row label="Rynek" value={labelOf(meta?.enums.market, listing.market)} />
+        <Row label="Stan wykończenia" value={labelOf(meta?.enums.finishCondition, listing.finishCondition)} />
+        <Row label="Forma własności" value={labelOf(meta?.enums.ownership, listing.ownership)} />
+        <Row label="Czynsz (zł/mies.)" value={rent} />
+        <Row label="Winda" value={yesOrUnknown(listing.hasLift)} missing="brak informacji" />
+        <Row label="Balkon" value={yesOrUnknown(listing.hasBalcony)} missing="brak informacji" />
+        <Row label="Garaż / miejsce postojowe" value={yesOrUnknown(listing.hasGarage)} missing="brak informacji" />
+        <Row label="Piwnica" value={yesOrUnknown(listing.hasBasement)} missing="brak informacji" />
+        <Row label="Ogłaszający" value={labelOf(meta?.enums.advertiserType, listing.advertiserType)} />
+        <Row label="Dzielnica" value={listing.districtName} />
+        <Row label="Ulica" value={listing.street} />
+      </dl>
+      <h2 className="detail__heading">Opis</h2>
+      <Description text={listing.descriptionText} />
+      <LocationSection lat={listing.lat} lng={listing.lng} approximate={listing.locationApproximate} />
+      <p className="detail__source">
+        Źródło: otodom.pl · pobrano {formatDate(listing.scrapedAt)} · dodano {formatDate(listing.createdAtSource)}
+      </p>
       {openedPhoto && (
         <PhotoLightbox
           urls={listing.imageUrls}

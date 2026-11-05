@@ -129,7 +129,7 @@ body { margin: 0; background: var(--color-bg); color: var(--color-text);
 │ Price(zł)[from][to]│ │          │ Why here: 38,5 m² · … cheaper …       │   │  only with preferences
 │ Area (m²)         │ └────────────┴───────────────────────────────────────┘   │
 │ Rooms  [from][to] │ … (20 cards, 12px gap)                                   │
-│ Floor  [from][to] │ +12 listings without lift info    [Show them too]        │
+│ Floor  [from][to] │                                                          │
 │ Market ◉ any      │          ‹ Previous  1 [2] 3 … 9  Next ›                 │  Pagination
 │ Advertiser        │                                                          │
 │ ☐ Only with lift  │                                                          │

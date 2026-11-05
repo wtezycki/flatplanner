@@ -6,6 +6,10 @@ As of 2026-11-04.
 
 Basis of decisions: a sample of the 20 newest flat sale listings in Gdańsk from otodom (2026-11-04) and [scraping-plan.md](scraping-plan.md).
 
+**Value proposition.** Flatplanner turns messy listings into facts with a stated source and shows why a listing matches what the buyer is looking for.
+
+**Why a portal would build it.** Buyers who see verified facts (real price including paid parking, what is missing and what to ask) and results that match their intent reach the seller better qualified, with fewer dead ends and fewer contacts spent on information the ad should have given. For the portal that means more qualified leads per search and listings whose quality is visible and measurable (fill rate, quality flags, rejected facts), which is a lever towards advertisers as well.
+
 **Identifiers.** UC are use cases, W are product differentiators. The same numbering applies in all documents in `docs/`:
 
 | Id | Meaning | Id | Meaning |
@@ -41,7 +45,7 @@ Basis of decisions: a sample of the 20 newest flat sale listings in Gdańsk from
 | Map, walking time (UC16, UC17) | out of scope | MUST/SHOULD | OSM cost ~1.9h |
 | Contradictions (UC6/W6) | out of scope | MUST + COULD | they require full extraction from the description (W2) |
 | Scraper robustness | raw JSON + hard-field contract + fill-rate report | carrier classification, path fingerprinting, circuit breaker ([scraping-plan.md](scraping-plan.md) §7) | one-off import |
-| Key assumption | “cheap is relative to the city” | “nice/cheap can be approximated with data”, measure: fill-rate | finish condition on the primary market is always `to_completion` (6/6 in the sample) |
+| Key assumption | otodom fields already cover the facts buyers ask about; the description's unique value is paid extras | “cheap is relative to the city” (a definition, not a risk) | it is testable on the import (fill rate per field, share of descriptions with a priced parking space) and justifies why AI extracts only two facts |
 | Text search (UC3) | `LIKE` on `search_text` without diacritics | FULLTEXT + declension dictionary | with ~150 records `LIKE` is enough |
 | UC12, chips with removal, W7 | in scope | out of MVP | low implementation cost |
 
@@ -159,7 +163,7 @@ Everything that decides the results (filters, ranking, medians, “what blocks�
 | Map, clickable districts (UC16) | the district is already in the data; the map is a UI cost without new information | “A map for choosing districts for people who do not know the names.” |
 | Walking time (UC17) | OSM export and processing ~1h | “Walking time to SKM/PKM, school and beach from a one-off OSM export.” |
 | Field vs description contradictions (UC6/W6) | requires full W2 | “Detection of declarations that contradict the ad data.” |
-| Deduplication across agencies (UC7/W8) | 0–2 duplicates expected in the sample of newest listings | “Grouping the same unit listed by several agencies.” |
+| Deduplication across agencies (UC7/W8) | grouping is a UI and data-model cost; the import report measures candidate pairs instead of assuming there are few ([design.md](design.md) §4.4) | “Grouping the same unit listed by several agencies; the import found {n} candidate pairs among {N} listings.” |
 | Scraper robustness ([scraping-plan.md](scraping-plan.md) §7) | one-off import | “With continuous crawling: response classification and an alert on a change in the `__NEXT_DATA__` structure.” |
 | Declension dictionary, FULLTEXT | with 150 records `LIKE` is enough | “At large scale: an ngram parser or a search engine with a Polish stemmer.” |
 | Multi-step refinement in the chat | UI and test cost | “A conversation that modifies the previous `SearchIntent`.” |
@@ -174,8 +178,8 @@ Implementation order and definition of done of each item: [design.md](design.md)
 **Not subject to cuts:** deploy, list + filters + pagination + details, scenario A, 1-pager.
 
 **Cut order** (when time runs out, item 1 goes first; the technical list is in [design.md](design.md) §14.4). Keyword parsing of the search field and the “+N listings without information” count are cut before implementation:
-1. “Ask the seller about” (W7)
-2. chips with removal
+1. chips with removal (filters remain a way to correct the interpretation)
+2. “Ask the seller about” (W7): the only feature that turns missing data into an action, so it goes second
 3. “What blocks” at zero results (UC12)
 4. “Why here”
 5. “nice” in the ranking
@@ -204,14 +208,16 @@ The fill-rate report from item 1 in section 4 checks all of them.
 | 3 | `Rent = 0` means no data | always `null`; ≥ 30% of secondary-market listings with zero → a sentence in the 1-pager |
 | 4 | Parking with a price in descriptions | < 15% of listings → cut mini-W2, a sentence remains in section 8 |
 | 5 | Sopot has n ≥ 10 | fewer → comparison with Tricity with an annotation |
+| 6 | Duplicates across agencies are rare | > 5 % of listings in candidate pairs → a sentence with the number in the 1-pager and grouping first in “with more time” |
+| 7 | “Cheap” does not systematically exclude the primary market | primary-market share in the top 20 by `cheap` far below its share in the data → failure mode stated with the number |
 
 ---
 
 ## 11. For the 1-pager: assumption, metric, failure mode
 
-- **Key assumption:** “cheap” is relative to the city. We compute it as price/m² below the median of the listing's city and show `n`, because Sopot and Gdańsk are different markets.
-- **Success metric:** share of chat searches ending with opening a listing from the top five without correcting the interpretation. Offline: `SearchIntent` match on 10 test queries.
-- **Failure mode:** we map “nice” to finish condition, and the primary market always has it as “to be completed”, so the “nice” ranking favours the secondary market.
+- **Key assumption:** the facts buyers ask about first (price, area, rooms, floor, maintenance fee, ownership, finish condition) are already otodom fields; the unique value of the description is paid extras such as parking. Verified at import: fill rate per field and the share of descriptions with a priced parking space (section 10). If it fails, extraction from the description has to grow beyond two facts.
+- **Success metric:** share of searches (chat and filters) in which the user opens a listing from the top five **and** clicks “Zobacz na otodom”, a proxy for contacting the seller, i.e. a qualified lead. Diagnostics: share of chat searches corrected with a chip (the interpretation was close but not exact). Guardrails: fallback share and zero-result share. Offline, before any traffic: `SearchIntent` match on 10 test queries and the share of extracted facts rejected by the text anchor. The prototype does not collect events; instrumentation is “with more time”.
+- **Failure mode:** “nice” is mapped to finish condition, and primary-market listings are almost always “to be completed”, so the ranking pushes developers' listings down; “cheap” computed on a single city median may do the same (checked in the import report). Business consequence: lower visibility for the segment that pays for listings, which a real portal would have to correct (median per city × market, a better “nice” signal).
 
 ---
 

@@ -103,6 +103,41 @@ export interface ListingsResponse {
   interpretation: Interpretation
 }
 
+export interface ListingDetail {
+  id: number
+  url: string
+  title: string
+  scrapedAt: string
+  createdAtSource: string
+  imageUrls: string[]
+  descriptionText: string
+  citySlug: string
+  cityName: string
+  districtName?: string
+  street?: string
+  locationApproximate: boolean
+  pricePln: number
+  areaM2: number
+  pricePerM2: number
+  rooms: number
+  floor?: number
+  floorHigherThan10: boolean
+  floorIsGarret: boolean
+  buildingFloors?: number
+  buildYear?: number
+  market: string
+  finishCondition?: string
+  ownership?: string
+  rentPln?: number
+  hasLift?: boolean
+  hasBalcony?: boolean
+  hasGarage?: boolean
+  hasBasement?: boolean
+  advertiserType?: string
+}
+
+export const DEFAULT_RETRY_AFTER_SECONDS = 10
+
 export class ApiError extends Error {
   readonly status: number
   readonly retryAfter?: number
@@ -129,6 +164,10 @@ async function getJson<T>(url: string, signal?: AbortSignal): Promise<T> {
 
 export function fetchListings(searchParams: URLSearchParams, signal?: AbortSignal): Promise<ListingsResponse> {
   return getJson(`/api/listings?${searchParams.toString()}`, signal)
+}
+
+export function fetchListing(id: string, signal?: AbortSignal): Promise<ListingDetail> {
+  return getJson(`/api/listings/${encodeURIComponent(id)}`, signal)
 }
 
 export const metaQuery = queryOptions({

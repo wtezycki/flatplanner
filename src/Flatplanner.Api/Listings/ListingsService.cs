@@ -52,6 +52,23 @@ public sealed class ListingsService(FlatplannerDbContext db)
         return new ListingsResponse(items, page, SearchDefinitions.PageSize, total, totalPages, sort, interpretation);
     }
 
+    public async Task<ListingDetail?> GetAsync(long id, CancellationToken ct)
+    {
+        var listing = await db.Listings.AsNoTracking().FirstOrDefaultAsync(l => l.Id == id, ct);
+        return listing is null
+            ? null
+            : new ListingDetail(
+                listing.Id, listing.Url, listing.Title,
+                DateTime.SpecifyKind(listing.ScrapedAt, DateTimeKind.Utc),
+                DateTime.SpecifyKind(listing.CreatedAtSource, DateTimeKind.Utc),
+                listing.ImageUrls, listing.DescriptionText, listing.CitySlug, EnumLabels.CityNames[listing.CitySlug],
+                listing.DistrictName, listing.Street, listing.LocationApproximate,
+                listing.PricePln, listing.AreaM2, listing.PricePerM2, listing.Rooms, listing.Floor, listing.QualityFlags.Contains(QualityFlag.FloorHigher10),
+                listing.QualityFlags.Contains(QualityFlag.FloorGarret), listing.BuildingFloors, listing.BuildYear,
+                listing.Market, listing.FinishCondition, listing.Ownership, listing.RentPln,
+                listing.HasLift, listing.HasBalcony, listing.HasGarage, listing.HasBasement, listing.AdvertiserType);
+    }
+
     // `relevance` ranks by preferences (design 7.5), which arrives with item #8; until then it falls back to newest.
     private static string ResolveSort(string? requested) =>
         requested is SortOrder.PriceAsc or SortOrder.PriceDesc or SortOrder.PricePerM2Asc ? requested : SortOrder.Newest;

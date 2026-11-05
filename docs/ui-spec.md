@@ -14,7 +14,7 @@ Complements [design.md](design.md) §9 (frontend), §6 (API contract) and §7 (i
 2. **Lots of white.** The page background is white, surfaces (filter panel, boxes) use `--color-surface`, dividers are thin lines instead of shadows.
 3. **Green only with a reason:** action (primary button, link), active state (selected page, selected mode, focus), highlight (“Real price”, “Why here”, chips). Green is not a decorative colour.
 4. **Density of an advertisement portal.** On desktop 4–5 cards on the screen, a horizontal card ~180 px high; no huge heroes and empty sections.
-5. **Data honesty visible in the UI.** Every field in the details has a provenance badge, absence is an explicit “no data”, a quote from the description always sits next to a value taken from the description.
+5. **Data honesty visible in the UI.** Absence in the details is an explicit “brak danych”, never an empty place or “nie”.
 
 ---
 
@@ -182,33 +182,27 @@ Between 641 and 959 px: like mobile (collapsible filters), but a horizontal card
 │ Letnica, ul. Starowiejska, Gdańsk   · Approximate location (if true)         │
 ├────────────────────────────────────────────────┬─────────────────────────────┤
 │ ┌────────────────────────────────────────────┐ │ 799 000 zł   (28px bold)    │
-│ │ ‹             photo 16:10             ›    │ │ 19 087 zł/m² [computed]     │
-│ │                                   3 / 12   │ │ ┌─────────────────────────┐ │
-│ └────────────────────────────────────────────┘ │ │ Real price: 859 000 zł  │ │  green-50, left
-│ [▫][▫][▣][▫][▫][▫] → thumbnails 72×54, scroll-x│ │ 799 000 zł + 60 000 zł  │ │  edge green-500
-│                                                │ │ (parking space)         │ │
-│ Parameters                                     │ │ “Parking space …”       │ │
-│ Area            41,86 m²             [from ad]│ │  [from description]     │ │
-│ Rooms           2                    [from ad]│ └─────────────────────────┘ │
-│ Floor           4 of 6               [from ad]│ [ View on otodom ↗ ]        │
-│ Year built      ┆no data┆                      │ Data from 2026-11-04. Listing…│
-│ Lift            yes                  [from ad]│ ┌─────────────────────────┐ │
-│ Balcony         ┆no information┆               │ │ Ask the seller about:   │ │
-│ Parking space (from description)               │ │ • Year of construction  │
-│                 extra charge, 60 000 zł [from description] │ • Form of ownership … │ │
-│                 “Parking space in the hall …”  │ └─────────────────────────┘ │
+│ │ ‹             photo 16:10             ›    │ │ 19 087 zł/m² · 2 pokoje     │
+│ │                                   3 / 12   │ │ [ View on otodom ↗ ]        │
+│ └────────────────────────────────────────────┘ │ Data from 2026-11-04. Listing…│
+│                                                │                             │
+│ Parameters                                     │                             │
+│ Area            41,86 m²                       │                             │
+│ Floor           4 of 6                         │                             │
+│ Year built      ┆no data┆                      │                             │
+│ Lift            yes                            │                             │
+│ Balcony         ┆no information┆               │                             │
 │ …                                              │                             │
-│ Data quality notes (if there are flags)        │                             │
 │ Description  (white-space: pre-line, max 70ch) │                             │
 │ Source: otodom.pl · fetched 4.11.2026 · added 4.11.2026                      │
 └────────────────────────────────────────────────┴─────────────────────────────┘
 ```
 
-Grid: `grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: var(--space-6)`. The right column is not sticky.
+Grid: `grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: var(--space-6)`. The right column is not sticky. Minimal details after the AI pivot (design.md §16.5, R19): no provenance badges, thumbnails, real price, “Ask the seller” or quality notes.
 
 ### 4.4 Details, mobile (≤ 640 px)
 
-One column in this order: “Back” → title and location → gallery (photo 100% width, 4:3; thumbnails scroll-x) → price box with the “Real price” and the otodom button (full width) → “Ask the seller about:” → Parameters (label above value, badge in the value line) → Quality notes → Description → Source.
+One column in this order: “Back” → title and location → gallery (photo 100% width, 4:3) → price and the otodom button (full width) → Parameters (label above value) → Description → Source.
 
 ---
 
@@ -273,16 +267,16 @@ With `scopeBlocked` the list is not shown at all (no “No listings”); the not
 
 ### 5.9 `ListingDetailPage`
 - **“‹ Back to results”:** `navigate(-1)` when `location.key !== "default"`; otherwise `<Link to="/">` “‹ All listings”.
-- **Gallery:** main image `aspect-ratio: 16/10`, `max-height: 420px`, `object-fit: cover`, `--radius-md`; “‹” / “›” buttons 40×40 (white, semi-transparent `rgba(255,255,255,.9)`, at the sides) with `aria-label` “Previous photo” / “Next photo”, wrapping at the ends; counter “3 / 12” in the corner. Thumbnails: `<button>` 72×54, horizontal scroll, the selected one with a 2 px `--green-500` outline. Empty `imageUrls` → placeholder “No photos” 16:10. No lightbox.
-- **Price box:** `fields.pricePln` (`--fs-2xl`, bold) with a “from ad” badge, `fields.pricePerM2` with a “computed” badge (every field has a badge, design.md §13 #6). **Real price** (when `realPrice` is present): background `--green-50`, `border-left: 4px solid var(--green-500)`, padding 16 px; “Real price: {totalPln}” (`--fs-lg`, bold); “{basePricePln} (price from the ad) + {amountPln} ({label of factKey})” for each of `extras`; below it a quote from `facts` for that `factKey` in a `<blockquote>` “…” (`--fs-sm`, italic) and a “from description” badge. Next the primary button “View on otodom ↗” (`target="_blank" rel="noopener noreferrer"`) and the stale-data note built from `scrapedAt` (§7.1; `--fs-xs`, secondary).
-- **Parameters:** `<dl class="params">`, `grid-template-columns: 200px 1fr`, rows separated by 1 px `--color-border`, padding 8 px; ≤ 640 px label above the value. Order and labels in §7.2. Value + provenance badge (§5.10) on one line (`flex-wrap`). The `parking`/`storage` facts as separate rows “Parking space (from description)”, “Storage unit (from description)”: “{status from meta.factStatus}[, {amountPln}]” + a “from description” badge + a quote underneath (as in the Real price); no fact → “no data”.
-- **Approximate location:** with `locationApproximate`, in the line under the title the text “· Approximate location” (`--color-warning-text`, `--fs-sm`) with `title="The advertiser did not provide the exact location."`.
-- **“Ask the seller about:”** (when `askSeller` is non-empty): white box, `--color-border` outline, `--radius-md`, padding 16 px; h2 heading `--fs-md`; `<ul>` with items 1:1 from the API.
-- **Data quality notes** (when `qualityFlags` has a flag with a label, §7.2): h2 + `<ul>` `--fs-sm`, each item in the compact `.notice--warning` style.
-- **Description:** h2 “Description”, `descriptionText` in `<p style="white-space: pre-line">`, `max-width: 70ch`. HTML is never rendered.
-- **Source:** “Source: otodom.pl · fetched {scrapedAt} · added {createdAtSource}” (`--fs-xs`, secondary).
+- **Gallery:** the same swipeable `PhotoCarousel` as on the card (prev/next buttons, counter “3 / 12”, no lightbox), `aspect-ratio: 16/10`, `max-height: 420px`; empty `imageUrls` → placeholder “Brak zdjęcia”.
+- **Price column:** `pricePln` (28 px, bold), `pricePerM2` and rooms underneath, the primary button “Zobacz na otodom ↗” (`target="_blank" rel="noopener noreferrer"`) and the stale-data note built from `scrapedAt` (§7.1; `--fs-xs`, secondary).
+- **Parameters:** `<dl class="params">`, `grid-template-columns: 200px 1fr`, rows separated by 1 px `--color-border`, padding 8 px; ≤ 640 px label above the value. Order and labels in §7.2. A missing value is a `.value--missing` element: text “brak danych”, white background, 1 px **dashed** `--color-border-strong` outline. Two-state values (`hasLift`, `hasBalcony`, `hasGarage`, `hasBasement`: `true` or omitted): `true` → “tak”; omitted → `.value--missing` with “brak informacji” (not “nie”).
+- **Approximate location:** with `locationApproximate`, in the line under the title the text “· Lokalizacja przybliżona” (`--color-warning-text`, `--fs-sm`) with `title="Ogłaszający nie podał dokładnej lokalizacji."`.
+- **Description:** h2 “Opis”, `descriptionText` in `<p style="white-space: pre-line">`, `max-width: 70ch`. HTML is never rendered.
+- **Source:** “Źródło: otodom.pl · pobrano {scrapedAt} · dodano {createdAtSource}” (`--fs-xs`, secondary).
 
 ### 5.10 Provenance badge `.badge--{provenance}`
+Not built (design.md R19): the details page shows no provenance badges. The section stays as background for the dossier (design.md §16.1).
+
 Inline, height 20 px, padding `0 6px`, `--radius-sm`, `--fs-xs`, `--fw-semibold`, text = label from `meta.enums.provenance` (no icons):
 
 | `provenance` | Text | Style | Additionally |
@@ -332,7 +326,7 @@ Inline, height 20 px, padding `0 6px`, `--radius-sm`, `--fs-xs`, `--fw-semibold`
 | filters (legends) | „Miasto”, „Dzielnica”, „Cena (zł)”, „Powierzchnia (m²)”, „Pokoje”, „Piętro”, „Rynek”, „Ogłaszający”, „Udogodnienia”; fields „od” / „do”; radio „dowolny”; checkboxes „Tylko z windą”, „Tylko z balkonem”; hint „Oferty bez tej informacji zostaną pominięte.”; „Wybierz miasto, aby zobaczyć dzielnice.” |
 | results bar | „{n} {oferta/oferty/ofert}”, „Sortuj” |
 | card | „Dlaczego tutaj:”, „Brak zdjęcia”, „lokalizacja przybliżona”, „nietypowa cena, sprawdź opis” |
-| details | „Parametry”, „Realna cena:”, „(cena z ogłoszenia)”, „Zapytaj sprzedającego o:”, „Uwagi o jakości danych”, „Opis”, „Lokalizacja przybliżona”, „brak danych”, „brak informacji”, „tak”; stale-data note from `scrapedAt`: „Dane z {data}. Aktualną ofertę sprawdź na otodom.” |
+| details | „Parametry”, „Opis”, „Lokalizacja przybliżona”, „brak danych”, „brak informacji”, „tak”, „Źródło: otodom.pl · pobrano {data} · dodano {data}”, „‹ Wszystkie oferty”; stale-data note from `scrapedAt`: „Dane z {data}. Aktualną ofertę sprawdź na otodom.” |
 | summary prefix after chat | „Zrozumiałem: ” |
 | loading / empty / errors | „Ładowanie…”; zero results: „Brak ofert dla tych kryteriów.”, „Wyniki pojawią się, jeśli zmienisz jedno kryterium:”, „Żadna pojedyncza zmiana nie wystarczy.”; „Nie udało się pobrać ofert.”; „Nieprawidłowe parametry wyszukiwania.” + link „Wyczyść wyszukiwanie”; „Nie udało się wczytać filtrów.”; „Nie znaleziono oferty.” + link „Wróć do listy ofert” |
 | chat errors (under the field) | 429: „Za dużo zapytań. Spróbuj ponownie za {Retry-After} s.”; 400: „Wpisz od 1 do {max} znaków.”; network or 5xx: „Nie udało się połączyć. Skorzystaj z filtrów poniżej.” |
@@ -408,7 +402,7 @@ Flags (design.md §3.6, only those visible in the details): `price_outlier` „N
 
 All UI decisions that touch the API or the application state have been carried over to `design.md` (§6.1: optional `imageUrl`, `floorHigherThan10`; §9: `format.ts`, `keepPreviousData` and `retry`, “Clear filters”, `relevance` visibility, `location.state` after a chip is removed). In case of a discrepancy `design.md` prevails, except for user-facing texts, whose single source is §7 of this document.
 
-**Optional fields are `undefined`, never `null`:** the API omits fields whose value is `null` (design.md §6), so the UI checks presence (`x != null`, `x?.y`), not `!== null`. The exception is `Sourced<T>.value` in details, where `null` is sent and means „brak danych”.
+**Optional fields are `undefined`, never `null`:** the API omits fields whose value is `null` (design.md §6), so the UI checks presence (`x != null`, `x?.y`), not `!== null`.
 
 ---
 

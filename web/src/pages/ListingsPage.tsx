@@ -1,13 +1,12 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { Link, useSearchParams } from 'react-router'
-import { ApiError, fetchListings, metaQuery } from '../api.ts'
+import { ApiError, DEFAULT_RETRY_AFTER_SECONDS, fetchListings, metaQuery } from '../api.ts'
 import Filters from '../components/Filters.tsx'
 import ListingCard from '../components/ListingCard.tsx'
 import Pagination from '../components/Pagination.tsx'
 import { formatListingsCount } from '../format.ts'
 import { intentFromSearchParams } from '../intent.ts'
 
-const DEFAULT_RETRY_AFTER_SECONDS = 10
 const SKELETON_CARDS = 3
 
 function ListError({ error, onRetry }: { error: Error; onRetry: () => void }) {

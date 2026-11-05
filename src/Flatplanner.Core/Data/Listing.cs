@@ -92,6 +92,22 @@ public class Listing
     [MaxLength(24)]
     public string? Ownership { get; set; }
 
+    [Column("heating")]
+    [MaxLength(24)]
+    public string? Heating { get; set; }
+
+    [Column("building_type")]
+    [MaxLength(24)]
+    public string? BuildingType { get; set; }
+
+    [Column("windows_type")]
+    [MaxLength(24)]
+    public string? WindowsType { get; set; }
+
+    [Column("building_material")]
+    [MaxLength(24)]
+    public string? BuildingMaterial { get; set; }
+
     [Column("rent_pln")]
     public int? RentPln { get; set; }
 

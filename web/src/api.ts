@@ -48,6 +48,10 @@ export interface MetaResponse {
     advertiserType: EnumOption[]
     finishCondition: EnumOption[]
     ownership: EnumOption[]
+    heating: EnumOption[]
+    buildingType: EnumOption[]
+    windowsType: EnumOption[]
+    buildingMaterial: EnumOption[]
     factStatus: EnumOption[]
     sort: EnumOption[]
     provenance: EnumOption[]
@@ -131,6 +135,10 @@ export interface ListingDetail {
   market: string
   finishCondition?: string
   ownership?: string
+  heating?: string
+  buildingType?: string
+  windowsType?: string
+  buildingMaterial?: string
   rentPln?: number
   hasLift?: boolean
   hasBalcony?: boolean

@@ -142,6 +142,14 @@ function Details({ listing }: { listing: ListingDetail }) {
                 label="Stan wykończenia"
                 value={labelOf(meta?.enums.finishCondition, listing.finishCondition)}
               />
+              <Row icon="building" label="Typ budynku" value={labelOf(meta?.enums.buildingType, listing.buildingType)} />
+              <Row
+                icon="material"
+                label="Materiał budynku"
+                value={labelOf(meta?.enums.buildingMaterial, listing.buildingMaterial)}
+              />
+              <Row icon="windows" label="Okna" value={labelOf(meta?.enums.windowsType, listing.windowsType)} />
+              <Row icon="heating" label="Ogrzewanie" value={labelOf(meta?.enums.heating, listing.heating)} />
               <Row icon="rent" label="Czynsz (zł/mies.)" value={rent} />
               <Row icon="lift" label="Winda" value={yesOrUnknown(listing.hasLift)} missing="brak informacji" />
               <Row icon="balcony" label="Balkon" value={yesOrUnknown(listing.hasBalcony)} missing="brak informacji" />

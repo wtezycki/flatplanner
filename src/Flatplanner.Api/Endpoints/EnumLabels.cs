@@ -36,6 +36,40 @@ internal static class EnumLabels
         new(Ownership.Limited, "spółdzielcze własnościowe prawo do lokalu"),
     ];
 
+    public static readonly IReadOnlyList<EnumOption> HeatingOptions =
+    [
+        new(Heating.Urban, "miejskie"),
+        new(Heating.Gas, "gazowe"),
+        new(Heating.BoilerRoom, "kotłownia"),
+        new(Heating.Electrical, "elektryczne"),
+    ];
+
+    public static readonly IReadOnlyList<EnumOption> BuildingTypeOptions =
+    [
+        new(BuildingType.Block, "blok"),
+        new(BuildingType.Apartment, "apartamentowiec"),
+        new(BuildingType.Tenement, "kamienica"),
+    ];
+
+    public static readonly IReadOnlyList<EnumOption> WindowsTypeOptions =
+    [
+        new(WindowsType.Plastic, "plastikowe"),
+        new(WindowsType.Wooden, "drewniane"),
+        new(WindowsType.Aluminium, "aluminiowe"),
+    ];
+
+    public static readonly IReadOnlyList<EnumOption> BuildingMaterialOptions =
+    [
+        new(BuildingMaterial.Brick, "cegła"),
+        new(BuildingMaterial.Silikat, "silikat"),
+        new(BuildingMaterial.Breezeblock, "pustak"),
+        new(BuildingMaterial.ConcretePlate, "wielka płyta"),
+        new(BuildingMaterial.Concrete, "beton"),
+        new(BuildingMaterial.CellularConcrete, "beton komórkowy"),
+        new(BuildingMaterial.ReinforcedConcrete, "żelbet"),
+        new(BuildingMaterial.Other, "inny"),
+    ];
+
     public static readonly IReadOnlyList<EnumOption> FactStatusOptions =
     [
         new(FactStatus.Included, "w cenie"),

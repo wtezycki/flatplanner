@@ -5,6 +5,10 @@ public sealed record MetaEnums(
     IReadOnlyList<EnumOption> AdvertiserType,
     IReadOnlyList<EnumOption> FinishCondition,
     IReadOnlyList<EnumOption> Ownership,
+    IReadOnlyList<EnumOption> Heating,
+    IReadOnlyList<EnumOption> BuildingType,
+    IReadOnlyList<EnumOption> WindowsType,
+    IReadOnlyList<EnumOption> BuildingMaterial,
     IReadOnlyList<EnumOption> FactStatus,
     IReadOnlyList<EnumOption> Sort,
     IReadOnlyList<EnumOption> Provenance);

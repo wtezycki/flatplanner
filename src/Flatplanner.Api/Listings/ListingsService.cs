@@ -65,7 +65,8 @@ public sealed class ListingsService(FlatplannerDbContext db)
                 listing.DistrictName, listing.Street, listing.Lat, listing.Lng, listing.LocationApproximate,
                 listing.PricePln, listing.AreaM2, listing.PricePerM2, listing.Rooms, listing.Floor, listing.QualityFlags.Contains(QualityFlag.FloorHigher10),
                 listing.QualityFlags.Contains(QualityFlag.FloorGarret), listing.BuildingFloors, listing.BuildYear,
-                listing.Market, listing.FinishCondition, listing.Ownership, listing.RentPln,
+                listing.Market, listing.FinishCondition, listing.Ownership, listing.Heating, listing.BuildingType,
+                listing.WindowsType, listing.BuildingMaterial, listing.RentPln,
                 listing.HasLift, listing.HasBalcony, listing.HasGarage, listing.HasBasement, listing.AdvertiserType);
     }
 

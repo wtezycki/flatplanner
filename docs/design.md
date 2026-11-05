@@ -159,6 +159,10 @@ CREATE TABLE listings (
   market               VARCHAR(16)   NOT NULL,         -- primary | secondary
   finish_condition     VARCHAR(24)   NULL,             -- ready_to_use | to_completion | to_renovation
   ownership            VARCHAR(24)   NULL,             -- full_ownership | limited_ownership
+  heating              VARCHAR(24)   NULL,             -- urban | gas | boiler_room | electrical (R24)
+  building_type        VARCHAR(24)   NULL,             -- block | apartment | tenement (R24)
+  windows_type         VARCHAR(24)   NULL,             -- plastic | wooden | aluminium (R24)
+  building_material    VARCHAR(24)   NULL,             -- brick | silikat | breezeblock | concrete_plate | concrete | cellular_concrete | reinforced_concrete | other (R24)
   rent_pln             INT           NULL,             -- Rent <= 0 -> NULL
   has_lift             TINYINT(1)    NULL,             -- 1 or NULL ("no information"); never 0
   has_balcony          TINYINT(1)    NULL,             -- as above
@@ -210,6 +214,10 @@ CREATE TABLE listing_facts (                         -- result of mini-W2, one r
 | `advertiser_type` | `agency`, `private` | real estate agency, private individual |
 | `finish_condition` | `ready_to_use`, `to_completion`, `to_renovation` | ready to move in, to be finished, for renovation |
 | `ownership` | `full_ownership`, `limited_ownership` | full ownership, cooperative ownership right to the premises (verified at the first import, 2026-11-05: `target.Building_ownership` = `limited_ownership` in 13 of 197 listings) |
+| `heating` | `urban`, `gas`, `boiler_room`, `electrical` | municipal, gas, boiler room, electric (R24; the values seen in the 2026-11-05 import) |
+| `building_type` | `block`, `apartment`, `tenement` | block of flats, apartment building, tenement (R24) |
+| `windows_type` | `plastic`, `wooden`, `aluminium` | plastic, wooden, aluminium (R24) |
+| `building_material` | `brick`, `silikat`, `breezeblock`, `concrete_plate`, `concrete`, `cellular_concrete`, `reinforced_concrete`, `other` | brick, silicate block, breezeblock, large panel, concrete, aerated concrete, reinforced concrete, other (R24) |
 | `raw_listings.normalize_status` | `accepted`, `rejected` (`NULL` = not normalized yet) | — |
 | `facts_status` | `pending`, `done`, `skipped`, `failed` | — |
 | `listing_facts.fact_key` | `parking`, `storage` | parking space, storage unit / cellar |
@@ -314,6 +322,10 @@ All paths are relative to `ad`. Numbers from otodom are sometimes a JSON number 
 | `target.Build_year` | `build_year` | `int` 1800–(year + 6) | NULL; outside the range → NULL + flag |
 | `target.Construction_status[0]` | `finish_condition` | value from 3.3 | NULL; other → NULL + `unknown_value:finish_condition` |
 | `target.Building_ownership[0]` | `ownership` | value from 3.3 | NULL; other → NULL + `unknown_value:ownership` |
+| `target.Heating[0]` | `heating` | value from 3.3 | NULL; other → NULL + `unknown_value:heating` |
+| `target.Building_type[0]` | `building_type` | value from 3.3 | NULL; other → NULL + `unknown_value:building_type` |
+| `target.Windows_type[0]` | `windows_type` | value from 3.3 | NULL; other → NULL + `unknown_value:windows_type` |
+| `target.Building_material[0]` | `building_material` | value from 3.3 | NULL; other → NULL + `unknown_value:building_material` |
 | `target.Rent` | `rent_pln` | `int`; **≤ 0 → NULL + `rent_zero_as_missing`** (in the sample `Rent = 0` in 7/20 listings, [product-scope.md](product-scope.md) §2); outside 50–5 000 → NULL + `rent_out_of_range` | NULL |
 | `target.Extras_types[]` | `has_lift`, `has_balcony`, `has_garage`, `has_basement` | contains `lift` / `balcony` / `garage` / `basement` → `true`, otherwise **NULL** (`Extras_types` is a list, absence of an element ≠ “no”; in 14 listings `additionalInformation.lift` has only `::y` or is empty, there is no “no” value) | NULL (the array can be `null`) |
 | `target.user_type` | `advertiser_type` | `agency`/`private` | NULL; other → NULL + `unknown_value:advertiser_type` |
@@ -576,7 +588,7 @@ The list response does **not** echo the intent. The URL is the single source of 
   "locationApproximate": false,
   "pricePln": 799000, "areaM2": 41.86, "pricePerM2": 19087, "rooms": 2,
   "floor": 4, "floorHigherThan10": false, "floorIsGarret": false, "buildingFloors": 6, "buildYear": 2019,
-  "market": "secondary", "finishCondition": "ready_to_use", "ownership": "full_ownership", "rentPln": 700,
+  "market": "secondary", "finishCondition": "ready_to_use", "ownership": "full_ownership", "heating": "urban", "buildingType": "block", "windowsType": "plastic", "buildingMaterial": "brick", "rentPln": 700,
   "hasLift": true, "hasBalcony": true, "hasGarage": true, "hasBasement": true, "advertiserType": "agency"
 }
 ```
@@ -676,6 +688,10 @@ The source of the lists for the filters. `MetaService` in Api takes `SearchMeta`
     "advertiserType": [ { "value": "agency", "label": "estate agency" }, { "value": "private", "label": "private individual" } ],
     "finishCondition": [ { "value": "ready_to_use", "label": "ready to use" }, { "value": "to_completion", "label": "to be finished" }, { "value": "to_renovation", "label": "to be renovated" } ],
     "ownership": [ { "value": "full_ownership", "label": "full ownership" }, { "value": "limited_ownership", "label": "cooperative ownership right to the premises" } ],
+    "heating": [ { "value": "urban", "label": "miejskie" } ],
+    "buildingType": [ { "value": "block", "label": "blok" } ],
+    "windowsType": [ { "value": "plastic", "label": "plastikowe" } ],
+    "buildingMaterial": [ { "value": "brick", "label": "cegła" } ],
     "factStatus": [ { "value": "included", "label": "included in the price" }, { "value": "extra_cost", "label": "extra charge" }, { "value": "not_available", "label": "none" } ],
     "sort": [ { "value": "newest", "label": "newest" }, { "value": "price_asc", "label": "cheapest" }, { "value": "price_desc", "label": "most expensive" }, { "value": "price_per_m2_asc", "label": "lowest price/m²" }, { "value": "relevance", "label": "best match" } ],
     "provenance": [ { "value": "listing", "label": "from the advertisement" }, { "value": "description", "label": "from the description" }, { "value": "computed", "label": "calculated" }, { "value": "missing", "label": "no data" } ]
@@ -1347,6 +1363,7 @@ Places where earlier documents or data allowed two variants, and the variant ado
 | R21 | Details page: icons and key facts panel (review of #6) | A panel of six key facts (area, rooms, floor, year built, street, city) above the parameter list; a bold location line with a pin; inline SVG icons (own `Icon` component, hand-written paths, no library, no new dependency) in the panel and in the parameter rows | the page read as a flat list; the panel gives the buyer the essentials at a glance. Overrides “no SVG” in ui-spec §9 for the details page; icons are decorative (`aria-hidden`) |
 | R22 | Details page layout after the second review of #6 | A mosaic of three photos on desktop (carousel on mobile); one key facts panel (area, rooms, floor, year built, ownership, location = street + city) beside the map, so the map is no longer at the bottom; the parameter list drops what the panel shows; the description sits in a card; the otodom link is a secondary button. A key fact without a value keeps its cell and reads “brak danych” | the buyer should see photos, essentials and the place without scrolling; the original listing is a reference, not the main action. Supersedes the layout parts of R20 and R21 |
 | R23 | Description formatting (#6 review) | A nullable `description_markup` column (migration `DescriptionMarkup`) keeps the original bold and italic as `**` and `*`; the details page renders paragraphs, bullet lists and emphasis from it. `description_text` stays plain for search, the LLM and quote anchors. The earlier heading heuristic is dropped (the original has no headings, only bold lines) | the plain text lost the emphasis the seller used. HTML is still never stored or rendered, so no sanitiser package is needed. Needs `normalize` to be re-run after the migration, and the dump to be refreshed (11.4) |
+| R24 | More details fields (#6 review) | Four more otodom fields on `listings` and in `ListingDetail`: `heating`, `building_type`, `windows_type`, `building_material` (migration `BuildingCharacteristics`), with labels in `/api/meta.enums`, shown as parameter rows on the details page. Values are the ones seen in the import; any other value gives NULL + `unknown_value:<column>` | the brief leaves the choice of data to us, and these four have the best coverage in the import (heating 183, building type 175, windows 151, material 120 of 198). Not added: free-from date (71), media, security, equipment, energy certificate (too sparse or too heterogeneous). `normalize` must be re-run and the dump refreshed (11.4) |
 
 ### 14.2 Technical decisions
 

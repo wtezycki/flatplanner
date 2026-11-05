@@ -160,6 +160,11 @@ public static partial class ListingNormalizer
             Market = market,
             FinishCondition = ReadEnum(target.Get("Construction_status").First(), FinishCondition.All, "finish_condition", flags),
             Ownership = ReadEnum(target.Get("Building_ownership").First(), Ownership.All, "ownership", flags),
+            Heating = ReadEnum(target.Get("Heating").First(), Heating.All, "heating", flags),
+            BuildingType = ReadEnum(target.Get("Building_type").First(), BuildingType.All, "building_type", flags),
+            WindowsType = ReadEnum(target.Get("Windows_type").First(), WindowsType.All, "windows_type", flags),
+            BuildingMaterial = ReadEnum(
+                target.Get("Building_material").First(), BuildingMaterial.All, "building_material", flags),
             RentPln = ReadRent(target.Get("Rent"), flags),
             HasLift = HasExtra(target, "lift"),
             HasBalcony = HasExtra(target, "balcony"),

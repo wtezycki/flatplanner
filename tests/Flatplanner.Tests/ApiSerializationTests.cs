@@ -35,7 +35,7 @@ public sealed class ApiSerializationTests
             new DateTime(2026, 11, 4, 8, 10, 0, DateTimeKind.Utc),
             new DateTime(2026, 11, 4, 7, 49, 54, DateTimeKind.Utc),
             [], "Opis", null, "gdansk", "Gdańsk", null, null, 54.35m, 18.65m, false, 799000, 41.86m, 19087, 2,
-            null, false, false, null, null, "secondary", null, null, null,
+            null, false, false, null, null, "secondary", null, null, null, null, null, null, null,
             true, null, null, null, null);
 
         var json = JsonSerializer.Serialize(detail, ApiJson.Options);

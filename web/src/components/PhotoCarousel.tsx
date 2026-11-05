@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 
 interface Props {
   urls: string[]
-  onOpen?: () => void
+  onOpen?: (url: string) => void
 }
 
 export default function PhotoCarousel({ urls, onOpen }: Props) {
@@ -27,7 +27,7 @@ export default function PhotoCarousel({ urls, onOpen }: Props) {
         ref={track}
         className="gallery__track"
         tabIndex={0}
-        onClick={onOpen}
+        onClick={() => onOpen?.(photos[current])}
         onScroll={(event) => setIndex(Math.round(event.currentTarget.scrollLeft / event.currentTarget.clientWidth))}
       >
         {photos.map((url) => (

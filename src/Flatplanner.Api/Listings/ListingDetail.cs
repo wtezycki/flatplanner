@@ -12,6 +12,8 @@ public sealed record ListingDetail(
     string CityName,
     string? DistrictName,
     string? Street,
+    decimal Lat,
+    decimal Lng,
     bool LocationApproximate,
     int PricePln,
     decimal AreaM2,

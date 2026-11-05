@@ -181,28 +181,27 @@ Between 641 and 959 px: like mobile (collapsible filters), but a horizontal card
 │ Słoneczne | Do wprowadzenia | Widok na zielone patio          (h1, 22px)    │
 │ Letnica, ul. Starowiejska, Gdańsk   · Approximate location (if true)         │
 ├────────────────────────────────────────────────┬─────────────────────────────┤
-│ ┌────────────────────────────────────────────┐ │ 799 000 zł   (28px bold)    │
-│ │ ‹             photo 16:10             ›    │ │ 19 087 zł/m² · 2 pokoje     │
-│ │                                   3 / 12   │ │ [ View on otodom ↗ ]        │
-│ └────────────────────────────────────────────┘ │ Data from 2026-11-04. Listing…│
-│                                                │                             │
-│ Parameters                                     │                             │
-│ Area            41,86 m²                       │                             │
-│ Floor           4 of 6                         │                             │
-│ Year built      ┆no data┆                      │                             │
-│ Lift            yes                            │                             │
-│ Balcony         ┆no information┆               │                             │
-│ …                                              │                             │
-│ Description  (white-space: pre-line, max 70ch) │                             │
+│ ┌────────────────────────────────────────────┐ │ ┌─────────────────────────┐ │
+│ │ ‹   photo 16:10 (click = lightbox)   ›     │ │ │ 799 000 zł   (28px bold)│ │
+│ │                                   3 / 12   │ │ │ 19 087 zł/m²            │ │
+│ └────────────────────────────────────────────┘ │ │ 41,86 m² · 2 pokoje     │ │
+│                                                │ │ [ View on otodom ↗ ]    │ │
+│ Parameters                                     │ │ Data from 2026-11-04. … │ │
+│ Area            41,86 m²                       │ └─────────────────────────┘ │
+│ Floor           4 of 6                         │ Location                    │
+│ Year built      ┆no data┆                      │ ┌─────────────────────────┐ │
+│ Lift            yes                            │ │ map, circle if approx.  │ │
+│ …                                              │ └─────────────────────────┘ │
+│ Description  (headings, lists, paragraphs)     │                             │
 │ Source: otodom.pl · fetched 4.11.2026 · added 4.11.2026                      │
 └────────────────────────────────────────────────┴─────────────────────────────┘
 ```
 
-Grid: `grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: var(--space-6)`. The right column is not sticky. Minimal details after the AI pivot (design.md §16.5, R19): no provenance badges, thumbnails, real price, “Ask the seller” or quality notes.
+Grid: `grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: var(--space-4) var(--space-6)`. The right column (price card + map) is not sticky. Minimal details after the AI pivot (design.md §16.5, R19, R20): no provenance badges, thumbnails, real price, “Ask the seller” or quality notes.
 
 ### 4.4 Details, mobile (≤ 640 px)
 
-One column in this order: “Back” → title and location → gallery (photo 100% width, 4:3) → price and the otodom button (full width) → Parameters (label above value) → Description → Source.
+One column in this order: “Back” → title and location → gallery (photo 100% width, 4:3) → price card with the otodom button (full width) → Parameters (label above value) → Description → Source → Location map.
 
 ---
 
@@ -267,11 +266,13 @@ With `scopeBlocked` the list is not shown at all (no “No listings”); the not
 
 ### 5.9 `ListingDetailPage`
 - **“‹ Back to results”:** `navigate(-1)` when `location.key !== "default"`; otherwise `<Link to="/">` “‹ All listings”.
-- **Gallery:** the same swipeable `PhotoCarousel` as on the card (prev/next buttons, counter “3 / 12”, no lightbox), `aspect-ratio: 16/10`, `max-height: 420px`; empty `imageUrls` → placeholder “Brak zdjęcia”.
-- **Price column:** `pricePln` (28 px, bold), `pricePerM2` and rooms underneath, the primary button “Zobacz na otodom ↗” (`target="_blank" rel="noopener noreferrer"`) and the stale-data note built from `scrapedAt` (§7.1; `--fs-xs`, secondary).
+- **Gallery:** the same swipeable `PhotoCarousel` as on the card (counter “3 / 12”), `aspect-ratio: 16/10`, `max-height: 420px`; a click on the photo opens the lightbox; empty `imageUrls` → placeholder “Brak zdjęcia”.
+- **Lightbox:** native `<dialog>` (`showModal`), full viewport on `rgba(42,38,35,.94)`, the photo `object-fit: contain`; buttons 44×44: “×” (`aria-label` „Zamknij”, top right), “‹” / “›” („Poprzednie zdjęcie” / „Następne zdjęcie”, wrapping at the ends), counter “3 / 12”; closes on Escape, on a click outside the photo and on “×”; arrows on the keyboard; `alt` „{title}, zdjęcie {i} z {n}”.
+- **Price card:** white card, `--color-border` outline, `--radius-md`, padding 16 px: `pricePln` (28 px, bold), `pricePerM2`, `{areaM2} · {rooms}` (`--fs-sm`, secondary), the primary button “Zobacz na otodom ↗” (`target="_blank" rel="noopener noreferrer"`, full width of the card) and the stale-data note built from `scrapedAt` (§7.1; `--fs-xs`, secondary).
+- **Map:** h2 „Lokalizacja” and a Leaflet map under the price card, 280 px high, OSM tiles with attribution, wheel zoom off, loaded lazily. With `locationApproximate` a circle of 500 m around `lat`/`lng` and the note „Lokalizacja przybliżona” under the map; otherwise a circle marker. `role="region"` with `aria-label` „Mapa lokalizacji”.
 - **Parameters:** `<dl class="params">`, `grid-template-columns: 200px 1fr`, rows separated by 1 px `--color-border`, padding 8 px; ≤ 640 px label above the value. Order and labels in §7.2. A missing value is a `.value--missing` element: text “brak danych”, white background, 1 px **dashed** `--color-border-strong` outline. Two-state values (`hasLift`, `hasBalcony`, `hasGarage`, `hasBasement`: `true` or omitted): `true` → “tak”; omitted → `.value--missing` with “brak informacji” (not “nie”).
 - **Approximate location:** with `locationApproximate`, in the line under the title the text “· Lokalizacja przybliżona” (`--color-warning-text`, `--fs-sm`) with `title="Ogłaszający nie podał dokładnej lokalizacji."`.
-- **Description:** h2 “Opis”, `descriptionText` in `<p style="white-space: pre-line">`, `max-width: 70ch`. HTML is never rendered.
+- **Description:** h2 “Opis”, `descriptionText` split into blocks (`max-width: 70ch`): a line of up to 40 characters ending with “:” is an `<h3>`, lines starting with “- ” or “•” form a `<ul>`, other lines are `<p style="white-space: pre-line">`. HTML is never rendered.
 - **Source:** “Źródło: otodom.pl · pobrano {scrapedAt} · dodano {createdAtSource}” (`--fs-xs`, secondary).
 
 ### 5.10 Provenance badge `.badge--{provenance}`
@@ -326,7 +327,7 @@ Inline, height 20 px, padding `0 6px`, `--radius-sm`, `--fs-xs`, `--fw-semibold`
 | filters (legends) | „Miasto”, „Dzielnica”, „Cena (zł)”, „Powierzchnia (m²)”, „Pokoje”, „Piętro”, „Rynek”, „Ogłaszający”, „Udogodnienia”; fields „od” / „do”; radio „dowolny”; checkboxes „Tylko z windą”, „Tylko z balkonem”; hint „Oferty bez tej informacji zostaną pominięte.”; „Wybierz miasto, aby zobaczyć dzielnice.” |
 | results bar | „{n} {oferta/oferty/ofert}”, „Sortuj” |
 | card | „Dlaczego tutaj:”, „Brak zdjęcia”, „lokalizacja przybliżona”, „nietypowa cena, sprawdź opis” |
-| details | „Parametry”, „Opis”, „Lokalizacja przybliżona”, „brak danych”, „brak informacji”, „tak”, „Źródło: otodom.pl · pobrano {data} · dodano {data}”, „‹ Wszystkie oferty”; stale-data note from `scrapedAt`: „Dane z {data}. Aktualną ofertę sprawdź na otodom.” |
+| details | „Parametry”, „Opis”, „Lokalizacja”, „Lokalizacja przybliżona”, „Mapa lokalizacji”, „Zamknij”, „{tytuł}, zdjęcie {i} z {n}”, „brak danych”, „brak informacji”, „tak”, „Źródło: otodom.pl · pobrano {data} · dodano {data}”, „‹ Wszystkie oferty”; stale-data note from `scrapedAt`: „Dane z {data}. Aktualną ofertę sprawdź na otodom.” |
 | summary prefix after chat | „Zrozumiałem: ” |
 | loading / empty / errors | „Ładowanie…”; zero results: „Brak ofert dla tych kryteriów.”, „Wyniki pojawią się, jeśli zmienisz jedno kryterium:”, „Żadna pojedyncza zmiana nie wystarczy.”; „Nie udało się pobrać ofert.”; „Nieprawidłowe parametry wyszukiwania.” + link „Wyczyść wyszukiwanie”; „Nie udało się wczytać filtrów.”; „Nie znaleziono oferty.” + link „Wróć do listy ofert” |
 | chat errors (under the field) | 429: „Za dużo zapytań. Spróbuj ponownie za {Retry-After} s.”; 400: „Wpisz od 1 do {max} znaków.”; network or 5xx: „Nie udało się połączyć. Skorzystaj z filtrów poniżej.” |
@@ -393,8 +394,8 @@ Flags (design.md §3.6, only those visible in the details): `price_outlier` „N
 - **Dark mode:** out of scope.
 - **Component library, CSS-in-JS, Tailwind, CSS Modules:** no; a single `styles.css` (design.md §9).
 - **Icons:** no library and no SVG. The Unicode characters “×”, “‹”, “›”, “↗”, “▾” and text (badges, notices) are enough. Every icon character in a button has an `aria-label`.
-- **Modal, lightbox, sticky elements, infinite scroll, remembering the mode in `localStorage`:** no.
-- **Map, travel time, contradictions, deduplication:** out of scope ([product-scope.md](product-scope.md) §8).
+- **Modal (other than the photo lightbox on the details page), sticky elements, infinite scroll, remembering the mode in `localStorage`:** no.
+- **Travel time, contradictions, deduplication:** out of scope ([product-scope.md](product-scope.md) §8). A map exists only as the location map on the details page (design.md R20).
 
 ---
 

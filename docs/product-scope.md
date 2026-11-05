@@ -80,7 +80,7 @@ This section supersedes the rows and paragraphs of sections 0, 3, 4, 7, 8, 9 and
 | Lift, balcony (UC2) | two-state “yes / no information” | three-state yes/no/no information | `Extras_types` is a list, absence of an element ≠ “no” |
 | Maintenance fee | from the field, `Rent ≤ 0 → null` | from the field or from the description | `Rent="0"` in 7/20 listings |
 | Scenario A | filters + district list | map, polygons, walking time | the district is in the data; the map brings no new information |
-| Map, walking time (UC16, UC17) | out of scope | MUST/SHOULD | OSM cost ~1.9h |
+| Map, walking time (UC16, UC17) | out of scope; exception: a single location map on the details page ([design.md](design.md) R20) | MUST/SHOULD | OSM cost ~1.9h |
 | Contradictions (UC6/W6) | out of scope | MUST + COULD | they require full extraction from the description (W2) |
 | Scraper robustness | raw JSON + hard-field contract + fill-rate report | carrier classification, path fingerprinting, circuit breaker ([scraping-plan.md](scraping-plan.md) §7) | one-off import |
 | Key assumption | otodom fields already cover the facts buyers ask about; the description's unique value is paid extras | “cheap is relative to the city” (a definition, not a risk) | it is testable on the import (fill rate per field, share of descriptions with a priced parking space) and justifies why AI extracts only two facts |

@@ -98,6 +98,7 @@ There are no layers inside the projects: `DbContext` is used directly, without r
 | `create-vite` template `react-ts` | 9.3.3: react 19.3.1, vite ^8.3.5, @vitejs/plugin-react ^6.1.2, typescript ~7.0.2 | take the versions from the template, do not change |
 | `react-router` | 8.5.1 | |
 | `@tanstack/react-query` | 5.105.3 | |
+| `leaflet` / `@types/leaflet` | 1.9.4 / 1.9.22 | map on the details page (R20); loaded lazily, OSM tiles; circle markers only, so no marker image assets are needed |
 
 No other packages. HTML → text and extracting `__NEXT_DATA__` is done by regex, without AngleSharp (section 4). The two `Microsoft.Extensions.*` rows were compiled together with Pomelo 9.0.0 and OpenAI 2.14.0 in a trial net9.0 console project on 2026-11-04.
 
@@ -568,7 +569,7 @@ The list response does **not** echo the intent. The URL is the single source of 
   "scrapedAt": "2026-11-04T08:10:00Z", "createdAtSource": "2026-11-04T07:49:54Z",
   "imageUrls": ["https://ireland.apollo.olxcdn.com/..."],
   "descriptionText": "Na sprzedaż 2-pokojowe mieszkanie położone na 4. piętrze z 6 ...",
-  "citySlug": "gdansk", "cityName": "Gdańsk", "districtName": "Letnica", "street": "ul. Starowiejska",
+  "citySlug": "gdansk", "cityName": "Gdańsk", "districtName": "Letnica", "street": "ul. Starowiejska", "lat": 54.3912, "lng": 18.6224,
   "locationApproximate": false,
   "pricePln": 799000, "areaM2": 41.86, "pricePerM2": 19087, "rooms": 2,
   "floor": 4, "floorHigherThan10": false, "floorIsGarret": false, "buildingFloors": 6, "buildYear": 2019,
@@ -577,7 +578,7 @@ The list response does **not** echo the intent. The URL is the single source of 
 }
 ```
 
-`floorHigherThan10` and `floorIsGarret` come from the `floor_higher_10` and `floor_garret` quality flags and drive the floor label (ui-spec §7.4). The stale-data note is UI copy built in the frontend from `scrapedAt`. The UI translates enum values using labels from `/api/meta`.
+`lat` and `lng` feed the details map (R20). `floorHigherThan10` and `floorIsGarret` come from the `floor_higher_10` and `floor_garret` quality flags and drive the floor label (ui-spec §7.4). The stale-data note is UI copy built in the frontend from `scrapedAt`. The UI translates enum values using labels from `/api/meta`.
 
 ### 6.3 `POST /api/search/interpret`
 
@@ -1339,6 +1340,7 @@ Places where earlier documents or data allowed two variants, and the variant ado
 | R17 | [product-scope.md](product-scope.md) §4 item 4: text search = `LIKE` alone | adopted: filters, `LIKE` text search and chat (LLM); keyword parsing of the search field cut (6.7) | the requirement “text + filters” is met by `LIKE`; parsing intent from text is the chat's job, so a second parser would duplicate it |
 | R18 | response shape of the list: full echo of the intent with every `null`, a separate `cityMedians` field, `remove` as a list of `{param, value}` | no intent echo in `GET /api/listings`, `null` fields omitted (except `Sourced<T>.Value`), no `cityMedians`, `remove` as a map | an echo nobody reads, three copies of the median and `null` sentinels make the response harder to read without adding information; transfer size is handled by compression (§6) |
 | R19 | Details contract after the AI pivot (#6) | Flat `ListingDetail` without `Sourced<T>` and provenance badges; `facts`, `realPrice`, `askSeller` and `qualityFlags` are not returned. Missing value = omitted field = “brak danych” in the UI | §16.5 cuts badges, real price, “Ask the seller” and the quality-flag UI; with no provenance to carry, `Sourced<T>` has no purpose. Facts return with the dossier (#11′) |
+| R20 | Details page UI after review of #6 (map, lightbox, description formatting) | A map with the (approximate) location, a photo lightbox and a structured description are built on the details page. Map: Leaflet + OSM tiles, a circle of 500 m (`APPROXIMATE_RADIUS_M`, otodom gives no radius in our data) when `locationApproximate`, a circle marker otherwise. Lightbox: native `<dialog>`. Description: `description_text` split into headings (a line of up to 40 characters ending with “:”), bullet lists (“- ”, “•”) and paragraphs, rendered as React elements | the plain page looked empty next to the original; the fields stay the same, `description_html` stays cut (§14.5) and HTML is still never rendered. Overrides the “Map” and “lightbox” exclusions in product-scope §8 and ui-spec §9 for the details page only |
 
 ### 14.2 Technical decisions
 

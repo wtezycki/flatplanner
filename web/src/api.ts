@@ -115,6 +115,8 @@ export interface ListingDetail {
   cityName: string
   districtName?: string
   street?: string
+  lat: number
+  lng: number
   locationApproximate: boolean
   pricePln: number
   areaM2: number

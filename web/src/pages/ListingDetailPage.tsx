@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import {
   ApiError,
@@ -10,7 +10,9 @@ import {
   type EnumOption,
   type ListingDetail,
 } from '../api.ts'
+import Description from '../components/Description.tsx'
 import PhotoCarousel from '../components/PhotoCarousel.tsx'
+import PhotoLightbox from '../components/PhotoLightbox.tsx'
 import {
   formatArea,
   formatDate,
@@ -19,6 +21,8 @@ import {
   formatPricePerM2,
   formatRooms,
 } from '../format.ts'
+
+const LocationMap = lazy(() => import('../components/LocationMap.tsx'))
 
 const labelOf = (options: EnumOption[] | undefined, value: string | undefined) =>
   value === undefined ? undefined : (options?.find((option) => option.value === value)?.label ?? value)
@@ -49,6 +53,7 @@ function BackLink() {
 
 function Details({ listing }: { listing: ListingDetail }) {
   const meta = useQuery(metaQuery).data
+  const [openedPhoto, setOpenedPhoto] = useState<string>()
   const location = [listing.districtName, listing.street, listing.cityName].filter(Boolean).join(', ')
   const floor = formatDetailFloor(listing.floor, listing.buildingFloors, listing.floorHigherThan10, listing.floorIsGarret)
   const rent = listing.rentPln === undefined ? undefined : formatPrice(listing.rentPln)
@@ -78,7 +83,7 @@ function Details({ listing }: { listing: ListingDetail }) {
       </p>
       <div className="detail__layout">
         <div className="detail__gallery">
-          <PhotoCarousel urls={listing.imageUrls} />
+          <PhotoCarousel urls={listing.imageUrls} onOpen={setOpenedPhoto} />
         </div>
         <div className="detail__info">
           <h2 className="detail__heading">Parametry</h2>
@@ -104,22 +109,40 @@ function Details({ listing }: { listing: ListingDetail }) {
             <Row label="Ulica" value={listing.street} />
           </dl>
           <h2 className="detail__heading">Opis</h2>
-          <p className="detail__description">{listing.descriptionText}</p>
+          <Description text={listing.descriptionText} />
           <p className="detail__source">
             Źródło: otodom.pl · pobrano {formatDate(listing.scrapedAt)} · dodano {formatDate(listing.createdAtSource)}
           </p>
         </div>
-        <aside className="detail__aside">
-          <p className="detail__price num">{formatPrice(listing.pricePln)}</p>
-          <p className="detail__price-per-m2 num">
-            {formatPricePerM2(listing.pricePerM2)} · {formatRooms(listing.rooms)}
-          </p>
-          <a className="btn btn--primary" href={listing.url} target="_blank" rel="noopener noreferrer">
-            Zobacz na otodom ↗
-          </a>
-          <p className="detail__stale">Dane z {formatDate(listing.scrapedAt)}. Aktualną ofertę sprawdź na otodom.</p>
-        </aside>
+        <div className="detail__side">
+          <aside className="detail__price-card">
+            <p className="detail__price num">{formatPrice(listing.pricePln)}</p>
+            <p className="detail__price-per-m2 num">{formatPricePerM2(listing.pricePerM2)}</p>
+            <p className="detail__summary">
+              {formatArea(listing.areaM2)} · {formatRooms(listing.rooms)}
+            </p>
+            <a className="btn btn--primary" href={listing.url} target="_blank" rel="noopener noreferrer">
+              Zobacz na otodom ↗
+            </a>
+            <p className="detail__stale">Dane z {formatDate(listing.scrapedAt)}. Aktualną ofertę sprawdź na otodom.</p>
+          </aside>
+          <section className="detail__map">
+            <h2 className="detail__heading">Lokalizacja</h2>
+            <Suspense fallback={<div className="map" />}>
+              <LocationMap lat={listing.lat} lng={listing.lng} approximate={listing.locationApproximate} />
+            </Suspense>
+            {listing.locationApproximate && <p className="detail__map-note">Lokalizacja przybliżona</p>}
+          </section>
+        </div>
       </div>
+      {openedPhoto && (
+        <PhotoLightbox
+          urls={listing.imageUrls}
+          startUrl={openedPhoto}
+          title={listing.title}
+          onClose={() => setOpenedPhoto(undefined)}
+        />
+      )}
     </div>
   )
 }

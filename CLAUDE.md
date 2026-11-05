@@ -98,7 +98,7 @@ Environment: `set -a; source .env; set +a` before `dotnet run` (design §10). `e
 - Optional API fields are `field?: T` and are `undefined` when absent, never `null`. 
 - DTO types by hand in `web/src/api.ts`; no OpenAPI generator. State lives in the URL (`useSearchParams`), server data in TanStack Query; no global store.
 - Comments: the same rule as for C# (default is none).
-- Only `react-router` and `@tanstack/react-query` beyond the template. One `web/src/styles.css`, tokens from ui-spec §2; no component library.
+- Only `react-router`, `@tanstack/react-query` and `leaflet` (details map, design R20) beyond the template. One `web/src/styles.css`, tokens from ui-spec §2; no component library.
 
 ## Testing
 

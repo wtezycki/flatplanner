@@ -85,14 +85,14 @@ There are no layers inside the projects: `DbContext` is used directly, without r
 | Package | Version | Note |
 |---|---|---|
 | .NET SDK / runtime | 9.0.203 locally / images `mcr.microsoft.com/dotnet/sdk:9.0`, `aspnet:9.0` | .NET 9 end of support: **2026-11-10** (section 14) |
-| `Microsoft.EntityFrameworkCore` | 9.0.22 | Pomelo requires `[9.0.0, 9.0.999]` |
+| `Microsoft.EntityFrameworkCore` | 9.0.22 | Pomelo requires `[9.0.0, 9.0.999]`. Core references `Microsoft.EntityFrameworkCore.Relational` 9.0.22 (it pulls in the base package); otherwise Pomelo resolves Relational to 9.0.0 and the test project gets an assembly version conflict (MSB3277) |
 | `Microsoft.EntityFrameworkCore.Design` | 9.0.22 | only in Api (startup project for `dotnet ef`) |
 | `Pomelo.EntityFrameworkCore.MySql` | 9.0.0 | latest stable, there is no version for EF Core 10 |
 | `dotnet-ef` (tool) | 9.0.22 | |
 | `Microsoft.Extensions.Hosting` | 9.0.22 | only in Ingest: configuration from environment variables, `ILogger`, DI in a console app |
 | `Microsoft.Extensions.Options.ConfigurationExtensions`, `Microsoft.Extensions.Options.DataAnnotations` | 9.0.22 | in Core, for `FlatplannerOptions` (`BindConfiguration`, `ValidateDataAnnotations`, `ValidateOnStart`); Api gets them from the ASP.NET shared framework |
 | `OpenAI` (official .NET SDK) | 2.14.0 | target net8.0; compiled with `ChatClient` + `ChatResponseFormat.CreateJsonSchemaFormat`. `ReasoningEffortLevel` is marked as experimental, so Core has `<NoWarn>$(NoWarn);OPENAI001</NoWarn>` |
-| `xunit` / `xunit.runner.visualstudio` / `Microsoft.NET.Test.Sdk` | 2.9.3 / 3.1.5 / 18.11.0 | **[TO BE VERIFIED]** compatibility of runner 3.1.5 with xunit 2.9.3; in case of problems use the versions from `dotnet new xunit` |
+| `xunit` / `xunit.runner.visualstudio` / `Microsoft.NET.Test.Sdk` | 2.9.3 / 3.1.5 / 18.11.0 | compatibility of runner 3.1.5 with xunit 2.9.3 verified in #1 (a trial test was discovered and passed on net9.0) |
 | MySQL | `mysql:8.4` locally | prod: Railway image (section 11) |
 | Node (build) | `node:22-alpine` | locally v22.22.2 |
 | `create-vite` template `react-ts` | 9.3.3: react 19.3.1, vite ^8.3.5, @vitejs/plugin-react ^6.1.2, typescript ~7.0.2 | take the versions from the template, do not change |
@@ -469,7 +469,7 @@ Common rules:
   - arrays are **always present** (empty = `[]`), booleans are **always present**;
   - the only exception is `Sourced<T>.Value` in details (6.2): it is always written, also as `null`, because there `null` carries the information “no data”. In C#: `record Sourced<T>([property: JsonIgnore(Condition = JsonIgnoreCondition.Never)] T? Value, string Provenance)`;
   - TypeScript types in `web/src/api.ts` mark every omittable field as optional (`why?: string`);
-  - the options live in one static `ApiJson.Options` used both by `ConfigureHttpJsonOptions` and by `ApiSerializationTests` (section 12), which serialize sample DTOs and assert: no `:null` in the list response, `"value":null` for a missing field in details, `null` kept inside `remove`. **[TO BE VERIFIED]** that `ConfigureHttpJsonOptions` also applies to `TypedResults` in .NET 9 (aspnetcore issue #45872); the smoke test (11.5, step 7) checks the real HTTP response;
+  - the options live in one static `ApiJson.Options` used both by `ConfigureHttpJsonOptions` and by `ApiSerializationTests` (section 12), which serialize sample DTOs and assert: no `:null` in the list response, `"value":null` for a missing field in details, `null` kept inside `remove`. `ConfigureHttpJsonOptions` verified in #1 for endpoints that return a DTO (`/api/meta` omits `dataAsOf` when it is `null`); `Results.Json` is given `ApiJson.Options` explicitly. **[TO BE VERIFIED]** for `TypedResults` in .NET 9 (aspnetcore issue #45872); the smoke test (11.5, step 7) checks the real HTTP response;
 - **compression:** after the first deploy check `curl -sI -H 'Accept-Encoding: br, gzip' $URL/api/listings`. If the response has no `content-encoding`, add `builder.Services.AddResponseCompression(o => o.EnableForHttps = true)` and `app.UseResponseCompression()` before `UseStaticFiles` (Kestrel does not compress on its own; behind the proxy the request scheme is `https` after `UseForwardedHeaders`). BREACH needs a secret in the response next to reflected input; this API has no auth, cookies or CSRF tokens, so the risk is negligible. Compression is the only change with a real effect on transfer: JSON shrinks by ~70–85%, and the SPA bundle gains the most.
 
 ### 6.1 `GET /api/listings`
@@ -1178,7 +1178,7 @@ Argument parsing: `args[0]` in a `switch`, no CLI library.
 2. **`build`** (`mcr.microsoft.com/dotnet/sdk:9.0`): copies `global.json`, `Directory.Build.props`, the Core and Api `.csproj` files → `dotnet restore src/Flatplanner.Api` → `COPY src/` → `dotnet publish src/Flatplanner.Api -c Release -o /out --no-restore`.
 3. **`runtime`** (`mcr.microsoft.com/dotnet/aspnet:9.0`):
    - `WORKDIR /app`;
-   - copies `/out`, `/web/dist` → `./wwwroot`, `prompts/` → `./prompts`;
+   - copies `/out`, `/web/dist` → `./wwwroot`, `prompts/` → `./prompts` (the `prompts/` copy is added together with the first prompt file in #7);
    - `ENV ASPNETCORE_HTTP_PORTS=8080`, `EXPOSE 8080`;
    - `USER $APP_UID` (a non-root user, provided by the image);
    - `ENTRYPOINT ["dotnet", "Flatplanner.Api.dll"]`.
@@ -1330,8 +1330,8 @@ Items are carried out in sequence; each ends with a verifiable definition of don
 
 | # | Item | What is produced (design section) | Project | Definition of done |
 |---|---|---|---|---|
-| 1 | Skeleton | sln, `global.json`, `Directory.Build.props`, entities + `FlatplannerDbContext` + `Initial` migration (3.2), `/api/health`, `/api/meta`, Vite react-ts with proxy, compose (11.1), CI workflow (11.6); the repository `.gitignore` (section 2) is already in place | Core, Api, web | `docker compose up --build` → `/api/health` = ok, `/` shows the SPA, `SHOW CREATE TABLE listings` has `utf8mb4_0900_ai_ci`; `git status` shows neither `data/` nor `.env`; the CI run on the PR is green |
-| 2 | Skeleton deploy | Dockerfile (11.2), Railway + MySQL (11.3), `CHAT_MODE=fallback`; `/api/health` temporarily also returns the raw `X-Forwarded-For` and `X-Real-IP` headers (section 8) | — | the public HTTPS URL returns the SPA and `/api/health` with `db: ok`; `clientIp` checked from 2 networks and the client-IP variant chosen in section 8 recorded; the raw headers removed from `/api/health` |
+| 1 | Skeleton | sln, `global.json`, `Directory.Build.props`, entities + `FlatplannerDbContext` + `Initial` migration (3.2), `/api/health`, `/api/meta`, Vite react-ts with proxy, Dockerfile (11.2) and compose (11.1), an empty `Flatplanner.Tests` project, CI workflow (11.6); the repository `.gitignore` (section 2) is already in place | Core, Api, web, Tests | `docker compose up --build` → `/api/health` = ok, `/` shows the SPA, `SHOW CREATE TABLE listings` has `utf8mb4_0900_ai_ci`; `git status` shows neither `data/` nor `.env`; the CI run on the PR is green |
+| 2 | Skeleton deploy | Railway + MySQL (11.3), `CHAT_MODE=fallback`; `/api/health` temporarily also returns the raw `X-Forwarded-For` and `X-Real-IP` headers (section 8) | — | the public HTTPS URL returns the SPA and `/api/health` with `db: ok`; `clientIp` checked from 2 networks and the client-IP variant chosen in section 8 recorded; the raw headers removed from `/api/health` |
 | 3 | Scraper + normalization + test | `scrape`, `normalize`, `report` (4.1–4.4), masked fixtures, `NormalizationTests` (12); a first draft of `docs/one-pager.md` with the numbers from the report | Ingest, Tests | ≥ 100 rows in `listings`, `docs/ingest-report.md` generated, tests green, the one-pager draft has the data section filled in |
 | 4 | List API + text search | `SearchMeta` + `SearchMetaLoader` (7.1), `SearchIntent` (7.1) + `SearchIntentNormalizer` (7.3); `ApiJson.Options` with the serialization rule (§6); `GET /api/listings`: filters 7.4, `text` 3.5, sort without `relevance`, offset (6.1); **minimal** `InterpretationBuilder`: `summary` + `chips` with `key` and `label`, without `remove`; `ApiSerializationTests` (12, the #4 assertions) | Core, Api, Tests | `?cities=gdansk&areaMin=40&areaMax=80` returns `total` = the result of a manual `SELECT COUNT(*)` and contains no `:null`; `?text=morena` returns only listings whose `search_text` contains it; tests green |
 | 5 | React list + filters + text search + URL | `ListingsPage`, `SearchBar` (search mode sets `text=`, error display), `Filters` (owned parameters and the two “Apply” rules), `ListingCard`, `Pagination`, `intent.ts`, display of `warnings` (section 9) | web | scenario A in the browser; the search field sets `text`, filters narrow the result; setting `areaMax` after `areaApprox` leaves only the explicit range; page refresh and “back” restore the state |

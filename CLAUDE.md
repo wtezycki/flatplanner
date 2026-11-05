@@ -5,14 +5,14 @@ Operational rules for coding agents in this repository. The specification lives 
 ## Project
 
 Flatplanner: a simplified flat listings portal for Tricity (Gdańsk, Gdynia, Sopot), sales only, ~150 listings imported once from otodom.pl.
-Stack: .NET 9 Minimal API + EF Core 9 (Pomelo MySQL), React + Vite + TypeScript, MySQL 8.4, OpenAI at the core of the product (AI-first pivot, design §16): listing dossier at import (summary + nearby places from OSM), and at runtime the `ask` pipeline that judges every listing against the user's needs, with evidence verified by code and deterministic fallbacks. Deployed on Railway.
+Stack: .NET 9 Minimal API + EF Core 9 (Pomelo MySQL), React + Vite + TypeScript, MySQL 8.4, OpenAI at the core of the product (AI-first pivot, design §16): listing dossier built once locally (nearby places from OSM by code; summary and buyer risks written by a coding agent from a versioned prompt and validated by `import-dossiers`, no API cost), and at runtime the `ask` pipeline that judges every listing against the user's needs, with evidence verified by code and deterministic fallbacks. Deployed on Railway.
 Constraint from the task: avoid overengineering; limited time. Scope is fixed; quality of reasoning beats feature count.
 
 ## Layout (design §2)
 
 - `src/Flatplanner.Core`: `DbContext`, entities, migrations, enum constants, options, `SearchIntent` + normalizer + schema + fallback parser, `TextFolding`, `AnchorValidator`, `LlmJsonClient`.
 - `src/Flatplanner.Api`: Minimal API endpoints (`Endpoints/`), list queries, ranking, interpretation, chat, SPA hosting.
-- `src/Flatplanner.Ingest`: local-only console app (scrape, normalize, enrich, report, eval-intents). Never deployed.
+- `src/Flatplanner.Ingest`: local-only console app (scrape, normalize, nearby, export-dossiers, import-dossiers, report, eval-intents). Never deployed.
 - `tests/Flatplanner.Tests`: xUnit; `tests/search-queries.json`: the 10 chat queries.
 - `web/`: React SPA, built into the API's `wwwroot` in the container. `prompts/`: versioned LLM prompts.
 - Data reaches production only as a `mysqldump` of `listings` and `listing_facts` (§11.4).
@@ -49,7 +49,7 @@ dotnet format Flatplanner.sln --verify-no-changes     # not defined by the desig
 docker compose up -d mysql                            # local MySQL 8.4
 dotnet ef migrations add <Name> --project src/Flatplanner.Core --startup-project src/Flatplanner.Api
 dotnet run --project src/Flatplanner.Api --urls http://localhost:5080
-dotnet run --project src/Flatplanner.Ingest -- <scrape|normalize|enrich|report|all|eval-intents>
+dotnet run --project src/Flatplanner.Ingest -- <scrape|normalize|nearby|export-dossiers|import-dossiers|report|all|eval-intents>
 docker compose up --build                             # app + MySQL, as in production
 ```
 
@@ -62,7 +62,7 @@ npm run build     # tsc + vite build -> web/dist
 npm run lint      # template script; the design does not mention it
 ```
 
-Environment: `set -a; source .env; set +a` before `dotnet run` (design §10). `eval-intents` and `enrich` call the paid OpenAI API: run them only when the item requires it.
+Environment: `set -a; source .env; set +a` before `dotnet run` (design §10). `eval-intents` calls the paid OpenAI API: run it only when the item requires it. The dossier text is produced by the agent in-session from `prompts/listing-dossier.v1.md`, never through the API.
 
 ## Hard rules
 
@@ -73,7 +73,7 @@ Environment: `set -a; source .env; set +a` before `dotnet run` (design §10). `e
 - **Enums are `VARCHAR`** with `string` constants (`Flatplanner.Core/Data/Enums.cs`); no C# `enum` + `HasConversion`. Unknown source value → `NULL` + `unknown_value:<column>` flag, never silently mapped.
 - **Dependencies:** only the packages and versions in design §2. A new package needs approval and a design update.
 - **Model judges, code verifies (design §16):** the LLM interprets needs and gives a verdict per listing; every verdict must cite evidence from the listing dossier (quote, nearby place, field), and C# (`EvidenceVerifier`) downgrades anything unverifiable to `unknown`. Hard filters, grouping order and distances are deterministic C#.
-- **LLM calls:** prompts only in versioned files under `prompts/` (`search-intent.v2.md`, `listing-summary.v1.md`, `listing-judge.v1.md`); a changed prompt is a new version file. Structured output with `strict: true`; output validated (schema, `AnchorValidator`, `SearchIntentNormalizer`) before use. Every call has the design's failure path: chat → `IntentFallbackParser` with `fallbackReason` (§7.7), never 5xx; enrich → `facts_status = 'failed'`, import continues (§5.2); judge batch failure → its listings `unknown` with a notice (§16.2).
+- **LLM calls:** prompts only in versioned files under `prompts/` (`search-intent.v2.md`, `listing-dossier.v1.md` for the agent, `listing-judge.v1.md`); a changed prompt is a new version file. Structured output with `strict: true`; output validated (schema, `AnchorValidator`, `SearchIntentNormalizer`) before use. Every call has the design's failure path: chat → `IntentFallbackParser` with `fallbackReason` (§7.7), never 5xx; `import-dossiers` drops invalid risks and marks a listing without a valid line `facts_status = 'failed'` (§16.1); judge batch failure → its listings `unknown` with a notice (§16.2).
 - **HTML is never rendered.** Descriptions are shown as text (`description_text`, `white-space: pre-line`); no `dangerouslySetInnerHTML`.
 - **User-facing text is Polish and comes verbatim from `ui-spec.md` §7.** English strings in `design.md` are glosses. Do not invent copy; if a string is missing from §7, ask.
 - **Secrets:** never in code, `appsettings.json`, commits or logs. Local `.env` (gitignored), Railway variables in production; `.env.example` carries keys with placeholder values only. Never read or print `.env`.

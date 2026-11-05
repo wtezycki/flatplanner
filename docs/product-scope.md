@@ -68,7 +68,7 @@ This section supersedes the rows and paragraphs of sections 0, 3, 4, 7, 8, 9 and
 
 **Failure mode (replaces §11).** The judge is only as good as the dossier: 83 of 197 listings have an approximate location, OSM is incomplete, and descriptions are marketing. A listing that does not describe a quality it has is ranked below one that does, which favours verbose agencies over private sellers.
 
-**`unknown` is a feature.** For personal needs (pets, named schools, lift dimensions, tolerance) the data often has no answer; saying so is correct behaviour, not a model failure, and the 1-pager presents it that way.
+**Life situation first.** The user describes their life, not a list of requirements; the AI turns it into checks against the description, the fields and the surroundings, and answers in the user's terms. The surroundings exist for every listing, so life situations (child, dog, night shifts, parents on a wheelchair) are answered for the whole data set, not only where the seller happened to write something. What no listing can tell (house rules, lift dimensions) becomes a concrete question to the seller next to what was verified, never a silent gap.
 
 **Cut order (replaces §9).** 1. classic filters page restyle; 2. AI summary on cards; 3. guardrail notices beyond `declined`; 4. risks other than `extra_cost`; 5. domain rules (16.3); never cut: `ask` with evidence verification, demo listings, deploy.
 

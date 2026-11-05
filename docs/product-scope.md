@@ -50,7 +50,10 @@ This section supersedes the rows and paragraphs of sections 0, 3, 4, 7, 8, 9 and
 | §4 #6 mini-W2 + Real price | listing dossier at import: AI summary + nearby places (design §16.1) |
 | §4 #7 chat → `SearchIntent`, #9 ranking and interpretation | one `ask` endpoint: needs → AI verdict per listing → evidence check → grouping (design §16.2) |
 | §4 #5 details with provenance badges | plain details: fields, description, link to otodom |
-| §4 #10 chips, #11 what blocks, #12 ask the seller | cut |
+| §4 #10 chips, #12 ask the seller | cut |
+| §4 #11 what blocks | replaced: results in groups (fits / partly / one thing does not fit / unknown) and "show without this condition" computed from the verdicts already made (design §16.2) |
+| §4 #6 Real price | returns at query time for verified extra costs; extra costs are the most common hard fact in descriptions (~18% of listings) |
+| — | new: buyer risks per listing (extra cost, legal status, occupied, noise, field vs description mismatch), each with evidence |
 | §4 #2–#4 list, filters, text search | kept as built, secondary path ("Wolisz klasyczne filtry?") |
 | §8 full W2 + UC15, UC17 walking distance, UC6 contradictions, UC11 unverifiable criteria | in scope through AI judgement over the dossier (distances, not walking time; contradictions surface as verdict evidence) |
 | §7 "no LLM ranking, no summaries" | the LLM produces verdicts that order results and per-listing summaries; both are bounded by evidence verification |
@@ -65,7 +68,9 @@ This section supersedes the rows and paragraphs of sections 0, 3, 4, 7, 8, 9 and
 
 **Failure mode (replaces §11).** The judge is only as good as the dossier: 83 of 197 listings have an approximate location, OSM is incomplete, and descriptions are marketing. A listing that does not describe a quality it has is ranked below one that does, which favours verbose agencies over private sellers.
 
-**Cut order (replaces §9).** 1. classic filters page restyle; 2. AI summary on cards; 3. guardrail notices beyond `declined`; 4. domain rules (16.3); never cut: `ask` with evidence verification, demo listings, deploy.
+**`unknown` is a feature.** For personal needs (pets, named schools, lift dimensions, tolerance) the data often has no answer; saying so is correct behaviour, not a model failure, and the 1-pager presents it that way.
+
+**Cut order (replaces §9).** 1. classic filters page restyle; 2. AI summary on cards; 3. guardrail notices beyond `declined`; 4. risks other than `extra_cost`; 5. domain rules (16.3); never cut: `ask` with evidence verification, demo listings, deploy.
 
 ---
 

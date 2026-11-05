@@ -518,7 +518,7 @@ The list response does **not** echo the intent. The URL is the single source of 
       "id": 17, "title": "Słoneczne | Do wprowadzenia | Widok na zielone patio",
       "pricePln": 799000, "areaM2": 41.86, "pricePerM2": 19087, "rooms": 2,
       "floor": 4, "floorHigherThan10": false, "buildingFloors": 6, "citySlug": "gdansk", "cityName": "Gdańsk",
-      "districtName": "Letnica", "imageUrl": "https://ireland.apollo.olxcdn.com/v1/files/.../image;s=655x491;q=80",
+      "districtName": "Letnica", "imageUrls": ["https://ireland.apollo.olxcdn.com/v1/files/.../image;s=655x491;q=80"],
       "market": "secondary", "createdAtSource": "2026-11-04T07:49:54Z",
       "locationApproximate": false, "priceOutlier": false
     }
@@ -539,7 +539,7 @@ The list response does **not** echo the intent. The URL is the single source of 
 `why` is omitted because the intent has no preferences; `blockers` is omitted because `total > 0`. The numbers in the examples are illustrative.
 
 **List item fields that are easy to misread:**
-- `imageUrl?: string`: the first URL from `image_urls`; omitted when the listing has no photos (the card shows the placeholder „Brak zdjęcia”);
+- `imageUrls: string[]`: `image_urls` (at most 10, 3.2), always present; `[]` when the listing has no photos (the card shows the placeholder „Brak zdjęcia”). The card swipes through all of them, so the list carries every URL instead of the first one;
 - `floorHigherThan10: boolean`: `true` when `quality_flags` contains `floor_higher_10`. Then `floor` = 11 is a lower bound, and the card shows “floor 11+”, not “floor 11”.
 
 **Shapes of the auxiliary fields** (the same in every response, C#: records in `Flatplanner.Api/Listings/Dto.cs`):

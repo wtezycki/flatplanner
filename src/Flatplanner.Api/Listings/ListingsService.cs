@@ -46,7 +46,7 @@ public sealed class ListingsService(FlatplannerDbContext db)
             r.Id, r.Title, r.PricePln, r.AreaM2, r.PricePerM2, r.Rooms, r.Floor,
             r.QualityFlags.Contains(QualityFlag.FloorHigher10), r.BuildingFloors,
             r.CitySlug, EnumLabels.CityNames[r.CitySlug], r.DistrictName,
-            r.ImageUrls.FirstOrDefault(), r.Market, DateTime.SpecifyKind(r.CreatedAtSource, DateTimeKind.Utc),
+            r.ImageUrls, r.Market, DateTime.SpecifyKind(r.CreatedAtSource, DateTimeKind.Utc),
             r.LocationApproximate, r.QualityFlags.Contains(QualityFlag.PriceOutlier))).ToList();
 
         return new ListingsResponse(items, page, SearchDefinitions.PageSize, total, totalPages, sort, interpretation);

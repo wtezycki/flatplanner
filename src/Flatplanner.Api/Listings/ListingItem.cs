@@ -13,7 +13,7 @@ public sealed record ListingItem(
     string CitySlug,
     string CityName,
     string? DistrictName,
-    string? ImageUrl,
+    IReadOnlyList<string> ImageUrls,
     string Market,
     DateTime CreatedAtSource,
     bool LocationApproximate,

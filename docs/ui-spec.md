@@ -323,7 +323,7 @@ Inline, height 20 px, padding `0 6px`, `--radius-sm`, `--fs-xs`, `--fw-semibold`
 
 | Place | Text |
 |---|---|
-| browser tab title | list: „Flatplanner: mieszkania na sprzedaż w Trójmieście”; details: „{title} · Flatplanner” |
+| browser tab title | list: „Flatplanner: Przeczytamy ogłoszenia za Ciebie” (the motto, without its full stop); details: „{title} · Flatplanner” |
 | mode switch | „Szukaj” / „Czat AI” |
 | search placeholder | „np. Morena, Wrzeszcz, balkon” |
 | chat placeholder (scenario B) | „np. chcę ładne, tanie mieszkanie, 40 m w Gdańsku” |
@@ -337,7 +337,7 @@ Inline, height 20 px, padding `0 6px`, `--radius-sm`, `--fs-xs`, `--fw-semibold`
 | loading / empty / errors | „Ładowanie…”; zero results: „Brak ofert dla tych kryteriów.”, „Wyniki pojawią się, jeśli zmienisz jedno kryterium:”, „Żadna pojedyncza zmiana nie wystarczy.”; „Nie udało się pobrać ofert.”; „Nieprawidłowe parametry wyszukiwania.” + link „Wyczyść wyszukiwanie”; „Nie udało się wczytać filtrów.”; „Nie znaleziono oferty.” + link „Wróć do listy ofert” |
 | chat errors (under the field) | 429: „Za dużo zapytań. Spróbuj ponownie za {Retry-After} s.”; 400: „Wpisz od 1 do {max} znaków.”; network or 5xx: „Nie udało się połączyć. Skorzystaj z filtrów poniżej.” |
 | list 429 | „Za dużo zapytań. Spróbuj ponownie za {Retry-After} s.” |
-| motto (top bar, under the wordmark, hidden ≤ 640 px) | „Twój asystent do mieszkań” |
+| motto (top bar, under the wordmark, hidden ≤ 640 px) | „Przeczytamy ogłoszenia za Ciebie.” |
 | search field | `aria-label` „Szukaj w ofertach” |
 | filters | form `aria-label` „Filtry”; mobile toggle „Filtry ({n})”; `aria-label` of the range fields „Cena od” / „Cena do”, „Powierzchnia od” / „Powierzchnia do”, „Pokoje od” / „Pokoje do”, „Piętro od” / „Piętro do”; district summary „Dzielnica” + „ ({n})” with n selected districts; floor hint „parter = 0”; with `areaApprox` and no range „Teraz: ok. {areaApprox} m². Wpisany zakres zastąpi przybliżenie.” |
 | pagination | `aria-label` „Paginacja”; „‹ Poprzednia”, „Następna ›”; `aria-label` of the arrows „Poprzednia strona”, „Następna strona” |

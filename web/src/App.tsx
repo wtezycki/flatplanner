@@ -15,7 +15,7 @@ export default function App() {
             <img className="header__logo" src={logo} alt="" />
             <span className="header__titles">
               <img className="header__wordmark" src={wordmark} alt="" />
-              <span className="header__motto">Twój asystent do mieszkań</span>
+              <span className="header__motto">Przeczytamy ogłoszenia za Ciebie.</span>
             </span>
           </Link>
           {onList && <SearchBar />}

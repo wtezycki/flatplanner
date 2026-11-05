@@ -499,14 +499,14 @@ Green tokens from §2 map to teal (`--green-600` → `--teal-700`, `--green-50` 
 
 ### 11.4 Classic list `/` as built (item #5, restyled)
 
-The classic list uses the §11.1 tokens. Until `ask` exists (design §16.2) `/` stays the list; the hero holds only the text search (no heading, no example chips, no progress card). Deviations from §4.1, §5.4 and §9, decided with the restyle:
+The classic list uses the §11.1 tokens. Until `ask` exists (design §16.2) `/` stays the list; the text search sits in the top bar (no hero heading, no example chips, no progress card). Deviations from §4.1, §5.4 and §9, decided with the restyle:
 
-- **Header:** 48 px, `--teal-900`, only the brand: the logo (`web/src/assets/flatplanner.svg`, 36 px) and the wordmark (`flatbanner.svg`, 26 px high) rendered as a CSS mask filled with `--on-teal`, because the supplied file is dark text. No tagline or data date, so the §5.1 right-hand text and the §7.1 header string are dropped. The link has `aria-label` „Flatplanner”.
-- **Hero:** full-width band under the header with a 135° gradient from `--teal-700` to `--teal-900` so it reads as a separate layer; the search field is 52 px high (`--control-height`), the button inverted (`--on-teal` background, `--teal-900` text) so it separates from the band.
+- **One top bar, no hero:** a single 72 px bar (64 px ≤ 640 px) on `--color-surface` with a 1 px `--color-border` bottom edge holds, in one row, the logo, the wordmark, the search field and the „Szukaj” button. There is no teal header or hero band and no gradient (the §11.2 teal bands are dropped for the classic list; the teal stays in buttons, pills, links and the focus ring). The search field is a 52 px pill on `--color-bg`. ≤ 640 px the wordmark is hidden. No tagline or data date, so the §5.1 right-hand text and the §7.1 header string are dropped.
+- **Brand assets:** `web/src/assets/flatplanner.svg` (logo, 40 px; the supplied file without its `#F5F2EF` background tile) and `flatbanner.svg` (wordmark, 26 px high, the supplied file as is). The logo link has `aria-label` „Flatplanner”. The logo is also the favicon (`index.html`).
 - **Pills in the filter panel:** city, market, advertiser and the two amenities are pill toggles (hidden native `checkbox`/`radio`, styled label) instead of checkbox and radio rows. Labels and counts are unchanged, e.g. „Gdańsk (108)”.
 - **Districts:** a `<details>` titled „Dzielnica” ({n} selected) closed by default; inside, district pills grouped by city (the §5.4 scroll limit of 240 px stays).
 - **No Apply button:** the filters write the URL on every change (design §9). „Wyczyść filtry” is a link at the top of the panel; nothing in the panel is sticky. On mobile the panel stays open until the „Filtry ({n})” toggle is pressed again.
-- **Fields:** filter fields are 44 px (`--field-height`), the hero input 52 px.
+- **Fields:** filter fields are 44 px (`--field-height`), the search field 52 px.
 - **`--color-border-strong`** is `#8a8279`, not `#b6aea5`: the §11.1 value gives 2.19:1 on white, below the 3:1 §2 requires for field outlines (`#8a8279`: 3.78:1 on white, 3.39:1 on `--color-bg`).
 - **Contrast checked** with the WCAG formula: `--on-teal` on `--teal-900` 6.26:1 and on `--teal-700` 4.91:1; `--teal-900` on `--color-bg` 5.87:1; white on `--teal-700` 5.14:1; `--color-text-secondary` on `--color-bg` 4.64:1.
 - Provenance, verdict and info tokens are not defined in `styles.css` until a view uses them.

@@ -4,7 +4,6 @@ import { ApiError, fetchListings, metaQuery } from '../api.ts'
 import Filters from '../components/Filters.tsx'
 import ListingCard from '../components/ListingCard.tsx'
 import Pagination from '../components/Pagination.tsx'
-import SearchBar from '../components/SearchBar.tsx'
 import { formatListingsCount } from '../format.ts'
 import { intentFromSearchParams } from '../intent.ts'
 
@@ -105,11 +104,6 @@ export default function ListingsPage() {
 
   return (
     <>
-      <section className="hero">
-        <div className="container">
-          <SearchBar />
-        </div>
-      </section>
       <div className="container">
         {data?.interpretation.warnings.map((warning) => (
           <div key={`${warning.field}:${warning.message}`} className="notice notice--warning">

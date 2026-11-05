@@ -1,4 +1,4 @@
-namespace Flatplanner.Ingest.Normalization;
+namespace Flatplanner.Core.Data;
 
 public static class QualityFlag
 {

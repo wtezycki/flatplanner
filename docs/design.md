@@ -1092,7 +1092,7 @@ The `FlatplannerOptions` class in Core. Every property has `[ConfigurationKeyNam
 | `ConnectionStrings__Default` | `Server=localhost;Port=3306;Database=flatplanner;User=flatplanner;Password=change-me;CharSet=utf8mb4` | Api, Ingest | yes |
 | `OPENAI_API_KEY` | `sk-proj-...` | Api (when `CHAT_MODE=llm`), Ingest (`eval-intents`; the dossier needs no key, 16.1); passed explicitly to `ApiKeyCredential` | conditionally |
 | `LLM_MODEL` | `gpt-6.1-terra` | Api, Ingest | no (default `gpt-6.1-terra`) |
-| `LLM_JUDGE_MODEL` | `gpt-6-luna` | Api (the `ask` judge only) | no (empty: `LLM_MODEL`) |
+| `LLM_JUDGE_MODEL` | `gpt-5.6-luna` (default) | Api (the `ask` judge only) | no (empty: `LLM_MODEL`) |
 | `LLM_CHAT_REASONING_EFFORT` | `none` | Api, Ingest (`eval-intents`) | no (`none`) |
 | `LLM_INGEST_REASONING_EFFORT` | `low` | Ingest (`enrich`) | no (`low`) |
 | `CHAT_MODE` | `llm` | Api | no (default `fallback`) |
@@ -1632,7 +1632,7 @@ A judged listing sends ~6 800 characters (~2 400 tokens; measured on the 40 newe
    The listings are no longer a prefix shared between questions, so the "`needs` last" prompt-cache note of 16.7 no longer applies; the response cache (16.2) is unchanged.
    Simulated on the 40 newest local listings: school + quiet + MSWiA ~1 100 characters per listing, dog walks ~600, night transit ~1 400, against ~6 800 before.
 3. **Shorter output** (`prompts/listing-judge.v2.md`): 1–2 evidence items, `reason` at most ~15 words. Output tokens cost 5× input (14.2).
-4. **Judge on the small model:** `LLM_JUDGE_MODEL=gpt-6-luna` in production after the verdicts for the demo listings (16.6: 70, 97, 166) are read on the `tests/search-queries.json` scenarios and match those of `LLM_MODEL`; the result is recorded here.
+4. **Judge on the small model:** `LLM_JUDGE_MODEL` defaults to `gpt-5.6-luna` (decided 2026-11-06, before the verdict check); an empty value still falls back to `LLM_MODEL`. The verdicts for the demo listings (16.6: 70, 97, 166) are read against those of `LLM_MODEL` on the 16.6 scenarios and recorded here; effort `none` must be accepted by the model **[TO VERIFY on the first run]**.
 
 **Fallbacks:** unchanged. Interpret failure gives `needs: []`, so there is no judge call; the `places` enum is strict, so an unknown tag cannot arrive.
 
@@ -1640,4 +1640,4 @@ A judged listing sends ~6 800 characters (~2 400 tokens; measured on the 40 newe
 
 **Tests (§12):** `JudgeInputTests`: nearby limited to the planned tags with original indexes, route names dropped, sentences selected by folded keywords in their order, no match gives an empty description, an empty plan gives the full dossier. `SearchIntentSchemaTests`: the `places` enum, need deserialization, keyword cleaning.
 
-**Definition of done:** the judge input averages ≤ 600 tokens per listing in the `LLM call` log over the `tests/search-queries.json` scenarios **[TO VERIFY on the first run]**; the demo scenarios (16.6) give the same groups as before on listings 70, 97 and 166; a new question costs ≤ $0.02 by the usage log; tests green.
+**Definition of done:** the judge input averages ≤ 600 tokens per listing in the `LLM call` log over the 16.6 scenarios **[TO VERIFY on the first run]**; the demo scenarios (16.6) give the same groups as before on listings 70, 97 and 166; a new question costs ≤ $0.02 by the usage log; tests green.

@@ -5,7 +5,8 @@ import Filters from '../components/Filters.tsx'
 import ListingCard from '../components/ListingCard.tsx'
 import Pagination from '../components/Pagination.tsx'
 import { formatListingsCount } from '../format.ts'
-import { intentFromSearchParams } from '../intent.ts'
+import SearchBar from '../components/SearchBar.tsx'
+import { intentFromSearchParams, withoutWorkspaceParams } from '../intent.ts'
 
 const SKELETON_CARDS = 3
 
@@ -45,8 +46,13 @@ function Skeleton() {
   )
 }
 
-export default function ListingsPage() {
-  const [searchParams, setSearchParams] = useSearchParams()
+interface Props {
+  onBack?: () => void
+}
+
+export default function ListingsPage({ onBack }: Props) {
+  const [allParams, setSearchParams] = useSearchParams()
+  const searchParams = withoutWorkspaceParams(allParams)
   const intent = intentFromSearchParams(searchParams)
   const meta = useQuery(metaQuery)
   const listings = useQuery({
@@ -62,7 +68,7 @@ export default function ListingsPage() {
   const marketLabel = (value: string) => meta.data?.enums.market.find((option) => option.value === value)?.label
 
   const changeSort = (sort: string) => {
-    const next = new URLSearchParams(searchParams)
+    const next = new URLSearchParams(allParams)
     next.set('sort', sort)
     next.delete('page')
     setSearchParams(next)
@@ -104,6 +110,14 @@ export default function ListingsPage() {
   return (
     <>
       <div className="container">
+        <div className="classic__head">
+          {onBack && (
+            <button className="btn btn--link" type="button" onClick={onBack}>
+              ‹ Wróć do wyników
+            </button>
+          )}
+          <SearchBar />
+        </div>
         {data?.interpretation.warnings.map((warning) => (
           <div key={`${warning.field}:${warning.message}`} className="notice notice--warning">
             <span className="sr-only">Uwaga: </span>

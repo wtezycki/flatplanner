@@ -1,14 +1,21 @@
-import { Link, Route, Routes, useMatch } from 'react-router'
+import { Link, Navigate, Route, Routes, useLocation, useParams } from 'react-router'
 import wordmark from './assets/flatbanner.svg'
 import logo from './assets/flatplanner.svg'
-import SearchBar from './components/SearchBar.tsx'
 import AskPage from './pages/AskPage.tsx'
-import ListingDetailPage from './pages/ListingDetailPage.tsx'
-import ListingsPage from './pages/ListingsPage.tsx'
+
+function LegacyListings() {
+  const { search } = useLocation()
+  const params = new URLSearchParams(search)
+  params.set('view', 'classic')
+  return <Navigate to={{ pathname: '/', search: params.toString() }} replace />
+}
+
+function LegacyListing() {
+  const { id = '' } = useParams()
+  return <Navigate to={{ pathname: '/', search: new URLSearchParams({ listing: id }).toString() }} replace />
+}
 
 export default function App() {
-  const onList = useMatch('/listings') !== null
-
   return (
     <>
       <header className="header">
@@ -20,14 +27,13 @@ export default function App() {
               <span className="header__motto">Przeczytamy ogłoszenia za Ciebie.</span>
             </span>
           </Link>
-          {onList && <SearchBar />}
         </div>
       </header>
       <main>
         <Routes>
           <Route path="/" element={<AskPage />} />
-          <Route path="/listings" element={<ListingsPage />} />
-          <Route path="/listings/:id" element={<ListingDetailPage />} />
+          <Route path="/listings" element={<LegacyListings />} />
+          <Route path="/listings/:id" element={<LegacyListing />} />
         </Routes>
       </main>
     </>

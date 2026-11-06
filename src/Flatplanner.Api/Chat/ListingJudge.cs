@@ -14,6 +14,15 @@ public sealed class ListingJudge(LlmJsonClient llm, string promptsDir, string re
     private const int MaxOutputTokens = 8192;
     private const int DescriptionMaxLength = 8000;
 
+    // Cost cap: ~2k input tokens per listing (design 16.7).
+    public const int MaxCandidates = 40;
+
+    public static IReadOnlyList<Listing> Newest(IEnumerable<Listing> listings) => listings
+        .OrderByDescending(l => l.CreatedAtSource)
+        .ThenByDescending(l => l.Id)
+        .Take(MaxCandidates)
+        .ToList();
+
     public async Task<JudgeOutcome> JudgeAsync(IReadOnlyList<string> needs, IReadOnlyList<AskCandidate> candidates, CancellationToken ct)
     {
         var prompt = await PromptFiles.LoadAsync(promptsDir, PromptVersions.ListingJudge, ct);
@@ -70,9 +79,9 @@ public sealed class ListingJudge(LlmJsonClient llm, string promptsDir, string re
         .OrderBy(p => p.Index)
         .Select(p => new { i = p.Index, n = p.Place.Name, t = p.Place.Tag, x = p.Place.Extra, d = p.Place.DistanceM });
 
+    // `needs` comes last: the listings form a prefix that repeats between questions, which the API caches.
     private static string Input(IReadOnlyList<string> needs, AskCandidate[] batch) => JsonSerializer.Serialize(new
     {
-        needs,
         listings = batch.Select(c => new
         {
             id = c.Listing.Id,
@@ -84,5 +93,6 @@ public sealed class ListingJudge(LlmJsonClient llm, string promptsDir, string re
             nearby = NearestPerKind(c.Nearby),
             locationApproximate = c.Listing.LocationApproximate,
         }),
+        needs,
     }, DossierJson.Options);
 }

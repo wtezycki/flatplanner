@@ -1500,7 +1500,7 @@ Request `{ "message": string, "excludeNeeds": int[] }` (message 1–300 characte
 
 1. **Interpret** (`prompts/search-intent.v2.md`, structured output): hard filters from `SearchIntent` (only `cities`, `districts`, `priceMax`, `areaMin`, `areaMax`, `roomsMin`) plus `needs: string[]` (max 4, each one restated in Polish: "podstawówka w zasięgu spaceru dla 7-latki") and `declined: [{ text, reason }]` for requests the system will not judge (16.4). "dom" means a place to live unless a house is named explicitly; "bez kredytu" is context, not a need.
 2. **Narrow** (C#): SQL with the hard filters → candidates (≤ 197). When the question has needs and more than `ListingJudge.MaxCandidates` (40) listings match, only the 40 newest (`created_at_source`, then `id`) are judged and the rest is not shown; a `judge_limited` notice says so (cost cap, 16.7).
-3. **Judge** (`prompts/listing-judge.v1.md`): batches of 15 dossiers (id, fields, `ai_summary`, `description_text` truncated to 8 000 characters (3 000 cut 52 of 197 descriptions, the longest is 7 687; what a seller writes late, such as pets, orientation or air conditioning, would be lost), `nearby_json` reduced to the nearest place per (`t`, `x`) with its original index, `location_approximate`), all batches at once (`SemaphoreSlim(14)`, the ~200 listings make at most 14 batches). Output per listing: `{ id, needs: [{ verdict: "yes"|"partly"|"no"|"unknown", reason, evidence: [{ kind: "quote"|"place"|"field", ref }] }] }`. Risks are not judged at runtime: they come verified from the dossier (`risks_json`, 16.1) and are attached to every item by code. **The judge treats a description's claim as a declaration, not as proof:** "wyjątkowo ciche" on a main street is checked against the nearby places and the location.
+3. **Judge** (`prompts/listing-judge.v1.md`; input trimmed per need by 16.8): batches of 15 dossiers (id, fields, `ai_summary`, `description_text` truncated to 8 000 characters (3 000 cut 52 of 197 descriptions, the longest is 7 687; what a seller writes late, such as pets, orientation or air conditioning, would be lost), `nearby_json` reduced to the nearest place per (`t`, `x`) with its original index, `location_approximate`), all batches at once (`SemaphoreSlim(14)`, the ~200 listings make at most 14 batches). Output per listing: `{ id, needs: [{ verdict: "yes"|"partly"|"no"|"unknown", reason, evidence: [{ kind: "quote"|"place"|"field", ref }] }] }`. Risks are not judged at runtime: they come verified from the dossier (`risks_json`, 16.1) and are attached to every item by code. **The judge treats a description's claim as a declaration, not as proof:** "wyjątkowo ciche" on a main street is checked against the nearby places and the location.
 4. **Verify** (C#, `EvidenceVerifier`): `quote` must be a substring of the description after `AnchorText.Normalize`; `place` must be an index into that listing's `nearby_json`; `field` must name a listing column. A `yes`/`partly`/`no` without valid evidence becomes `unknown`. Unknown ids are dropped. `location_approximate = true` turns a `place`-only `yes` into `partly` with the note that the location is approximate.
 5. **Group and order** (C#), `group` per listing:
 
@@ -1579,7 +1579,7 @@ Anything outside these rules and the dossier is `unknown`.
 
 Kept as built: `GET /api/listings` (#4) and the listings page with filters (#5) as the secondary path. Changed: #6 details become a plain page with fields, description and a link to otodom (no provenance badges, no "Ask the seller"). Replaced: #7 → `ask` (16.2); #8 ranking → 16.2 steps 5–6; #12 "what blocks" → 16.2 step 6 (relaxations from verdicts, hard-filter counts only at zero candidates); #11 → dossier (16.1). Cut: the #12 `blockers` field and `Blockers.tsx`, #13 chips with removal, #14 ask the seller, medians, `why`, quality-flag UI.
 
-**New order:** #6′ minimal details → #11′ dossier (`nearby`, `export-dossiers`, agent run, `import-dossiers`) → #7′a `ask` backend (interpret, judge, verify, groups, relaxations) → #7′b UI (ui-spec §11) → #9′ eval → #10 protection → #15 → #16 → #17.
+**New order:** #6′ minimal details → #11′ dossier (`nearby`, `export-dossiers`, agent run, `import-dossiers`) → #7′a `ask` backend (interpret, judge, verify, groups, relaxations) → #7′b UI (ui-spec §11) → #7′c judge context per need (16.8) → #9′ eval → #10 protection → #15 → #16 → #17.
 
 **#11′ definition of done** (replaces the #11 row; the real price moves to #7′a, 16.2 step 7): `nearby_json` is filled for every listing; the report gives accepted and dropped risks per kind and the dropped share; demo listing 70 has an `extra_cost` risk of 40 000 zł and a `legal` risk (bank mortgage repaid from the price), listing 97 a `field_mismatch` on rooms and the New Synagogue in `nearby_json`; tests green.
 
@@ -1613,4 +1613,31 @@ First live measurements: ~$0.5 and several minutes per new question with `gpt-6.
 - **Own model for the judge:** `LLM_JUDGE_MODEL` (empty = `LLM_MODEL`), so the judge can run on a cheaper model (`gpt-6-luna`, $0.10 / $0.50, accepts effort `none`) while the interpretation stays on `LLM_MODEL`. Quality on Polish nuances (14.2) is checked by reading the verdicts of the demo listings before the model is changed in production.
 - **`needs` last in the judge input:** the listings form a repeating prefix, which the API caches automatically for identical batches.
 - **Usage log:** every LLM call logs input, cached and output tokens (`LLM call {Schema}: …`), so the cost of a question is summed from the log.
-- **Not built:** a planner that picks the relevant OSM kinds per need. After the nearest-per-kind trim it would save ~25% of the input once the cap applies, for one more prompt, schema and failure path.
+- **Planner per need:** first rejected here (one more prompt, schema and failure path for ~25% of the input). Superseded by 16.8: the planner rides in the existing interpret call, so it adds no call and no failure path, and live use still shows ~$0.5 per new question, which makes the judge input as the cost to cut.
+
+### 16.8 Judge context per need (2026-11-06)
+
+A judged listing sends ~6 800 characters (~2 400 tokens; measured on the 40 newest local listings): `nearby` ~3 500 (43 places of every kind, route entries with full stop-to-stop names), `description` ~2 400, `aiSummary` ~440, `fields` ~400. A question about a school reads a few hundred of them. Goal: cut the judge cost of a new question by about two orders of magnitude without weakening the evidence rule (16.2 step 4).
+
+1. **Need plan from the interpret call** (`prompts/search-intent.v3.md`, no extra call). `needs` in the interpret output becomes `[{ text, places, fields, keywords }]` (`AskNeed` in Core):
+   - `places`: OSM tags the need is checked against, a strict-schema enum of the `PlaceLabels` tags ("podstawówka w zasięgu spaceru" → `amenity=school`; "cisza w dzień" → `highway=primary`, `highway=trunk`, `railway=tram`, `railway=rail`, `route=tram`);
+   - `fields`: field names, an enum of the `ListingFields` names ("zakup bez zezwolenia MSWiA dla cudzoziemca" → `ownership`);
+   - `keywords`: at most 6 Polish word stems that a sentence of the description about this need would contain ("cich", "spokoj", "hałas", "okn"); code folds them (`TextFolding.Fold`) and drops stems shorter than 3 characters.
+   The response keeps `needs: string[]` (the `text` values), so the UI, `excludeNeeds` and the cache are unchanged.
+2. **Judge input built by code** (`JudgeInput`, pure function over a candidate and the need plans):
+   - `nearby`: the nearest place per (`t`, `x`) only for tags named by some need, original `nearby_json` index kept (the verifier resolves `place` refs against it); `route=*` entries lose `n` (the stop-to-stop name), `x` keeps the line `ref`;
+   - `fields`: only the fields named by some need;
+   - `description`: only the sentences (split on `.`, `!`, `?` and line breaks) whose folded text contains a folded keyword of some need, verbatim and in their original order, so `quote` refs stay substrings of the description;
+   - `aiSummary` is not sent (the prompt already forbade it as evidence);
+   - a need with an empty plan (no places, fields or keywords) makes that listing's input the full 16.2 step 3 dossier without `aiSummary`, so a need the planner cannot place loses nothing;
+   - a listing whose built input has no nearby place, no field and no sentence is not sent; its needs are `unknown` (the judge could not cite evidence for any verdict anyway).
+3. **Shorter output** (`prompts/listing-judge.v2.md`): 1–2 evidence items, `reason` at most ~15 words. Output tokens cost 5× input (14.2).
+4. **Judge on the small model:** `LLM_JUDGE_MODEL=gpt-6-luna` in production after the verdicts for the demo listings (16.6: 70, 97, 166) are read on the `tests/search-queries.json` scenarios and match those of `LLM_MODEL`; the result is recorded here.
+
+**Fallbacks:** unchanged. Interpret failure gives `needs: []`, so there is no judge call; the plan enums are strict, so an unknown tag or field cannot arrive.
+
+**Not built:** verdicts computed by code for "place X within N m" needs. Code would write the Polish `reason`, and ui-spec §7 has no such strings; with the trimmed input on the small model the judge call is already ~$0.01. Interpretation stays on `LLM_MODEL`: one call of ~2 500 tokens, and every later step depends on its quality.
+
+**Tests (§12):** `JudgeInputTests`: nearby limited to the planned tags with original indexes, route names dropped, sentences selected by folded keywords, empty plan gives the full dossier, a listing with no context is skipped. `SearchIntentSchemaTests`: the need plan with the `places` and `fields` enums.
+
+**Definition of done:** the judge input averages ≤ 600 tokens per listing in the `LLM call` log over the `tests/search-queries.json` scenarios **[TO VERIFY on the first run]**; the demo scenarios (16.6) give the same groups as before on listings 70, 97 and 166; a new question costs ≤ $0.02 by the usage log; tests green.

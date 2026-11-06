@@ -54,11 +54,15 @@ export function formatDetailFloor(
 
 export const formatPhotosCount = (count: number) => `${count} ${pluralPl(count, 'zdjęcie', 'zdjęcia', 'zdjęć')}`
 
-export const VERDICT_PRESENTATION: Record<string, { icon: string; label: string }> = {
+const VERDICT_PRESENTATION: Record<string, { icon: string; label: string }> = {
   yes: { icon: '✓', label: 'pasuje' },
   partly: { icon: '◐', label: 'częściowo' },
   no: { icon: '✗', label: 'nie pasuje' },
   unknown: { icon: '?', label: 'brak danych' },
+}
+
+export function verdictPresentation(verdict: string): { icon: string; label: string } {
+  return VERDICT_PRESENTATION[verdict] ?? VERDICT_PRESENTATION.unknown
 }
 
 export const RISK_KIND_LABELS: Record<string, string> = {

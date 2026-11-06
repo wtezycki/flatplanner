@@ -1,9 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useRef, useState } from 'react'
-import type { ReactNode } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router'
-import logo from '../assets/flatplanner.svg'
 import { ApiError, DEFAULT_RETRY_AFTER_SECONDS, metaQuery, postAsk } from '../api.ts'
 import AskProgress from '../components/AskProgress.tsx'
 import AskReply from '../components/AskReply.tsx'
@@ -27,7 +25,6 @@ export default function AskPage() {
   const listingId = searchParams.get('listing')
   const classic = searchParams.get('view') === 'classic'
   const page = Number.parseInt(searchParams.get('page') ?? '1', 10) || 1
-  const panelRef = useRef<HTMLElement>(null)
   const [draft, setDraft] = useState<string>()
   const [exclusion, setExclusion] = useState({ message: '', indexes: [] as number[] })
   const excludeNeeds = exclusion.message === message ? exclusion.indexes : []
@@ -43,7 +40,7 @@ export default function AskPage() {
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
-    const text = (draft ?? '').trim()
+    const text = (draft ?? message).trim()
     if (!text) {
       return
     }
@@ -57,6 +54,7 @@ export default function AskPage() {
   }
 
   const excludeNeed = (index: number) => setExclusion({ message, indexes: [...excludeNeeds, index] })
+  const restoreNeeds = () => setExclusion({ message, indexes: [] })
 
   const without = (...keys: string[]) => {
     const next = new URLSearchParams(searchParams)
@@ -70,51 +68,32 @@ export default function AskPage() {
   })()
 
   useEffect(() => {
-    panelRef.current?.scrollTo(0, 0)
+    window.scrollTo(0, 0)
   }, [page, listingId, classic])
 
-  let panel: ReactNode = null
   if (listingId !== null) {
-    panel = <ListingDetailPage id={listingId} onClose={() => setSearchParams(without('listing'))} />
-  } else if (classic) {
-    panel = <ListingsPage onBack={message === '' ? undefined : () => setSearchParams(without('view', 'page'))} />
-  } else if (ask.data) {
-    panel = <AskResults response={ask.data} page={page} />
-  } else if (message !== '') {
-    panel = (
-      <ul className="ask-list" aria-busy="true">
-        {[1, 2, 3, 4].map((placeholder) => (
-          <li key={placeholder}>
-            <div className="tile tile--skeleton" />
-          </li>
-        ))}
-      </ul>
+    return (
+      <section className="panel" aria-label="Oferty">
+        <ListingDetailPage id={listingId} onClose={() => setSearchParams(without('listing'))} />
+      </section>
+    )
+  }
+  if (classic) {
+    return (
+      <section className="panel" aria-label="Oferty">
+        <ListingsPage onBack={message === '' ? undefined : () => setSearchParams(without('view', 'page'))} />
+      </section>
     )
   }
 
+  const empty = message === ''
+
   return (
-    <div className={panel === null ? 'workspace workspace--empty' : 'workspace'}>
-      <section className="chat" aria-label="Rozmowa">
-        <h1 id="ask-heading" className={message === '' ? 'chat__heading' : 'sr-only'}>
+    <div className={empty ? 'ask ask--empty' : 'ask'}>
+      <div className="container ask__head">
+        <h1 id="ask-heading" className={empty ? 'ask__heading' : 'sr-only'}>
           Opisz, czego szukasz. Resztę przeczytamy za Ciebie.
         </h1>
-        {message !== '' && (
-          <div className="chat__thread">
-            <p className="bubble">{message}</p>
-            <div className="reply">
-              <img className="reply__avatar" src={logo} alt="" />
-              <div className="reply__body">
-                {ask.isPending && <AskProgress key={`${message}:${excludeNeeds.join(',')}`} />}
-                {ask.isError && (
-                  <div className="notice notice--error" role="alert">
-                    {askErrorMessage(ask.error, maxLength)}
-                  </div>
-                )}
-                {ask.data && <AskReply response={ask.data} onExcludeNeed={excludeNeed} />}
-              </div>
-            </div>
-          </div>
-        )}
         <div className="composer">
           <form className="composer__form" role="search" onSubmit={submit}>
             <input
@@ -123,23 +102,48 @@ export default function AskPage() {
               aria-labelledby="ask-heading"
               placeholder="np. Pracuję na nocki i mam psa, szukam czegoś w Gdańsku do 700 tys."
               maxLength={maxLength}
-              value={draft ?? ''}
+              value={draft ?? message}
               onChange={(event) => setDraft(event.target.value)}
             />
             <button className="composer__send" type="submit">
               Szukaj
             </button>
           </form>
-          {!classic && (
-            <p className="composer__classic">
-              <Link to={{ search: classicSearch }}>Wolisz klasyczne filtry?</Link>
-            </p>
-          )}
+          <p className="composer__classic">
+            <Link to={{ search: classicSearch }}>Wolisz klasyczne filtry?</Link>
+          </p>
         </div>
-      </section>
-      {panel !== null && (
-        <section className="panel" ref={panelRef} aria-label="Oferty">
-          {panel}
+        {!empty && (
+          <div className="ask__reply">
+            {ask.isPending && <AskProgress key={`${message}:${excludeNeeds.join(',')}`} />}
+            {ask.isError && (
+              <div className="notice notice--error" role="alert">
+                {askErrorMessage(ask.error, maxLength)}
+              </div>
+            )}
+            {ask.data && (
+              <AskReply
+                response={ask.data}
+                excludeNeeds={excludeNeeds}
+                onExcludeNeed={excludeNeed}
+                onRestoreNeeds={restoreNeeds}
+              />
+            )}
+          </div>
+        )}
+      </div>
+      {!empty && (
+        <section className="container panel" aria-label="Oferty">
+          {ask.data && <AskResults response={ask.data} excludeNeeds={excludeNeeds} page={page} />}
+          {ask.isPending && (
+            <ul className="ask-list" aria-busy="true">
+              {[1, 2, 3, 4].map((placeholder) => (
+                <li key={placeholder}>
+                  <div className="tile tile--skeleton" />
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       )}
     </div>

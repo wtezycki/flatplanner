@@ -1,6 +1,6 @@
 import { Link, useSearchParams } from 'react-router'
 import type { AskItem } from '../api.ts'
-import { formatArea, formatFloor, formatPrice, formatRooms } from '../format.ts'
+import { formatArea, formatFloor, formatPrice, formatRooms, verdictPresentation } from '../format.ts'
 import { listingSearch } from '../intent.ts'
 import NeedVerdict from './NeedVerdict.tsx'
 import RiskList from './RiskList.tsx'
@@ -8,11 +8,10 @@ import RiskList from './RiskList.tsx'
 interface Props {
   item: AskItem
   needs: string[]
+  excludeNeeds: number[]
 }
 
-const SENTENCE_END = /(?<=[.!?])\s+/
-
-export default function AskCard({ item, needs }: Props) {
+export default function AskCard({ item, needs, excludeNeeds }: Props) {
   const [searchParams] = useSearchParams()
   const parameters = [
     formatArea(item.areaM2),
@@ -20,7 +19,9 @@ export default function AskCard({ item, needs }: Props) {
     item.floor === undefined ? undefined : formatFloor(item.floor, item.buildingFloors, false),
   ].filter(Boolean)
   const location = item.districtName ? `${item.districtName}, ${item.cityName}` : item.cityName
-  const verdicts = needs.map((need, index) => ({ need, result: item.needs[index] }))
+  const verdicts = needs
+    .map((need, index) => ({ need, index, result: item.needs[index] }))
+    .filter(({ index }) => !excludeNeeds.includes(index))
   const failing = verdicts.filter(({ result }) => result.verdict === 'no')
   const ordered = item.group === 'near' ? [...failing, ...verdicts.filter((entry) => !failing.includes(entry))] : verdicts
 
@@ -52,25 +53,40 @@ export default function AskCard({ item, needs }: Props) {
             {item.title}
           </Link>
         </p>
+        {verdicts.length > 0 && (
+          <ul className="tile__pills">
+            {ordered.map(({ need, result }) => {
+              const { icon, label } = verdictPresentation(result.verdict)
+              return (
+                <li key={need} className={`verdict-pill verdict-pill--${result.verdict}`}>
+                  <span role="img" aria-label={label}>
+                    {icon}
+                  </span>
+                  {need}
+                </li>
+              )
+            })}
+          </ul>
+        )}
         {item.aiSummary && (
           <div className="ai-box">
-            <p className="ai-box__label">
-              <span aria-hidden="true">✨</span> AI:
+            <p className={verdicts.length > 0 ? 'ai-box__text ai-box__text--clamped' : 'ai-box__text'}>
+              <span className="ai-box__label">
+                <span aria-hidden="true">✨</span> AI:
+              </span>{' '}
+              {item.aiSummary}
             </p>
-            {item.aiSummary.split(SENTENCE_END).map((sentence) => (
-              <p key={sentence}>{sentence}</p>
-            ))}
           </div>
         )}
         {verdicts.length > 0 && (
-          <div className="tile__verdicts">
-            <h3 className="tile__label">Dlaczego pasuje</h3>
+          <details className="tile__why">
+            <summary>Dlaczego pasuje</summary>
             <ul className="verdicts">
               {ordered.map(({ need, result }) => (
                 <NeedVerdict key={need} need={need} result={result} />
               ))}
             </ul>
-          </div>
+          </details>
         )}
         <RiskList risks={item.risks} totalWithExtrasPln={item.totalWithExtrasPln} />
       </div>

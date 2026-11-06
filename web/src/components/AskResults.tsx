@@ -7,10 +7,11 @@ const ASK_PAGE_SIZE = 12
 
 interface Props {
   response: AskResponse
+  excludeNeeds: number[]
   page: number
 }
 
-export default function AskResults({ response, page }: Props) {
+export default function AskResults({ response, excludeNeeds, page }: Props) {
   const { needs, items, unknownCount } = response
   const matching = items.filter((item) => item.group !== 'unknown')
   const unknownItems = items.filter((item) => item.group === 'unknown')
@@ -39,7 +40,7 @@ export default function AskResults({ response, page }: Props) {
             <ul className="ask-list">
               {groupItems.map((item) => (
                 <li key={item.id}>
-                  <AskCard item={item} needs={needs} />
+                  <AskCard item={item} needs={needs} excludeNeeds={excludeNeeds} />
                 </li>
               ))}
             </ul>
@@ -53,7 +54,7 @@ export default function AskResults({ response, page }: Props) {
           <ul className="ask-list">
             {unknownItems.map((item) => (
               <li key={item.id}>
-                <AskCard item={item} needs={needs} />
+                <AskCard item={item} needs={needs} excludeNeeds={excludeNeeds} />
               </li>
             ))}
           </ul>

@@ -1,5 +1,5 @@
 import type { NeedResult } from '../api.ts'
-import { VERDICT_PRESENTATION } from '../format.ts'
+import { verdictPresentation } from '../format.ts'
 
 interface Props {
   need: string
@@ -7,7 +7,7 @@ interface Props {
 }
 
 export default function NeedVerdict({ need, result }: Props) {
-  const { icon, label } = VERDICT_PRESENTATION[result.verdict] ?? VERDICT_PRESENTATION.unknown
+  const { icon, label } = verdictPresentation(result.verdict)
   return (
     <li className={`verdict verdict--${result.verdict}`}>
       <span className="verdict__icon" role="img" aria-label={label}>

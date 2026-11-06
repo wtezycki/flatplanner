@@ -12,18 +12,13 @@ export default function AskProgress() {
   }, [])
 
   return (
-    <div className="progress" role="status">
-      <ol className="progress__steps">
-        {STEPS.map((step, index) => (
-          <li
-            key={step}
-            className={index <= active ? 'progress__step progress__step--lit' : 'progress__step'}
-            aria-current={index === active ? 'step' : undefined}
-          >
-            <span aria-hidden="true">{index < active ? '✓' : index === active ? '…' : '○'}</span> {step}
-          </li>
-        ))}
-      </ol>
-    </div>
+    <p className="progress" role="status">
+      <span>{STEPS[active]}</span>
+      <span className="progress__dots" aria-hidden="true">
+        <span />
+        <span />
+        <span />
+      </span>
+    </p>
   )
 }

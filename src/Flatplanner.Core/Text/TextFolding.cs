@@ -9,6 +9,9 @@ public static partial class TextFolding
     public static string Fold(string value) =>
         NonAlphanumeric().Replace(RemoveDiacritics(value).ToLowerInvariant(), " ").Trim();
 
+    public static string FoldKeepingNumberPunctuation(string value) =>
+        NonAlphanumericExceptNumberPunctuation().Replace(RemoveDiacritics(value).ToLowerInvariant(), " ").Trim();
+
     public static string RemoveDiacritics(string value)
     {
         var decomposed = value.Normalize(NormalizationForm.FormKD);
@@ -28,4 +31,7 @@ public static partial class TextFolding
 
     [GeneratedRegex(@"[^\p{L}\p{N}]+")]
     private static partial Regex NonAlphanumeric();
+
+    [GeneratedRegex(@"[^\p{L}\p{N}.,\-]+")]
+    private static partial Regex NonAlphanumericExceptNumberPunctuation();
 }

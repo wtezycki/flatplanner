@@ -1098,7 +1098,7 @@ The `FlatplannerOptions` class in Core. Every property has `[ConfigurationKeyNam
 | `CHAT_TIMEOUT_SECONDS` | `5` | Api | no (5) |
 | `CHAT_MAX_LENGTH` | `300` | Api | no (300) |
 | `DB_MIGRATE_ON_STARTUP` | `true` | Api | no (`true`) |
-| `PROMPTS_DIR` | `prompts` | Api, Ingest | no (`prompts`) |
+| `PROMPTS_DIR` | `prompts` | Api, Ingest | no (`prompts`); relative to the content root, which for a local `dotnet run --project src/Flatplanner.Api` is the project folder, so set `PROMPTS_DIR=../../prompts` there; the container copies `prompts/` to `/app/prompts` |
 | `ASPNETCORE_HTTP_PORTS` | `8080` | container | set in Dockerfile |
 | `ASPNETCORE_ENVIRONMENT` | `Production` | Api | no |
 | `MYSQL_ROOT_PASSWORD`, `MYSQL_PASSWORD` | `change-me` | only `docker-compose.yml` | yes, locally |
@@ -1534,9 +1534,19 @@ Response `200`:
 
 Evidence `label`s are built by code from the dossier, never taken from the model. Serialization rule (§6) applies.
 
+**Contract details (#7′a, agreed 2026-11-06):**
+- Interpret output (`AskIntent` in Core, schema `search_intent` from `SearchIntentSchema.Build(meta)`): `cities`, `districts`, `priceMax`, `areaMin`, `areaMax`, `roomsMin`, `needs` (code keeps the first 4), `declined: [{ text, reason }]`, `clarifications: string[]` (at most 2 model-written Polish remarks: an inconsistent need, 16.4, or a city we do not have). "ok. 40 m" becomes the 7.4 range in the prompt; the fallback parser keeps only the rules for these filters (`IntentFallbackParser`, `FallbackDictionaries`; `KeywordRules` and the rest of the 7.7 table are not built).
+- `summary` is built by code: the hard-filter chip labels (`InterpretationBuilder`) and the `needs`, joined with ` · `.
+- `notices: [{ code, text }]`: `clarify` (each `clarifications` entry), `ai_unavailable` (interpret fallback, ui-spec 11.3), `judge_failed` (a judge batch failed, ui-spec 11.3). The response carries `fallbackReason` (7.7 values) when `usedFallback`.
+- Item: `id`, `title`, `pricePln`, `areaM2`, `rooms`, `floor?`, `buildingFloors?`, `cityName`, `districtName?`, `imageUrl?`, `aiSummary?`, `locationApproximate`, `group`, `needs`, `risks: [{ kind, reason, quote, amountPln? }]` (from `risks_json`), `totalWithExtrasPln?`. The approximate-location note is shown by the UI from `locationApproximate`.
+- `needs` always lists every interpreted need, so `excludeNeeds` indexes stay stable; excluded needs are skipped only by grouping and relaxations. Items keep a verdict per need.
+- A verdict downgraded to `unknown` loses its `reason` and `evidence` (an unverified reason would still assert the claim). Evidence labels: a quote as cited (after the substring check), a place as "{name} · {d} m" with the ui-spec 11.3 tag name for an unnamed place, a field as "{ui-spec 7.2 label}: {value}". Allowed `field` refs are the fields sent to the judge (the 7.2 detail fields with a value; `buildingFloors` resolves to the floor label).
+- Hard-filter relaxations (no candidates): `{ need: <chip label>, count }` without `bestId`; informational, because the request has no parameter that removes a hard filter.
+- Judge: batch timeout 30 s (constant `ListingJudge.Timeout`, covers 1 SDK retry), effort `LLM_CHAT_REASONING_EFFORT`, `MaxOutputTokenCount = 8192`, `ref` is a string (a place is its `nearby_json` index). Only fully successful answers (no fallback, no failed batch) are cached.
+
 **Failures (never 5xx):** interpret fails → `IntentFallbackParser` (7.7) for hard filters, `needs: []`, `usedFallback: true` with `fallbackReason`; judge fails for a batch → its listings get `unknown` and a notice. `400` for an empty or > 300 characters message, `429` from the rate limiter (section 8, also counts `ask`).
 
-**Cache:** in-memory dictionary keyed by the folded message, process lifetime. **Cost:** a new question ≈ 14 judge calls × ~20k input tokens ≈ $0.3 and 5–10 s with the section 5.2 prices **[estimate]**; the UI shows a progress state.
+**Cache:** in-memory dictionary keyed by the folded message, process lifetime. **Cost:** a new question ≈ 14 judge calls × ~20k input tokens ≈ $0.3 and 5–10 s with the section 5.2 prices **[estimate]**; the UI shows a progress state. Measured on the local import (2026-11-06): a dossier averages ~6 200 characters of `nearby_json` (89 places, max 12 900) and ~2 400 of description, so a batch of 15 is ~45k input tokens and a question ~630k (~$0.6) **[estimate, to be checked on the first live run]**.
 
 ### 16.3 Domain knowledge the judge may use
 

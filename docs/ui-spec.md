@@ -507,6 +507,9 @@ Green tokens from §2 map to teal (`--green-600` → `--teal-700`, `--green-50` 
 | classic link | Wolisz klasyczne filtry? |
 | AI unavailable | AI chwilowo niedostępne — pokazujemy wyniki według podstawowych kryteriów. |
 | no results (no candidates and no relaxation helps) | Nie mamy mieszkań, które spełniają te warunki. Spróbuj opisać to inaczej. |
+| judge batch failed (API notice `judge_failed`) | Części ogłoszeń nie udało się sprawdzić — oznaczyliśmy je jako brak danych. |
+| field evidence (API) | {7.2 label}: {value}; booleans „tak” / „nie”; floor as in 7.2 („4 z 6”, „parter”, „suterena”) |
+| unnamed place evidence (API, „{name} · {d} m”) | `amenity`: school szkoła · kindergarten przedszkole · place_of_worship miejsce kultu · pharmacy apteka · clinic przychodnia · hospital szpital · doctors gabinet lekarski · university uczelnia · veterinary weterynarz · bar bar · pub pub · nightclub klub nocny · restaurant restauracja · cafe kawiarnia · charging_station stacja ładowania · bicycle_rental wypożyczalnia rowerów; `leisure`: park park · playground plac zabaw · dog_park wybieg dla psów · fitness_centre siłownia · sports_centre centrum sportowe · swimming_pool basen · stadium stadion; `natural=wood`, `landuse=forest` las · `natural=beach` plaża · `landuse=cemetery` cmentarz; `railway`: station stacja kolejowa · halt przystanek kolejowy · tram_stop przystanek tramwajowy · rail linia kolejowa · tram torowisko tramwajowe; `highway`: bus_stop przystanek autobusowy · motorway autostrada · trunk droga ekspresowa · primary główna ulica; `shop`: supermarket supermarket · convenience sklep spożywczy · mall centrum handlowe; `place=city|town` centrum miasta · `aeroway=aerodrome` lotnisko; `route`: bus linia autobusowa · trolleybus linia trolejbusowa · tram linia tramwajowa · train linia kolejowa · light_rail kolej miejska; any other tag „miejsce” |
 
 ### 11.4 Classic list `/` as built (item #5, restyled)
 

@@ -229,20 +229,23 @@ button, input, select { font: inherit; color: inherit; }
 .lightbox__counter { position: absolute; bottom: var(--space-4); left: 50%; transform: translateX(-50%); padding: 2px var(--space-3); border-radius: var(--radius-pill); background: rgba(0, 0, 0, 0.6); font-size: var(--fs-sm); }
 .value--missing { display: inline-block; padding: 0 var(--space-2); border: 1px dashed var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text-secondary); font-size: var(--fs-sm); }
 
-.hero { padding: var(--space-7) 0 var(--space-6); background: var(--teal-900); color: var(--on-teal); }
-.hero__inner { display: flex; flex-direction: column; gap: var(--space-4); }
-.hero__heading { font-size: 32px; font-weight: var(--fw-semibold); line-height: 1.2; }
-.hero__form { display: flex; gap: var(--space-2); }
-.hero__input { flex: 1; min-width: 0; height: var(--control-height); padding: 0 var(--space-5); color: var(--color-text); }
-.hero__button { height: var(--control-height); padding: 0 var(--space-6); background: var(--teal-700); border-color: var(--on-teal); }
-.hero__examples { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-.hero__example { height: 36px; padding: 0 var(--space-3); border: 1px solid var(--on-teal); border-radius: var(--radius-pill); background: none; color: var(--on-teal); font-size: var(--fs-sm); cursor: pointer; }
-.hero__example:hover { background: var(--teal-700); }
-.hero :focus-visible { box-shadow: 0 0 0 2px var(--teal-900), 0 0 0 4px var(--on-teal); }
-.hero .notice { margin-top: 0; }
+.chat { display: flex; flex-direction: column; max-width: 960px; min-height: calc(100dvh - 73px); }
+.chat--empty { justify-content: center; gap: var(--space-5); }
+.chat__heading { font-size: 28px; font-weight: var(--fw-semibold); line-height: 1.25; text-align: center; }
+.chat__thread { display: flex; flex: 1; flex-direction: column; gap: var(--space-5); padding: var(--space-5) 0; }
+.bubble { align-self: flex-end; max-width: 80%; padding: var(--space-3) var(--space-4); border-radius: 20px; background: var(--color-surface-strong); overflow-wrap: anywhere; }
+.reply { display: flex; align-items: flex-start; gap: var(--space-3); }
+.reply__avatar { flex: none; width: 32px; height: 32px; }
+.reply__body { display: flex; flex: 1; flex-direction: column; gap: var(--space-4); min-width: 0; padding-top: var(--space-1); }
+.composer { position: sticky; bottom: 0; padding: var(--space-3) 0 var(--space-4); background: var(--color-bg); }
+.chat--empty .composer { position: static; padding: 0; background: none; }
+.composer__form { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-2) var(--space-2) var(--space-5); border: 1px solid var(--color-border-strong); border-radius: var(--radius-pill); background: var(--color-surface); box-shadow: var(--shadow-md); }
+.composer__form:focus-within { box-shadow: var(--focus-ring); }
+.composer__input { flex: 1; min-width: 0; height: 44px; border: 0; background: none; outline: none; }
+.composer__send { flex: none; height: 44px; padding: 0 var(--space-5); border: 0; border-radius: var(--radius-pill); background: var(--teal-700); color: var(--on-teal); font-size: var(--fs-sm); font-weight: var(--fw-semibold); cursor: pointer; }
+.composer__send:hover { background: var(--teal-900); }
+.composer__classic { margin-top: var(--space-2); text-align: center; font-size: var(--fs-sm); }
 
-.ask { display: flex; flex-direction: column; gap: var(--space-4); margin: var(--space-5) auto var(--space-7); }
-.ask__classic { text-align: center; }
 .ask-results { display: flex; flex-direction: column; gap: var(--space-4); }
 .ask-results .notice { margin-top: 0; }
 .ask-summary { font-size: var(--fs-lg); }
@@ -298,9 +301,9 @@ button, input, select { font: inherit; color: inherit; }
   .header__titles { display: none; }
   .search .btn { padding: 0 var(--space-4); }
   .card { grid-template-columns: 1fr; gap: var(--space-3); }
-  .hero { padding: var(--space-6) 0 var(--space-5); }
-  .hero__heading { font-size: var(--fs-xl); }
-  .hero__button { padding: 0 var(--space-4); }
+  .chat__heading { font-size: var(--fs-xl); }
+  .bubble { max-width: 92%; }
+  .reply__avatar { display: none; }
   .ask-card { grid-template-columns: minmax(0, 1fr); }
   .ask-card__photo { width: 100%; height: auto; aspect-ratio: 4 / 3; }
   .card__body { padding: 0 var(--space-2) var(--space-2); }

@@ -2,11 +2,10 @@ import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router'
+import logo from '../assets/flatplanner.svg'
 import { ApiError, DEFAULT_RETRY_AFTER_SECONDS, metaQuery, postAsk } from '../api.ts'
 import AskProgress from '../components/AskProgress.tsx'
 import AskResults from '../components/AskResults.tsx'
-
-const EXAMPLES = ['Ukrainiec, szkoła na Morenie', 'Muzyk, ćwiczę codziennie', 'Pies i park', 'Rodzice na wózku']
 
 function askErrorMessage(error: Error, maxLength: number | undefined): string {
   if (error instanceof ApiError && error.status === 429) {
@@ -36,7 +35,7 @@ export default function AskPage() {
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
-    const text = (draft ?? message).trim()
+    const text = (draft ?? '').trim()
     if (!text) {
       return
     }
@@ -52,47 +51,46 @@ export default function AskPage() {
   const excludeNeed = (index: number) => setExclusion({ message, indexes: [...excludeNeeds, index] })
 
   return (
-    <>
-      <section className="hero">
-        <div className="container hero__inner">
-          <h1 id="ask-heading" className="hero__heading">Opisz, czego szukasz. Resztę przeczytamy za Ciebie.</h1>
-          <form className="hero__form" role="search" onSubmit={submit}>
-            <input
-              className="field hero__input"
-              type="search"
-              aria-labelledby="ask-heading"
-              placeholder="np. Pracuję na nocki i mam psa, szukam czegoś w Gdańsku do 700 tys."
-              maxLength={maxLength}
-              value={draft ?? message}
-              onChange={(event) => setDraft(event.target.value)}
-            />
-            <button className="btn btn--primary hero__button" type="submit">
-              Szukaj
-            </button>
-          </form>
-          <ul className="hero__examples">
-            {EXAMPLES.map((example) => (
-              <li key={example}>
-                <button className="hero__example" type="button" onClick={() => setDraft(example)}>
-                  {example}
-                </button>
-              </li>
-            ))}
-          </ul>
-          {ask.isError && (
-            <div className="notice notice--error" role="alert">
-              {askErrorMessage(ask.error, maxLength)}
+    <div className={message === '' ? 'container chat chat--empty' : 'container chat'}>
+      <h1 id="ask-heading" className={message === '' ? 'chat__heading' : 'sr-only'}>
+        Opisz, czego szukasz. Resztę przeczytamy za Ciebie.
+      </h1>
+      {message !== '' && (
+        <div className="chat__thread">
+          <p className="bubble">{message}</p>
+          <div className="reply">
+            <img className="reply__avatar" src={logo} alt="" />
+            <div className="reply__body">
+              {ask.isPending && <AskProgress key={`${message}:${excludeNeeds.join(',')}`} />}
+              {ask.isError && (
+                <div className="notice notice--error" role="alert">
+                  {askErrorMessage(ask.error, maxLength)}
+                </div>
+              )}
+              {ask.data && <AskResults response={ask.data} onExcludeNeed={excludeNeed} />}
             </div>
-          )}
+          </div>
         </div>
-      </section>
-      <div className="container ask">
-        {ask.isPending && message !== '' && <AskProgress key={`${message}:${excludeNeeds.join(',')}`} />}
-        {ask.data && <AskResults response={ask.data} onExcludeNeed={excludeNeed} />}
-        <p className="ask__classic">
+      )}
+      <div className="composer">
+        <form className="composer__form" role="search" onSubmit={submit}>
+          <input
+            className="composer__input"
+            type="text"
+            aria-labelledby="ask-heading"
+            placeholder="np. Pracuję na nocki i mam psa, szukam czegoś w Gdańsku do 700 tys."
+            maxLength={maxLength}
+            value={draft ?? ''}
+            onChange={(event) => setDraft(event.target.value)}
+          />
+          <button className="composer__send" type="submit">
+            Szukaj
+          </button>
+        </form>
+        <p className="composer__classic">
           <Link to="/listings">Wolisz klasyczne filtry?</Link>
         </p>
       </div>
-    </>
+    </div>
   )
 }

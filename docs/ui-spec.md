@@ -448,6 +448,8 @@ Green tokens from §2 map to teal (`--green-600` → `--teal-700`, `--green-50` 
 
 ### 11.2 Layout of `/`
 
+The hero, the example chips and the teal bands below were replaced by the chat layout of §11.5; the card and group rules still apply.
+
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │ Flatplanner                                         teal-900 header, 64 px    │
@@ -489,7 +491,6 @@ Green tokens from §2 map to teal (`--green-600` → `--teal-700`, `--green-50` 
 | hero heading | Opisz, czego szukasz. Resztę przeczytamy za Ciebie. |
 | input placeholder | np. Pracuję na nocki i mam psa, szukam czegoś w Gdańsku do 700 tys. |
 | button | Szukaj |
-| example chips | Ukrainiec, szkoła na Morenie · Muzyk, ćwiczę codziennie · Pies i park · Rodzice na wózku |
 | progress steps | Rozumiem pytanie · Czytam ogłoszenia · Sprawdzam dowody |
 | summary prefix | Zrozumiałem: |
 | AI column heading | Dlaczego pasuje |
@@ -530,9 +531,9 @@ The classic list uses the §11.1 tokens. `ask` exists (design §16.2), so `/` is
 
 ### 11.5 Ask page `/` as built (item #7′b)
 
-- The header is the white top bar of §11.4 on every page; the teal `--teal-900` band is the hero only. The header search field appears on `/listings` only.
-- Hero: heading, 52 px pill input with the „Szukaj” button, the four example chips (a click fills the input, it does not send). Input `maxLength` is `chatMaxLength` from `/api/meta`.
-- Before the first question only the hero and the „Wolisz klasyczne filtry?” link are shown. The link stays under the results afterwards.
+- **Chat layout instead of the §11.2 hero (user decision 2026-11-06):** no teal band and no example chips. The page is one 960 px column that reads like a chat: the user's message as a right-aligned bubble (`--color-surface-strong`, radius 20 px), the answer as a left reply with the logo (32 px, hidden ≤ 640 px) containing the progress card, the summary, need chips, notices, relaxations and the result cards. Only the latest question is shown (the backend keeps no conversation; the URL holds `?q=` only).
+- Before the first question the page shows the hero heading (28 px, centred) and the composer in the middle of the viewport; afterwards the heading is visually hidden (it labels the input) and the composer sticks to the bottom of the viewport, which is the one sticky element allowed on top of §9. The composer is a pill with the input and the „Szukaj” button, cleared after sending; „Wolisz klasyczne filtry?” sits under it. Input `maxLength` is `chatMaxLength` from `/api/meta`.
+- The header is the white top bar of §11.4 on every page; its search field appears on `/listings` only.
 - The progress card advances on a timer (0 s, 2 s, 6 s), marks the current step with `aria-current="step"` and shows state with a symbol (✓ … ○), not colour alone.
 - Card: photo 200×150, content, AI column; the whole card is clicked through the title link (stretched), as in the classic list. A need without a reason (`unknown`) shows the need text in `--verdict-unknown`. In the `near` group the failing need is listed first.
 - Relaxation lead takes `{total}` as the number of cards shown; one button per relaxation. With no cards, hard-filter relaxations are plain lines.

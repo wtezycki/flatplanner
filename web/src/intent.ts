@@ -75,3 +75,19 @@ export function activeFilterCount(intent: SearchIntent): number {
   ]
   return groups.filter(Boolean).length
 }
+
+const WORKSPACE_PARAMS = ['q', 'view', 'listing'] as const
+
+export function withoutWorkspaceParams(searchParams: URLSearchParams): URLSearchParams {
+  const next = new URLSearchParams(searchParams)
+  for (const param of WORKSPACE_PARAMS) {
+    next.delete(param)
+  }
+  return next
+}
+
+export function listingSearch(searchParams: URLSearchParams, id: number): string {
+  const next = new URLSearchParams(searchParams)
+  next.set('listing', String(id))
+  return next.toString()
+}

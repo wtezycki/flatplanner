@@ -1,6 +1,7 @@
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import type { AskItem } from '../api.ts'
 import { formatArea, formatFloor, formatPrice, formatRooms } from '../format.ts'
+import { listingSearch } from '../intent.ts'
 import NeedVerdict from './NeedVerdict.tsx'
 import RiskList from './RiskList.tsx'
 
@@ -12,6 +13,7 @@ interface Props {
 const SENTENCE_END = /(?<=[.!?])\s+/
 
 export default function AskCard({ item, needs }: Props) {
+  const [searchParams] = useSearchParams()
   const parameters = [
     formatArea(item.areaM2),
     formatRooms(item.rooms),
@@ -46,7 +48,7 @@ export default function AskCard({ item, needs }: Props) {
           )}
         </p>
         <p className="card__title">
-          <Link className="card__link" to={`/listings/${item.id}`}>
+          <Link className="card__link" to={{ search: listingSearch(searchParams, item.id) }}>
             {item.title}
           </Link>
         </p>

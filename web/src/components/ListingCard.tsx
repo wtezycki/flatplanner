@@ -1,5 +1,6 @@
-import { Link, useNavigate } from 'react-router'
+import { Link, useNavigate, useSearchParams } from 'react-router'
 import type { ListingItem } from '../api.ts'
+import { listingSearch } from '../intent.ts'
 import { formatArea, formatFloor, formatPrice, formatPricePerM2, formatRooms } from '../format.ts'
 import PhotoCarousel from './PhotoCarousel.tsx'
 
@@ -10,7 +11,8 @@ interface Props {
 
 export default function ListingCard({ item, marketLabel }: Props) {
   const navigate = useNavigate()
-  const href = `/listings/${item.id}`
+  const [searchParams] = useSearchParams()
+  const href = { search: listingSearch(searchParams, item.id) }
   const parameters = [
     formatArea(item.areaM2),
     formatRooms(item.rooms),

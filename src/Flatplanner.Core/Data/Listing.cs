@@ -133,6 +133,16 @@ public class Listing
     [Column("quality_flags", TypeName = "json")]
     public string[] QualityFlags { get; set; } = [];
 
+    [Column("ai_summary")]
+    [MaxLength(1000)]
+    public string? AiSummary { get; set; }
+
+    [Column("risks_json", TypeName = "json")]
+    public string? RisksJson { get; set; }
+
+    [Column("nearby_json", TypeName = "json")]
+    public string? NearbyJson { get; set; }
+
     [Column("facts_status")]
     [MaxLength(16)]
     public string FactsStatus { get; set; } = Data.FactsStatus.Pending;

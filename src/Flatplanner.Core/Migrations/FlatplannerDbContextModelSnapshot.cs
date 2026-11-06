@@ -38,6 +38,11 @@ namespace Flatplanner.Core.Migrations
                         .HasColumnType("varchar(16)")
                         .HasColumnName("advertiser_type");
 
+                    b.Property<string>("AiSummary")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)")
+                        .HasColumnName("ai_summary");
+
                     b.Property<decimal>("AreaM2")
                         .HasColumnType("decimal(7,2)")
                         .HasColumnName("area_m2");
@@ -156,6 +161,10 @@ namespace Flatplanner.Core.Migrations
                         .HasColumnType("varchar(16)")
                         .HasColumnName("market");
 
+                    b.Property<string>("NearbyJson")
+                        .HasColumnType("json")
+                        .HasColumnName("nearby_json");
+
                     b.Property<string>("Ownership")
                         .HasMaxLength(24)
                         .HasColumnType("varchar(24)")
@@ -177,6 +186,10 @@ namespace Flatplanner.Core.Migrations
                     b.Property<int?>("RentPln")
                         .HasColumnType("int")
                         .HasColumnName("rent_pln");
+
+                    b.Property<string>("RisksJson")
+                        .HasColumnType("json")
+                        .HasColumnName("risks_json");
 
                     b.Property<byte>("Rooms")
                         .HasColumnType("tinyint unsigned")

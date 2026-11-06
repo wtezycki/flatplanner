@@ -7,7 +7,7 @@ namespace Flatplanner.Api.Listings;
 
 public static class InterpretationBuilder
 {
-    private const string Separator = " · ";
+    public const string Separator = " · ";
 
     public static Interpretation Build(SearchIntent intent, SearchMeta meta, IReadOnlyList<SearchWarning> warnings)
     {

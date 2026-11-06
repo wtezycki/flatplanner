@@ -13,5 +13,15 @@ public static class Haversine
         return 2 * EarthRadiusM * Math.Asin(Math.Sqrt(a));
     }
 
+    public static double DistanceToSegmentM(double lat, double lng, (double Lat, double Lng) start, (double Lat, double Lng) end)
+    {
+        var lngScale = Math.Cos(ToRadians(lat));
+        var (ax, ay) = ((start.Lng - lng) * lngScale, start.Lat - lat);
+        var (dx, dy) = ((end.Lng - start.Lng) * lngScale, end.Lat - start.Lat);
+        var lengthSquared = dx * dx + dy * dy;
+        var t = lengthSquared == 0 ? 0 : Math.Clamp(-(ax * dx + ay * dy) / lengthSquared, 0, 1);
+        return DistanceM(lat, lng, start.Lat + t * (end.Lat - start.Lat), start.Lng + t * (end.Lng - start.Lng));
+    }
+
     private static double ToRadians(double degrees) => degrees * Math.PI / 180;
 }

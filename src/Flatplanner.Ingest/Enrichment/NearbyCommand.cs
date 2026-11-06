@@ -22,13 +22,23 @@ public sealed class NearbyCommand(FlatplannerDbContext db, ILogger<NearbyCommand
 
     private static readonly (string Key, string[] Values)[] PlaceTags =
     [
-        ("amenity", ["school", "kindergarten", "place_of_worship", "pharmacy", "clinic", "hospital", "doctors", "university"]),
-        ("leisure", ["park", "playground", "dog_park"]),
-        ("natural", ["wood"]),
-        ("landuse", ["forest"]),
+        ("amenity",
+        [
+            "school", "kindergarten", "place_of_worship", "pharmacy", "clinic", "hospital", "doctors", "university",
+            "veterinary", "bar", "pub", "nightclub", "restaurant", "cafe", "charging_station", "bicycle_rental",
+        ]),
+        ("leisure", ["park", "playground", "dog_park", "fitness_centre", "sports_centre", "swimming_pool", "stadium"]),
+        ("natural", ["wood", "beach"]),
+        ("landuse", ["forest", "cemetery"]),
         ("railway", ["station", "halt", "tram_stop"]),
         ("highway", ["bus_stop"]),
-        ("shop", ["supermarket", "convenience"]),
+        ("shop", ["supermarket", "convenience", "mall"]),
+    ];
+
+    private static readonly (string Key, string[] Values)[] LineTags =
+    [
+        ("highway", ["motorway", "trunk", "primary"]),
+        ("railway", ["rail", "tram"]),
     ];
 
     private readonly HttpClient http = CreateHttpClient();
@@ -84,8 +94,9 @@ public sealed class NearbyCommand(FlatplannerDbContext db, ILogger<NearbyCommand
 
     private async Task<List<OsmPlace>> FetchPlacesAsync(string boundingBox, CancellationToken cancellationToken)
     {
-        var filters = PlaceTags.Select(tag => $"nwr[{tag.Key}~\"^({string.Join('|', tag.Values)})$\"];");
-        var query = $"[out:json][timeout:180][bbox:{boundingBox}];({string.Concat(filters)});out center bb tags;";
+        var places = string.Concat(PlaceTags.Select(tag => $"nwr{Filter(tag)};"));
+        var lines = string.Concat(LineTags.Select(tag => $"way{Filter(tag)};"));
+        var query = $"[out:json][timeout:180][bbox:{boundingBox}];({places});out center bb tags;({lines});out geom tags;";
 
         using var response = await PostWithBusyRetryAsync(query, cancellationToken);
         response.EnsureSuccessStatusCode();
@@ -96,6 +107,8 @@ public sealed class NearbyCommand(FlatplannerDbContext db, ILogger<NearbyCommand
             .OfType<OsmPlace>()
             .ToList();
     }
+
+    private static string Filter((string Key, string[] Values) tag) => $"[{tag.Key}~\"^({string.Join('|', tag.Values)})$\"]";
 
     private async Task<HttpResponseMessage> PostWithBusyRetryAsync(string query, CancellationToken cancellationToken)
     {
@@ -119,7 +132,7 @@ public sealed class NearbyCommand(FlatplannerDbContext db, ILogger<NearbyCommand
         places
             .Select(place => new NearbyPlace(place.Name, place.Tag, place.Extra, (int)Math.Round(place.DistanceM(lat, lng))))
             .Where(place => place.DistanceM <= RadiusM)
-            .GroupBy(place => place.Name is null ? (object)place : (place.Name, place.Tag))
+            .GroupBy(place => place.Name is null && !IsLine(place.Tag) ? (object)place : (place.Name, place.Tag))
             .Select(group => group.MinBy(place => place.DistanceM)!)
             .GroupBy(place => (place.Tag, place.Extra))
             .SelectMany(kind => kind.OrderBy(place => place.DistanceM).Take(PlacesPerKind))
@@ -128,7 +141,7 @@ public sealed class NearbyCommand(FlatplannerDbContext db, ILogger<NearbyCommand
 
     private static OsmPlace? ToOsmPlace(JsonElement element)
     {
-        if (!element.TryGetProperty("tags", out var tags) || MatchTag(tags) is not { } tag)
+        if (!element.TryGetProperty("tags", out var tags) || (MatchTag(tags, PlaceTags) ?? MatchTag(tags, LineTags)) is not { } tag)
         {
             return null;
         }
@@ -139,6 +152,14 @@ public sealed class NearbyCommand(FlatplannerDbContext db, ILogger<NearbyCommand
             .ToList();
         var name = tags.TryGetProperty("name", out var nameValue) ? nameValue.GetString() : null;
         var extra = extras.Count == 0 ? null : string.Join(';', extras);
+
+        if (element.TryGetProperty("geometry", out var geometry))
+        {
+            var line = geometry.EnumerateArray()
+                .Select(node => (node.GetProperty("lat").GetDouble(), node.GetProperty("lon").GetDouble()))
+                .ToArray();
+            return new OsmPlace(name, tag, extra, 0, 0, 0, 0, line);
+        }
 
         if (element.TryGetProperty("bounds", out var bounds))
         {
@@ -156,9 +177,11 @@ public sealed class NearbyCommand(FlatplannerDbContext db, ILogger<NearbyCommand
         return new OsmPlace(name, tag, extra, lat.GetDouble(), lon.GetDouble(), lat.GetDouble(), lon.GetDouble());
     }
 
-    private static string? MatchTag(JsonElement tags)
+    private static bool IsLine(string tag) => LineTags.Any(line => line.Values.Any(value => tag == $"{line.Key}={value}"));
+
+    private static string? MatchTag(JsonElement tags, (string Key, string[] Values)[] candidates)
     {
-        foreach (var (key, values) in PlaceTags)
+        foreach (var (key, values) in candidates)
         {
             if (tags.TryGetProperty(key, out var value) && value.GetString() is { } tagValue && values.Contains(tagValue))
             {
@@ -169,10 +192,15 @@ public sealed class NearbyCommand(FlatplannerDbContext db, ILogger<NearbyCommand
         return null;
     }
 
-    // Areas are measured to the nearest point of their bounding box, so a large forest counts from its edge.
-    private sealed record OsmPlace(string? Name, string Tag, string? Extra, double MinLat, double MinLng, double MaxLat, double MaxLng)
+    // Areas are measured to the nearest point of their bounding box, so a large forest counts from its edge;
+    // roads and tracks to their geometry, because a long road's bounding box covers half a district.
+    private sealed record OsmPlace(
+        string? Name, string Tag, string? Extra, double MinLat, double MinLng, double MaxLat, double MaxLng,
+        (double Lat, double Lng)[]? Line = null)
     {
         public double DistanceM(double lat, double lng) =>
-            Haversine.DistanceM(lat, lng, Math.Clamp(lat, MinLat, MaxLat), Math.Clamp(lng, MinLng, MaxLng));
+            Line is { Length: > 1 }
+                ? Line.Zip(Line.Skip(1)).Min(segment => Haversine.DistanceToSegmentM(lat, lng, segment.First, segment.Second))
+                : Haversine.DistanceM(lat, lng, Math.Clamp(lat, MinLat, MaxLat), Math.Clamp(lng, MinLng, MaxLng));
     }
 }

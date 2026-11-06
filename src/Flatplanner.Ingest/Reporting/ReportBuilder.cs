@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using Flatplanner.Core.Data;
 using Flatplanner.Core.Text;
+using Flatplanner.Ingest.Enrichment;
 using Flatplanner.Ingest.Normalization;
 
 namespace Flatplanner.Ingest.Reporting;
@@ -32,7 +33,7 @@ public static class ReportBuilder
         ("advertiser_type", l => l.AdvertiserType is not null),
     ];
 
-    public static string Build(IReadOnlyList<RawListing> raws, IReadOnlyList<Listing> listings)
+    public static string Build(IReadOnlyList<RawListing> raws, IReadOnlyList<Listing> listings, DossierValidation? dossiers)
     {
         var report = new StringBuilder("# Ingest report\n");
         AppendFetched(report, raws);
@@ -43,6 +44,7 @@ public static class ReportBuilder
         AppendFinishByMarket(report, listings);
         AppendDistricts(report, listings);
         AppendMedians(report, listings);
+        AppendDossiers(report, listings, dossiers);
         AppendDuplicates(report, listings);
         AppendCheapRanking(report, listings);
         return report.ToString();
@@ -152,6 +154,36 @@ public static class ReportBuilder
             var prices = listings.Where(l => l.CitySlug == city).Select(l => l.PricePerM2).ToList();
             return new[] { city, prices.Count.ToString(CultureInfo.InvariantCulture), prices.Count == 0 ? "-" : Median(prices).ToString("0", CultureInfo.InvariantCulture) };
         }));
+    }
+
+    private static void AppendDossiers(StringBuilder report, IReadOnlyList<Listing> listings, DossierValidation? dossiers)
+    {
+        report.AppendLine("\n## Listing dossier\n")
+            .AppendLine($"Prompt `{DossierFiles.PromptVersion}`, produced by: {DossierFiles.Producer}. `nearby_json` filled: {FillCell(listings, l => l.NearbyJson is not null)}.\n");
+        AppendTable(report, ["facts_status", "n"], FactsStatus.All.Select(status =>
+            new[] { status, listings.Count(l => l.FactsStatus == status).ToString(CultureInfo.InvariantCulture) }));
+
+        if (dossiers is null)
+        {
+            report.AppendLine($"\nNo `{DossierFiles.DossiersPath}`: risks not validated.");
+            return;
+        }
+
+        var accepted = dossiers.Valid.Values.SelectMany(d => d.Risks).ToList();
+        var total = accepted.Count + dossiers.DroppedRisks.Count;
+        report.AppendLine($"\nInvalid lines: {dossiers.InvalidLines.Count}. Dropped risks: {dossiers.DroppedRisks.Count}/{total} ({(total == 0 ? "-" : Percent(dossiers.DroppedRisks.Count, total))}).\n");
+        AppendTable(report, ["kind", "accepted", "dropped"], RiskKind.All.Select(kind => new[]
+        {
+            kind,
+            accepted.Count(r => r.Kind == kind).ToString(CultureInfo.InvariantCulture),
+            dossiers.DroppedRisks.Count(r => r.Kind == kind).ToString(CultureInfo.InvariantCulture),
+        }));
+
+        report.AppendLine();
+        AppendTable(report, ["drop reason", "n"], dossiers.DroppedRisks
+            .GroupBy(r => r.Reason)
+            .OrderByDescending(g => g.Count()).ThenBy(g => g.Key)
+            .Select(g => new[] { g.Key, g.Count().ToString(CultureInfo.InvariantCulture) }));
     }
 
     private static void AppendDuplicates(StringBuilder report, IReadOnlyList<Listing> listings)

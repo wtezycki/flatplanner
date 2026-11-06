@@ -49,13 +49,19 @@ public sealed class NormalizeCommand(FlatplannerDbContext db, ILogger<NormalizeC
     private async Task UpdateAsync(Listing current, Listing fresh, CancellationToken cancellationToken)
     {
         var descriptionChanged = current.DescriptionText != fresh.DescriptionText;
+        var locationChanged = current.Lat != fresh.Lat || current.Lng != fresh.Lng;
         fresh.Id = current.Id;
         fresh.FactsStatus = current.FactsStatus;
+        fresh.AiSummary = current.AiSummary;
+        fresh.RisksJson = current.RisksJson;
+        fresh.NearbyJson = locationChanged ? null : current.NearbyJson;
         db.Entry(current).CurrentValues.SetValues(fresh);
 
         if (descriptionChanged)
         {
             current.FactsStatus = FactsStatus.Pending;
+            current.AiSummary = null;
+            current.RisksJson = null;
             db.ListingFacts.RemoveRange(await db.ListingFacts.Where(f => f.ListingId == current.Id).ToListAsync(cancellationToken));
         }
     }

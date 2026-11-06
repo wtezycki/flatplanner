@@ -11,21 +11,30 @@ export default function RiskList({ risks, totalWithExtrasPln }: Props) {
     return null
   }
   return (
-    <section className="risks">
-      <h3 className="risks__heading">Na co uważać</h3>
-      <ul className="risks__list">
-        {risks.map((risk) => (
-          <li key={`${risk.kind}:${risk.quote}`}>
-            <p>
-              <span className="badge badge--warning">{RISK_KIND_LABELS[risk.kind] ?? risk.kind}</span> {risk.reason}
-            </p>
-            <p className="evidence">„{risk.quote}”</p>
-          </li>
-        ))}
-      </ul>
-      {totalWithExtrasPln !== undefined && (
-        <p className="risks__total num">Łącznie z dopłatą: {formatPrice(totalWithExtrasPln)}</p>
-      )}
-    </section>
+    <div className="risks">
+      <details>
+        <summary>
+          Na co uważać ({risks.length})
+          {risks.map((risk) => (
+            <span key={`${risk.kind}:${risk.quote}`} className="badge badge--warning">
+              {RISK_KIND_LABELS[risk.kind] ?? risk.kind}
+            </span>
+          ))}
+        </summary>
+        <ul className="risks__list">
+          {risks.map((risk) => (
+            <li key={`${risk.kind}:${risk.quote}`}>
+              <p>{risk.reason}</p>
+              <p className="chips">
+                <span className="chip" title={risk.quote}>
+                  „{risk.quote}”
+                </span>
+              </p>
+            </li>
+          ))}
+        </ul>
+      </details>
+      {totalWithExtrasPln !== undefined && <p className="risks__total num">Łącznie z dopłatą: {formatPrice(totalWithExtrasPln)}</p>}
+    </div>
   )
 }

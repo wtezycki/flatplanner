@@ -26,7 +26,7 @@ function Relaxations({ response, onExcludeNeed }: Props) {
   }
   const [top] = relaxations
   return (
-    <div className="notice notice--info">
+    <div className="ask-relax">
       <p>
         Żadne mieszkanie nie spełnia wszystkich warunków. Najczęściej odpada: {top.need} ({top.count} z {items.length}).
       </p>
@@ -67,14 +67,14 @@ export default function AskResults({ response, onExcludeNeed }: Props) {
         </ul>
       )}
       {declined.map((entry) => (
-        <div key={entry.text} className="notice notice--info">
+        <p key={entry.text} className="ask-note">
           <span aria-hidden="true">ⓘ</span> „{entry.text}”: {entry.reason}
-        </div>
+        </p>
       ))}
       {notices.map((notice) => (
-        <div key={`${notice.code}:${notice.text}`} className="notice notice--warning">
-          {notice.text}
-        </div>
+        <p key={`${notice.code}:${notice.text}`} className="ask-note">
+          <span aria-hidden="true">ⓘ</span> {notice.text}
+        </p>
       ))}
       <p className="sr-only" aria-live="polite">
         {formatListingsCount(items.length)}

@@ -1091,7 +1091,7 @@ The `FlatplannerOptions` class in Core. Every property has `[ConfigurationKeyNam
 |---|---|---|---|
 | `ConnectionStrings__Default` | `Server=localhost;Port=3306;Database=flatplanner;User=flatplanner;Password=change-me;CharSet=utf8mb4` | Api, Ingest | yes |
 | `OPENAI_API_KEY` | `sk-proj-...` | Api (when `CHAT_MODE=llm`), Ingest (`eval-intents`; the dossier needs no key, 16.1); passed explicitly to `ApiKeyCredential` | conditionally |
-| `LLM_MODEL` | `gpt-6.1-terra` | Api, Ingest | no (default `gpt-6.1-terra`) |
+| `LLM_MODEL` | `gpt-5.6-luna` | Api, Ingest | no (default `gpt-5.6-luna`, 16.8; was `gpt-6.1-terra`, 14.2) |
 | `LLM_JUDGE_MODEL` | `gpt-5.6-luna` (default) | Api (the `ask` judge only) | no (empty: `LLM_MODEL`) |
 | `LLM_CHAT_REASONING_EFFORT` | `none` | Api, Ingest (`eval-intents`) | no (`none`) |
 | `LLM_INGEST_REASONING_EFFORT` | `low` | Ingest (`enrich`) | no (`low`) |
@@ -1632,11 +1632,11 @@ A judged listing sends ~6 800 characters (~2 400 tokens; measured on the 40 newe
    The listings are no longer a prefix shared between questions, so the "`needs` last" prompt-cache note of 16.7 no longer applies; the response cache (16.2) is unchanged.
    Simulated on the 40 newest local listings: school + quiet + MSWiA ~1 100 characters per listing, dog walks ~600, night transit ~1 400, against ~6 800 before.
 3. **Shorter output** (`prompts/listing-judge.v2.md`): 1–2 evidence items, `reason` at most ~15 words. Output tokens cost 5× input (14.2).
-4. **Judge on the small model:** `LLM_JUDGE_MODEL` defaults to `gpt-5.6-luna` (decided 2026-11-06, before the verdict check); an empty value still falls back to `LLM_MODEL`. The verdicts for the demo listings (16.6: 70, 97, 166) are read against those of `LLM_MODEL` on the 16.6 scenarios and recorded here; effort `none` must be accepted by the model **[TO VERIFY on the first run]**.
+4. **Small model for both calls:** `LLM_MODEL` and `LLM_JUDGE_MODEL` default to `gpt-5.6-luna` (decided 2026-11-06, before the verdict check; supersedes the 14.2 choice of `gpt-6.1-terra`); an empty `LLM_JUDGE_MODEL` still falls back to `LLM_MODEL`. The interpretation carries the need plan every later step depends on, so its needs, places and keywords are read on the 16.6 scenarios too, and its latency must fit `CHAT_TIMEOUT_SECONDS` with the longer output (the first terra run timed out twice at 5 s) **[TO VERIFY on the first run]**. The verdicts for the demo listings (16.6: 70, 97, 166) are read against those of `LLM_MODEL` on the 16.6 scenarios and recorded here; effort `none` must be accepted by the model **[TO VERIFY on the first run]**.
 
 **Fallbacks:** unchanged. Interpret failure gives `needs: []`, so there is no judge call; the `places` enum is strict, so an unknown tag cannot arrive.
 
-**Not built:** verdicts computed by code for "place X within N m" needs. Code would write the Polish `reason`, and ui-spec §7 has no such strings; with the trimmed input on the small model the judge call is already ~$0.01. Interpretation stays on `LLM_MODEL`: one call of ~2 500 tokens, and every later step depends on its quality.
+**Not built:** verdicts computed by code for "place X within N m" needs. Code would write the Polish `reason`, and ui-spec §7 has no such strings; with the trimmed input on the small model the judge call is already ~$0.01.
 
 **Tests (§12):** `JudgeInputTests`: nearby limited to the planned tags with original indexes, route names dropped, sentences selected by folded keywords in their order, no match gives an empty description, an empty plan gives the full dossier. `SearchIntentSchemaTests`: the `places` enum, need deserialization, keyword cleaning.
 

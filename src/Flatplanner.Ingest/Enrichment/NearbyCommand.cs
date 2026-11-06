@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net;
 using System.Text.Json;
 using Flatplanner.Core.Data;
+using Flatplanner.Ingest.Normalization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -12,6 +13,8 @@ public sealed class NearbyCommand(FlatplannerDbContext db, ILogger<NearbyCommand
     private const string OverpassUrl = "https://overpass-api.de/api/interpreter";
     private const string UserAgent = "Flatplanner-Ingest/1.0 (one-off local import)";
     private const int RadiusM = 1_500;
+    private const int TransitRadiusM = 500;
+    private const int LandmarkMarginM = 20_000;
     private const int PlacesPerKind = 3;
     private const int BusyRetries = 5;
     private const double MetresPerDegreeLat = 111_320;
@@ -41,6 +44,16 @@ public sealed class NearbyCommand(FlatplannerDbContext db, ILogger<NearbyCommand
         ("railway", ["rail", "tram"]),
     ];
 
+    private static readonly (string Key, string[] Values)[] LandmarkTags =
+    [
+        ("place", ["city", "town"]),
+        ("aeroway", ["aerodrome"]),
+    ];
+
+    // Kept at any distance, so "how far to the sea / the centre / the airport" has an answer beyond 1 500 m.
+    private static readonly string[] AlwaysNearestTags =
+        ["natural=beach", "railway=station", "railway=halt", "amenity=hospital", "aeroway=aerodrome", "place=city", "place=town"];
+
     private readonly HttpClient http = CreateHttpClient();
 
     public async Task RunAsync(CancellationToken cancellationToken)
@@ -53,9 +66,14 @@ public sealed class NearbyCommand(FlatplannerDbContext db, ILogger<NearbyCommand
         }
 
         List<OsmPlace> places;
+        List<TransitRoute> routes;
         try
         {
-            places = await FetchPlacesAsync(BoundingBox(listings), cancellationToken);
+            places = await FetchPlacesAsync(BoundingBox(listings, RadiusM), cancellationToken);
+            using var transit = await FetchJsonAsync(TransitAndLandmarksQuery(listings), cancellationToken);
+            var elements = transit.RootElement.GetProperty("elements");
+            routes = TransitLines.Parse(elements);
+            places.AddRange(elements.EnumerateArray().Select(ToOsmPlace).OfType<OsmPlace>());
         }
         catch (Exception ex) when (ex is HttpRequestException or JsonException or KeyNotFoundException or TaskCanceledException && !cancellationToken.IsCancellationRequested)
         {
@@ -65,12 +83,13 @@ public sealed class NearbyCommand(FlatplannerDbContext db, ILogger<NearbyCommand
 
         foreach (var listing in listings)
         {
-            var nearest = NearestPlaces(places, (double)listing.Lat, (double)listing.Lng);
+            var nearest = NearestPlaces(places, routes, (double)listing.Lat, (double)listing.Lng);
             listing.NearbyJson = JsonSerializer.Serialize(nearest, DossierJson.Options);
         }
 
         await db.SaveChangesAsync(cancellationToken);
-        logger.LogInformation("Nearby: {Count} listings filled from {Places} OSM places", listings.Count, places.Count);
+        logger.LogInformation(
+            "Nearby: {Count} listings filled from {Places} OSM places and {Routes} transit routes", listings.Count, places.Count, routes.Count);
     }
 
     public void Dispose() => http.Dispose();
@@ -82,12 +101,12 @@ public sealed class NearbyCommand(FlatplannerDbContext db, ILogger<NearbyCommand
         return client;
     }
 
-    private static string BoundingBox(IReadOnlyCollection<Listing> listings)
+    private static string BoundingBox(IReadOnlyCollection<Listing> listings, int marginM)
     {
         var south = (double)listings.Min(l => l.Lat);
         var north = (double)listings.Max(l => l.Lat);
-        var latMargin = RadiusM / MetresPerDegreeLat;
-        var lngMargin = RadiusM / (MetresPerDegreeLat * Math.Cos(north * Math.PI / 180));
+        var latMargin = marginM / MetresPerDegreeLat;
+        var lngMargin = marginM / (MetresPerDegreeLat * Math.Cos(north * Math.PI / 180));
         return string.Create(CultureInfo.InvariantCulture,
             $"{south - latMargin},{(double)listings.Min(l => l.Lng) - lngMargin},{north + latMargin},{(double)listings.Max(l => l.Lng) + lngMargin}");
     }
@@ -98,14 +117,28 @@ public sealed class NearbyCommand(FlatplannerDbContext db, ILogger<NearbyCommand
         var lines = string.Concat(LineTags.Select(tag => $"way{Filter(tag)};"));
         var query = $"[out:json][timeout:180][bbox:{boundingBox}];({places});out center bb tags;({lines});out geom tags;";
 
-        using var response = await PostWithBusyRetryAsync(query, cancellationToken);
-        response.EnsureSuccessStatusCode();
-        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-        using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
+        using var document = await FetchJsonAsync(query, cancellationToken);
         return document.RootElement.GetProperty("elements").EnumerateArray()
             .Select(ToOsmPlace)
             .OfType<OsmPlace>()
             .ToList();
+    }
+
+    private static string TransitAndLandmarksQuery(IReadOnlyCollection<Listing> listings)
+    {
+        var routes = $"rel[type=route][route~\"^(bus|trolleybus|tram|train|light_rail)$\"]({BoundingBox(listings, TransitRadiusM)})->.r;.r out body;node(r.r);out skel;";
+        var wide = BoundingBox(listings, LandmarkMarginM);
+        var cities = string.Join('|', ListingNormalizer.CityNames.Values);
+        var landmarks = $"node[place~\"^(city|town)$\"][name~\"^({cities})$\"]({wide});out;nwr[aeroway=aerodrome][iata]({wide});out center;";
+        return $"[out:json][timeout:180];{routes}{landmarks}";
+    }
+
+    private async Task<JsonDocument> FetchJsonAsync(string query, CancellationToken cancellationToken)
+    {
+        using var response = await PostWithBusyRetryAsync(query, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        return await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
     }
 
     private static string Filter((string Key, string[] Values) tag) => $"[{tag.Key}~\"^({string.Join('|', tag.Values)})$\"]";
@@ -127,21 +160,36 @@ public sealed class NearbyCommand(FlatplannerDbContext db, ILogger<NearbyCommand
         }
     }
 
-    // A global "nearest N" fills up with unnamed woods and playgrounds; a cap per kind keeps rarer places such as an Orthodox church (16.1).
-    private static List<NearbyPlace> NearestPlaces(IEnumerable<OsmPlace> places, double lat, double lng) =>
-        places
+    private static List<NearbyPlace> NearestPlaces(IEnumerable<OsmPlace> places, IEnumerable<TransitRoute> routes, double lat, double lng)
+    {
+        var measured = places
             .Select(place => new NearbyPlace(place.Name, place.Tag, place.Extra, (int)Math.Round(place.DistanceM(lat, lng))))
+            .ToList();
+        var landmarks = measured
+            .Where(place => AlwaysNearestTags.Contains(place.Tag))
+            .GroupBy(place => place.Tag.StartsWith("place=", StringComparison.Ordinal) ? place.Name : place.Tag)
+            .Select(group => group.MinBy(place => place.DistanceM)!);
+
+        return WithinRadius(measured)
+            .Concat(landmarks)
+            .Concat(TransitLines.Nearest(routes, lat, lng, TransitRadiusM))
+            .Distinct()
+            .OrderBy(place => place.DistanceM)
+            .ToList();
+    }
+
+    // A global "nearest N" fills up with unnamed woods and playgrounds; a cap per kind keeps rarer places such as an Orthodox church (16.1).
+    private static IEnumerable<NearbyPlace> WithinRadius(IEnumerable<NearbyPlace> measured) =>
+        measured
             .Where(place => place.DistanceM <= RadiusM)
             .GroupBy(place => place.Name is null && !IsLine(place.Tag) ? (object)place : (place.Name, place.Tag))
             .Select(group => group.MinBy(place => place.DistanceM)!)
             .GroupBy(place => (place.Tag, place.Extra))
-            .SelectMany(kind => kind.OrderBy(place => place.DistanceM).Take(PlacesPerKind))
-            .OrderBy(place => place.DistanceM)
-            .ToList();
+            .SelectMany(kind => kind.OrderBy(place => place.DistanceM).Take(PlacesPerKind));
 
     private static OsmPlace? ToOsmPlace(JsonElement element)
     {
-        if (!element.TryGetProperty("tags", out var tags) || (MatchTag(tags, PlaceTags) ?? MatchTag(tags, LineTags)) is not { } tag)
+        if (!element.TryGetProperty("tags", out var tags) || (MatchTag(tags, PlaceTags) ?? MatchTag(tags, LineTags) ?? MatchTag(tags, LandmarkTags)) is not { } tag)
         {
             return null;
         }

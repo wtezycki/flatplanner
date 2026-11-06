@@ -1,5 +1,6 @@
 using Flatplanner.Core.Data;
 using Flatplanner.Core.Options;
+using Flatplanner.Ingest.Enrichment;
 using Flatplanner.Ingest.Normalization;
 using Flatplanner.Ingest.Reporting;
 using Flatplanner.Ingest.Scraping;
@@ -25,12 +26,15 @@ builder.Services.AddDbContext<FlatplannerDbContext>((services, db) =>
 });
 builder.Services.AddTransient<OtodomScraper>();
 builder.Services.AddTransient<NormalizeCommand>();
+builder.Services.AddTransient<NearbyCommand>();
+builder.Services.AddTransient<ExportDossiersCommand>();
+builder.Services.AddTransient<ImportDossiersCommand>();
 builder.Services.AddTransient<ReportCommand>();
 
 using var host = builder.Build();
 var logger = host.Services.GetRequiredService<ILogger<Program>>();
 var command = args.FirstOrDefault();
-string[] commands = ["scrape", "normalize", "report", "all"];
+string[] commands = ["scrape", "normalize", "nearby", "export-dossiers", "import-dossiers", "report", "all"];
 
 if (command is null || !commands.Contains(command))
 {
@@ -51,6 +55,22 @@ if (command is "scrape" or "all")
 if (command is "normalize" or "all")
 {
     await services.GetRequiredService<NormalizeCommand>().RunAsync(CancellationToken.None);
+}
+
+if (command == "nearby")
+{
+    using var nearby = services.GetRequiredService<NearbyCommand>();
+    await nearby.RunAsync(CancellationToken.None);
+}
+
+if (command == "export-dossiers")
+{
+    await services.GetRequiredService<ExportDossiersCommand>().RunAsync(CancellationToken.None);
+}
+
+if (command == "import-dossiers")
+{
+    await services.GetRequiredService<ImportDossiersCommand>().RunAsync(CancellationToken.None);
 }
 
 if (command is "report" or "all")

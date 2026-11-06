@@ -6,7 +6,10 @@ namespace Flatplanner.Core.Text;
 
 public static partial class TextFolding
 {
-    public static string Fold(string value)
+    public static string Fold(string value) =>
+        NonAlphanumeric().Replace(RemoveDiacritics(value).ToLowerInvariant(), " ").Trim();
+
+    public static string RemoveDiacritics(string value)
     {
         var decomposed = value.Normalize(NormalizationForm.FormKD);
         var builder = new StringBuilder(decomposed.Length);
@@ -20,7 +23,7 @@ public static partial class TextFolding
             builder.Append(c switch { 'ł' => 'l', 'Ł' => 'L', _ => c });
         }
 
-        return NonAlphanumeric().Replace(builder.ToString().ToLowerInvariant(), " ").Trim();
+        return builder.ToString();
     }
 
     [GeneratedRegex(@"[^\p{L}\p{N}]+")]

@@ -117,6 +117,17 @@ public static class FactStatus
     public static readonly string[] All = [Included, ExtraCost, NotAvailable];
 }
 
+public static class RiskKind
+{
+    public const string ExtraCost = "extra_cost";
+    public const string Legal = "legal";
+    public const string Occupied = "occupied";
+    public const string Noise = "noise";
+    public const string FieldMismatch = "field_mismatch";
+
+    public static readonly string[] All = [ExtraCost, Legal, Occupied, Noise, FieldMismatch];
+}
+
 public static class NormalizeStatus
 {
     public const string Accepted = "accepted";

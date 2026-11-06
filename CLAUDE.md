@@ -62,7 +62,7 @@ npm run build     # tsc + vite build -> web/dist
 npm run lint      # template script; the design does not mention it
 ```
 
-Environment: `set -a; source .env; set +a` before `dotnet run` (design §10). `eval-intents` calls the paid OpenAI API: run it only when the item requires it. The dossier text is produced by the agent in-session from `prompts/listing-dossier.v1.md`, never through the API.
+Environment: `set -a; source .env; set +a` before `dotnet run` (design §10). `eval-intents` calls the paid OpenAI API: run it only when the item requires it. The dossier text is produced by the agent in-session from `prompts/listing-dossier.v2.md`, never through the API.
 
 ## Hard rules
 
@@ -73,7 +73,7 @@ Environment: `set -a; source .env; set +a` before `dotnet run` (design §10). `e
 - **Enums are `VARCHAR`** with `string` constants (`Flatplanner.Core/Data/Enums.cs`); no C# `enum` + `HasConversion`. Unknown source value → `NULL` + `unknown_value:<column>` flag, never silently mapped.
 - **Dependencies:** only the packages and versions in design §2. A new package needs approval and a design update.
 - **Model judges, code verifies (design §16):** the LLM interprets needs and gives a verdict per listing; every verdict must cite evidence from the listing dossier (quote, nearby place, field), and C# (`EvidenceVerifier`) downgrades anything unverifiable to `unknown`. Hard filters, grouping order and distances are deterministic C#.
-- **LLM calls:** prompts only in versioned files under `prompts/` (`search-intent.v2.md`, `listing-dossier.v1.md` for the agent, `listing-judge.v1.md`); a changed prompt is a new version file. Structured output with `strict: true`; output validated (schema, `AnchorValidator`, `SearchIntentNormalizer`) before use. Every call has the design's failure path: chat → `IntentFallbackParser` with `fallbackReason` (§7.7), never 5xx; `import-dossiers` drops invalid risks and marks a listing without a valid line `facts_status = 'failed'` (§16.1); judge batch failure → its listings `unknown` with a notice (§16.2).
+- **LLM calls:** prompts only in versioned files under `prompts/` (`search-intent.v2.md`, `listing-dossier.v2.md` for the agent, `listing-judge.v1.md`); a changed prompt is a new version file. Structured output with `strict: true`; output validated (schema, `AnchorValidator`, `SearchIntentNormalizer`) before use. Every call has the design's failure path: chat → `IntentFallbackParser` with `fallbackReason` (§7.7), never 5xx; `import-dossiers` drops invalid risks and marks a listing without a valid line `facts_status = 'failed'` (§16.1); judge batch failure → its listings `unknown` with a notice (§16.2).
 - **HTML is never rendered.** Descriptions are shown as text (`description_text`, `white-space: pre-line`); no `dangerouslySetInnerHTML`.
 - **User-facing text is Polish and comes verbatim from `ui-spec.md` §7.** English strings in `design.md` are glosses. Do not invent copy; if a string is missing from §7, ask.
 - **Secrets:** never in code, `appsettings.json`, commits or logs. Local `.env` (gitignored), Railway variables in production; `.env.example` carries keys with placeholder values only. Never read or print `.env`.

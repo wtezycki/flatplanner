@@ -26,7 +26,7 @@ public static partial class ListingNormalizer
     private const decimal MinLng = 18.30m;
     private const decimal MaxLng = 18.85m;
 
-    private static readonly Dictionary<string, string> CityNames = new()
+    internal static readonly Dictionary<string, string> CityNames = new()
     {
         [City.Gdansk] = "Gdańsk",
         [City.Gdynia] = "Gdynia",

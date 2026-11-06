@@ -482,7 +482,7 @@ Green tokens from §2 map to teal (`--green-600` → `--teal-700`, `--green-50` 
 - Risks: under the needs in the AI column, heading "Na co uważać", one line per risk with its kind as a small badge and the evidence under it; an `extra_cost` risk with `totalWithExtrasPln` shows "Łącznie z dopłatą: {total}" in `--fs-md`, bold.
 - Details page: same tokens, no provenance badges (design §16.5).
 
-### 11.3 Copy for §7 (to be moved into §7.1 when implemented)
+### 11.3 Copy for §7 (implemented in #7′b; the single source stays this table, §7.1 adds only the strings below)
 
 | Key | Text |
 |---|---|
@@ -505,15 +505,16 @@ Green tokens from §2 map to teal (`--green-600` → `--teal-700`, `--green-50` 
 | risk kinds | Dopłata · Stan prawny · Lokal zajęty · Hałas · Niezgodność z danymi ogłoszenia |
 | real price | Łącznie z dopłatą: {total} |
 | classic link | Wolisz klasyczne filtry? |
+| ask network or 5xx error (under the field) | Nie udało się połączyć. Spróbuj ponownie lub skorzystaj z klasycznych filtrów. |
 | AI unavailable | AI chwilowo niedostępne — pokazujemy wyniki według podstawowych kryteriów. |
 | no results (no candidates and no relaxation helps) | Nie mamy mieszkań, które spełniają te warunki. Spróbuj opisać to inaczej. |
 | judge batch failed (API notice `judge_failed`) | Części ogłoszeń nie udało się sprawdzić — oznaczyliśmy je jako brak danych. |
 | field evidence (API) | {7.2 label}: {value}; booleans „tak” / „nie”; floor as in 7.2 („4 z 6”, „parter”, „suterena”) |
 | unnamed place evidence (API, „{name} · {d} m”) | `amenity`: school szkoła · kindergarten przedszkole · place_of_worship miejsce kultu · pharmacy apteka · clinic przychodnia · hospital szpital · doctors gabinet lekarski · university uczelnia · veterinary weterynarz · bar bar · pub pub · nightclub klub nocny · restaurant restauracja · cafe kawiarnia · charging_station stacja ładowania · bicycle_rental wypożyczalnia rowerów; `leisure`: park park · playground plac zabaw · dog_park wybieg dla psów · fitness_centre siłownia · sports_centre centrum sportowe · swimming_pool basen · stadium stadion; `natural=wood`, `landuse=forest` las · `natural=beach` plaża · `landuse=cemetery` cmentarz; `railway`: station stacja kolejowa · halt przystanek kolejowy · tram_stop przystanek tramwajowy · rail linia kolejowa · tram torowisko tramwajowe; `highway`: bus_stop przystanek autobusowy · motorway autostrada · trunk droga ekspresowa · primary główna ulica; `shop`: supermarket supermarket · convenience sklep spożywczy · mall centrum handlowe; `place=city|town` centrum miasta · `aeroway=aerodrome` lotnisko; `route`: bus linia autobusowa · trolleybus linia trolejbusowa · tram linia tramwajowa · train linia kolejowa · light_rail kolej miejska; any other tag „miejsce” |
 
-### 11.4 Classic list `/` as built (item #5, restyled)
+### 11.4 Classic list as built (item #5, restyled; at `/listings` since #7′b)
 
-The classic list uses the §11.1 tokens. Until `ask` exists (design §16.2) `/` stays the list; the text search sits in the top bar (no hero heading, no example chips, no progress card). Deviations from §4.1, §5.4 and §9, decided with the restyle:
+The classic list uses the §11.1 tokens. `ask` exists (design §16.2), so `/` is the ask page and the list is at `/listings`; the text search sits in the top bar (no hero heading, no example chips, no progress card). Deviations from §4.1, §5.4 and §9, decided with the restyle:
 
 - **One top bar, no hero:** a single 72 px bar (64 px ≤ 640 px) on `--color-surface` with a 1 px `--color-border` bottom edge holds, in one row, the logo, the wordmark, the search field and the „Szukaj” button. There is no teal header or hero band and no gradient (the §11.2 teal bands are dropped for the classic list; the teal stays in buttons, pills, links and the focus ring). The search field is a 52 px pill on `--color-bg`. ≤ 640 px the wordmark is hidden. No tagline or data date, so the §5.1 right-hand text and the §7.1 header string are dropped.
 - **Brand assets:** `web/src/assets/flatplanner.svg` (logo, 40 px; the supplied file without its `#F5F2EF` background tile) and `flatbanner.svg` (wordmark, 26 px high, the supplied file as is) with the motto from §7.1 under it (`--fs-xs`, secondary). The logo link has `aria-label` „Flatplanner”. The logo is also the favicon (`index.html`).
@@ -526,3 +527,13 @@ The classic list uses the §11.1 tokens. Until `ask` exists (design §16.2) `/` 
 - **`--color-border-strong`** is `#8a8279`, not `#b6aea5`: the §11.1 value gives 2.19:1 on white, below the 3:1 §2 requires for field outlines (`#8a8279`: 3.78:1 on white, 3.39:1 on `--color-bg`).
 - **Contrast checked** with the WCAG formula: `--on-teal` on `--teal-900` 6.26:1 and on `--teal-700` 4.91:1; `--teal-900` on `--color-bg` 5.87:1; white on `--teal-700` 5.14:1; `--color-text-secondary` on `--color-bg` 4.64:1.
 - Provenance, verdict and info tokens are not defined in `styles.css` until a view uses them.
+
+### 11.5 Ask page `/` as built (item #7′b)
+
+- The header is the white top bar of §11.4 on every page; the teal `--teal-900` band is the hero only. The header search field appears on `/listings` only.
+- Hero: heading, 52 px pill input with the „Szukaj” button, the four example chips (a click fills the input, it does not send). Input `maxLength` is `chatMaxLength` from `/api/meta`.
+- Before the first question only the hero and the „Wolisz klasyczne filtry?” link are shown. The link stays under the results afterwards.
+- The progress card advances on a timer (0 s, 2 s, 6 s), marks the current step with `aria-current="step"` and shows state with a symbol (✓ … ○), not colour alone.
+- Card: photo 200×150, content, AI column; the whole card is clicked through the title link (stretched), as in the classic list. A need without a reason (`unknown`) shows the need text in `--verdict-unknown`. In the `near` group the failing need is listed first.
+- Relaxation lead takes `{total}` as the number of cards shown; one button per relaxation. With no cards, hard-filter relaxations are plain lines.
+- With `needs: []` (AI fallback) the group headings are not shown, because the cards are plain filter results.

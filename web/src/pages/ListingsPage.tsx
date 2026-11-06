@@ -14,7 +14,7 @@ function ListError({ error, onRetry }: { error: Error; onRetry: () => void }) {
     return (
       <div className="notice notice--error">
         <p>Nieprawidłowe parametry wyszukiwania.</p>
-        <Link to="/">Wyczyść wyszukiwanie</Link>
+        <Link to="/listings">Wyczyść wyszukiwanie</Link>
       </div>
     )
   }

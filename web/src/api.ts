@@ -147,6 +147,71 @@ export interface ListingDetail {
   advertiserType?: string
 }
 
+export interface Evidence {
+  kind: string
+  label: string
+}
+
+export interface NeedResult {
+  verdict: string
+  reason?: string
+  evidence: Evidence[]
+}
+
+export interface ListingRisk {
+  kind: string
+  reason: string
+  quote: string
+  amountPln?: number
+}
+
+export interface AskItem {
+  id: number
+  title: string
+  pricePln: number
+  areaM2: number
+  rooms: number
+  floor?: number
+  buildingFloors?: number
+  cityName: string
+  districtName?: string
+  imageUrl?: string
+  aiSummary?: string
+  locationApproximate: boolean
+  group: string
+  needs: NeedResult[]
+  risks: ListingRisk[]
+  totalWithExtrasPln?: number
+}
+
+export interface DeclinedNeed {
+  text: string
+  reason: string
+}
+
+export interface AskNotice {
+  code: string
+  text: string
+}
+
+export interface Relaxation {
+  need: string
+  count: number
+  bestId?: number
+}
+
+export interface AskResponse {
+  summary: string
+  needs: string[]
+  declined: DeclinedNeed[]
+  notices: AskNotice[]
+  items: AskItem[]
+  unknownCount: number
+  relaxations: Relaxation[]
+  usedFallback: boolean
+  fallbackReason?: string
+}
+
 export const DEFAULT_RETRY_AFTER_SECONDS = 10
 
 export class ApiError extends Error {
@@ -164,8 +229,8 @@ export function isServerOrNetworkError(error: unknown): boolean {
   return !(error instanceof ApiError) || error.status >= 500
 }
 
-async function getJson<T>(url: string, signal?: AbortSignal): Promise<T> {
-  const response = await fetch(url, { signal })
+async function requestJson<T>(url: string, init: RequestInit): Promise<T> {
+  const response = await fetch(url, init)
   if (!response.ok) {
     const retryAfter = Number.parseInt(response.headers.get('Retry-After') ?? '', 10)
     throw new ApiError(response.status, Number.isNaN(retryAfter) ? undefined : retryAfter)
@@ -173,12 +238,23 @@ async function getJson<T>(url: string, signal?: AbortSignal): Promise<T> {
   return (await response.json()) as T
 }
 
+const getJson = <T>(url: string, signal?: AbortSignal) => requestJson<T>(url, { signal })
+
 export function fetchListings(searchParams: URLSearchParams, signal?: AbortSignal): Promise<ListingsResponse> {
   return getJson(`/api/listings?${searchParams.toString()}`, signal)
 }
 
 export function fetchListing(id: string, signal?: AbortSignal): Promise<ListingDetail> {
   return getJson(`/api/listings/${encodeURIComponent(id)}`, signal)
+}
+
+export function postAsk(message: string, excludeNeeds: number[], signal?: AbortSignal): Promise<AskResponse> {
+  return requestJson('/api/search/ask', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message, excludeNeeds }),
+    signal,
+  })
 }
 
 export const metaQuery = queryOptions({

@@ -2,11 +2,12 @@ import { Link, Route, Routes, useMatch } from 'react-router'
 import wordmark from './assets/flatbanner.svg'
 import logo from './assets/flatplanner.svg'
 import SearchBar from './components/SearchBar.tsx'
+import AskPage from './pages/AskPage.tsx'
 import ListingDetailPage from './pages/ListingDetailPage.tsx'
 import ListingsPage from './pages/ListingsPage.tsx'
 
 export default function App() {
-  const onList = useMatch('/') !== null
+  const onList = useMatch('/listings') !== null
 
   return (
     <>
@@ -24,7 +25,8 @@ export default function App() {
       </header>
       <main>
         <Routes>
-          <Route path="/" element={<ListingsPage />} />
+          <Route path="/" element={<AskPage />} />
+          <Route path="/listings" element={<ListingsPage />} />
           <Route path="/listings/:id" element={<ListingDetailPage />} />
         </Routes>
       </main>

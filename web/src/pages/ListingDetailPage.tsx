@@ -63,7 +63,7 @@ function BackLink() {
   const location = useLocation()
 
   return location.key === 'default' ? (
-    <Link to="/">‹ Wszystkie oferty</Link>
+    <Link to="/listings">‹ Wszystkie oferty</Link>
   ) : (
     <button className="btn btn--link" type="button" onClick={() => void navigate(-1)}>
       ‹ Wróć do wyników
@@ -200,7 +200,7 @@ function DetailError({ error, onRetry }: { error: Error; onRetry: () => void }) 
       <div className="container detail">
         <div className="notice notice--error">
           <p>Nie znaleziono oferty.</p>
-          <Link to="/">Wróć do listy ofert</Link>
+          <Link to="/listings">Wróć do listy ofert</Link>
         </div>
       </div>
     )

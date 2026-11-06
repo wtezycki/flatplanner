@@ -1619,25 +1619,25 @@ First live measurements: ~$0.5 and several minutes per new question with `gpt-6.
 
 A judged listing sends ~6 800 characters (~2 400 tokens; measured on the 40 newest local listings): `nearby` ~3 500 (43 places of every kind, route entries with full stop-to-stop names), `description` ~2 400, `aiSummary` ~440, `fields` ~400. A question about a school reads a few hundred of them. Goal: cut the judge cost of a new question by about two orders of magnitude without weakening the evidence rule (16.2 step 4).
 
-1. **Need plan from the interpret call** (`prompts/search-intent.v3.md`, no extra call). `needs` in the interpret output becomes `[{ text, places, fields, keywords }]` (`AskNeed` in Core):
-   - `places`: OSM tags the need is checked against, a strict-schema enum of the `PlaceLabels` tags ("podstawówka w zasięgu spaceru" → `amenity=school`; "cisza w dzień" → `highway=primary`, `highway=trunk`, `railway=tram`, `railway=rail`, `route=tram`);
-   - `fields`: field names, an enum of the `ListingFields` names ("zakup bez zezwolenia MSWiA dla cudzoziemca" → `ownership`);
-   - `keywords`: at most 6 Polish word stems that a sentence of the description about this need would contain ("cich", "spokoj", "hałas", "okn"); code folds them (`TextFolding.Fold`) and drops stems shorter than 3 characters.
+1. **Need plan from the interpret call** (`prompts/search-intent.v3.md`, no extra call). `needs` in the interpret output becomes `[{ text, places, keywords }]` (`AskNeed` in Core):
+   - `places`: OSM tags the need is checked against, a strict-schema enum of the `PlaceLabels` tags (`PlaceLabels.AllTags`, passed to `SearchIntentSchema.Build`): "podstawówka w zasięgu spaceru" → `amenity=school`; "cisza w dzień" → `highway=primary`, `highway=trunk`, `railway=tram`, `railway=rail`;
+   - `keywords`: at most 6 Polish word stems that a sentence of the description about this need would contain ("cich", "spokoj", "hałas", "okn"); code folds them (`TextFolding.Fold`), drops stems shorter than 3 characters and keeps 6 (`SearchDefinitions.MaxNeedKeywords`, `NeedKeywordMinLength`; `IntentInterpreter.Clean`).
    The response keeps `needs: string[]` (the `text` values), so the UI, `excludeNeeds` and the cache are unchanged.
-2. **Judge input built by code** (`JudgeInput`, pure function over a candidate and the need plans):
+2. **Judge input built by code** (`JudgeInput`, pure functions over a candidate and the need plans):
    - `nearby`: the nearest place per (`t`, `x`) only for tags named by some need, original `nearby_json` index kept (the verifier resolves `place` refs against it); `route=*` entries lose `n` (the stop-to-stop name), `x` keeps the line `ref`;
-   - `fields`: only the fields named by some need;
+   - `fields`: all of them as before (~400 characters; planning them would add an enum for ~5% of the old input);
    - `description`: only the sentences (split on `.`, `!`, `?` and line breaks) whose folded text contains a folded keyword of some need, verbatim and in their original order, so `quote` refs stay substrings of the description;
    - `aiSummary` is not sent (the prompt already forbade it as evidence);
-   - a need with an empty plan (no places, fields or keywords) makes that listing's input the full 16.2 step 3 dossier without `aiSummary`, so a need the planner cannot place loses nothing;
-   - a listing whose built input has no nearby place, no field and no sentence is not sent; its needs are `unknown` (the judge could not cite evidence for any verdict anyway).
+   - a need with an empty plan (no places and no keywords) makes the input the full 16.2 step 3 dossier without `aiSummary`, so a need the planner cannot place loses nothing.
+   The listings are no longer a prefix shared between questions, so the "`needs` last" prompt-cache note of 16.7 no longer applies; the response cache (16.2) is unchanged.
+   Simulated on the 40 newest local listings: school + quiet + MSWiA ~1 100 characters per listing, dog walks ~600, night transit ~1 400, against ~6 800 before.
 3. **Shorter output** (`prompts/listing-judge.v2.md`): 1–2 evidence items, `reason` at most ~15 words. Output tokens cost 5× input (14.2).
 4. **Judge on the small model:** `LLM_JUDGE_MODEL=gpt-6-luna` in production after the verdicts for the demo listings (16.6: 70, 97, 166) are read on the `tests/search-queries.json` scenarios and match those of `LLM_MODEL`; the result is recorded here.
 
-**Fallbacks:** unchanged. Interpret failure gives `needs: []`, so there is no judge call; the plan enums are strict, so an unknown tag or field cannot arrive.
+**Fallbacks:** unchanged. Interpret failure gives `needs: []`, so there is no judge call; the `places` enum is strict, so an unknown tag cannot arrive.
 
 **Not built:** verdicts computed by code for "place X within N m" needs. Code would write the Polish `reason`, and ui-spec §7 has no such strings; with the trimmed input on the small model the judge call is already ~$0.01. Interpretation stays on `LLM_MODEL`: one call of ~2 500 tokens, and every later step depends on its quality.
 
-**Tests (§12):** `JudgeInputTests`: nearby limited to the planned tags with original indexes, route names dropped, sentences selected by folded keywords, empty plan gives the full dossier, a listing with no context is skipped. `SearchIntentSchemaTests`: the need plan with the `places` and `fields` enums.
+**Tests (§12):** `JudgeInputTests`: nearby limited to the planned tags with original indexes, route names dropped, sentences selected by folded keywords in their order, no match gives an empty description, an empty plan gives the full dossier. `SearchIntentSchemaTests`: the `places` enum, need deserialization, keyword cleaning.
 
 **Definition of done:** the judge input averages ≤ 600 tokens per listing in the `LLM call` log over the `tests/search-queries.json` scenarios **[TO VERIFY on the first run]**; the demo scenarios (16.6) give the same groups as before on listings 70, 97 and 166; a new question costs ≤ $0.02 by the usage log; tests green.

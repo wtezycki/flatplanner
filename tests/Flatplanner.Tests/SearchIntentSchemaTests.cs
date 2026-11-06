@@ -13,7 +13,9 @@ public sealed class SearchIntentSchemaTests
         [new SearchMetaDistrict("gdansk:piecki--migowo", "gdansk", "Piecki-Migowo")],
         "gdansk");
 
-    public static TheoryData<string> Schemas => new() { SearchIntentSchema.Build(Meta), ListingJudgeSchema.Build() };
+    private static readonly string[] PlaceTags = ["amenity=school", "highway=primary"];
+
+    public static TheoryData<string> Schemas => new() { SearchIntentSchema.Build(Meta, PlaceTags), ListingJudgeSchema.Build() };
 
     [Theory]
     [MemberData(nameof(Schemas))]
@@ -34,10 +36,28 @@ public sealed class SearchIntentSchemaTests
     [Fact]
     public void Build_Fields_EqualAskIntentProperties()
     {
-        var schemaFields = JsonNode.Parse(SearchIntentSchema.Build(Meta))!["properties"]!.AsObject().Select(p => p.Key).Order();
+        var schemaFields = JsonNode.Parse(SearchIntentSchema.Build(Meta, PlaceTags))!["properties"]!.AsObject().Select(p => p.Key).Order();
         var recordFields = typeof(AskIntent).GetProperties().Select(p => JsonNamingPolicy.CamelCase.ConvertName(p.Name)).Order();
 
         Assert.Equal(recordFields, schemaFields);
+    }
+
+    [Fact]
+    public void Build_NeedPlaces_EnumOfPlaceTags()
+    {
+        var places = JsonNode.Parse(SearchIntentSchema.Build(Meta, PlaceTags))!["properties"]!["needs"]!["items"]!["properties"]!["places"]!;
+
+        Assert.Equal(PlaceTags, places["items"]!["enum"]!.AsArray().Select(t => t!.GetValue<string>()));
+    }
+
+    [Fact]
+    public void Clean_Keywords_FoldedDistinctAndShortOnesDropped()
+    {
+        var need = IntentInterpreter.Clean(new AskNeed(" cisza w dzień ", ["highway=primary", "highway=primary"], ["Hałas", "hałas", "ok", "nad głową"]));
+
+        Assert.Equal("cisza w dzień", need.Text);
+        Assert.Equal(["highway=primary"], need.Places);
+        Assert.Equal(["halas", "nad glowa"], need.Keywords);
     }
 
     [Fact]
@@ -45,7 +65,7 @@ public sealed class SearchIntentSchemaTests
     {
         const string json = """
             { "cities": ["gdansk"], "districts": ["gdansk:piecki--migowo"], "priceMax": 700000, "areaMin": null, "areaMax": null,
-              "roomsMin": 2, "needs": ["podstawówka w zasięgu spaceru"],
+              "roomsMin": 2, "needs": [{ "text": "podstawówka w zasięgu spaceru", "places": ["amenity=school"], "keywords": ["szkoł"] }],
               "declined": [{ "text": "bez obcokrajowców", "reason": "Nie oceniamy okolic po tym, kto w nich mieszka." }],
               "clarifications": [] }
             """;
@@ -54,7 +74,10 @@ public sealed class SearchIntentSchemaTests
 
         Assert.Equal(["gdansk"], intent.Cities);
         Assert.Equal(700000, intent.PriceMax);
-        Assert.Equal(["podstawówka w zasięgu spaceru"], intent.Needs);
+        var need = Assert.Single(intent.Needs);
+        Assert.Equal("podstawówka w zasięgu spaceru", need.Text);
+        Assert.Equal(["amenity=school"], need.Places);
+        Assert.Equal(["szkoł"], need.Keywords);
         Assert.Equal("bez obcokrajowców", Assert.Single(intent.Declined).Text);
     }
 

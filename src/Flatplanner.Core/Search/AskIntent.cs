@@ -8,7 +8,7 @@ public sealed record AskIntent
     public decimal? AreaMin { get; init; }
     public decimal? AreaMax { get; init; }
     public int? RoomsMin { get; init; }
-    public string[] Needs { get; init; } = [];
+    public AskNeed[] Needs { get; init; } = [];
     public DeclinedNeed[] Declined { get; init; } = [];
     public string[] Clarifications { get; init; } = [];
 

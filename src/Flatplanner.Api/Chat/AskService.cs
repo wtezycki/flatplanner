@@ -89,7 +89,7 @@ public sealed class AskService(
             notices.Add(JudgeFailed);
         }
 
-        return new AskEvaluation(intent, asked.Needs, asked.Declined, notices, fallbackReason, candidates, results, outcome.AnyBatchFailed);
+        return new AskEvaluation(intent, asked.Needs.Select(n => n.Text).ToList(), asked.Declined, notices, fallbackReason, candidates, results, outcome.AnyBatchFailed);
     }
 
     private async Task<(AskIntent Intent, string? FallbackReason)> InterpretAsync(string message, SearchMeta meta, CancellationToken ct)

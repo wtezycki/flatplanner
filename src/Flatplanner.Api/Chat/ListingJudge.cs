@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Flatplanner.Core.Data;
 using Flatplanner.Core.Llm;
+using Flatplanner.Core.Search;
 
 namespace Flatplanner.Api.Chat;
 
@@ -12,9 +13,8 @@ public sealed class ListingJudge(LlmJsonClient llm, string promptsDir, string re
     // A batch takes ~30 s of output, so all batches of the ~200 listings run at once (design 16.2 step 3).
     private const int Parallelism = 14;
     private const int MaxOutputTokens = 8192;
-    private const int DescriptionMaxLength = 8000;
 
-    // Cost cap: ~2k input tokens per listing (design 16.7).
+    // Cost cap (design 16.7).
     public const int MaxCandidates = 40;
 
     public static IReadOnlyList<Listing> Newest(IEnumerable<Listing> listings) => listings
@@ -23,7 +23,7 @@ public sealed class ListingJudge(LlmJsonClient llm, string promptsDir, string re
         .Take(MaxCandidates)
         .ToList();
 
-    public async Task<JudgeOutcome> JudgeAsync(IReadOnlyList<string> needs, IReadOnlyList<AskCandidate> candidates, CancellationToken ct)
+    public async Task<JudgeOutcome> JudgeAsync(IReadOnlyList<AskNeed> needs, IReadOnlyList<AskCandidate> candidates, CancellationToken ct)
     {
         var prompt = await PromptFiles.LoadAsync(promptsDir, PromptVersions.ListingJudge, ct);
         using var gate = new SemaphoreSlim(Parallelism);
@@ -52,7 +52,7 @@ public sealed class ListingJudge(LlmJsonClient llm, string promptsDir, string re
 
     private async Task<IReadOnlyList<JudgedListing>?> JudgeBatchAsync(
         string prompt,
-        IReadOnlyList<string> needs,
+        IReadOnlyList<AskNeed> needs,
         AskCandidate[] batch,
         CancellationToken ct)
     {
@@ -71,28 +71,16 @@ public sealed class ListingJudge(LlmJsonClient llm, string promptsDir, string re
         }
     }
 
-    // Indexes stay those of nearby_json, because EvidenceVerifier resolves `place` refs against it.
-    private static IEnumerable<object> NearestPerKind(IReadOnlyList<NearbyPlace> nearby) => nearby
-        .Select((place, index) => (Place: place, Index: index))
-        .GroupBy(p => (p.Place.Tag, p.Place.Extra))
-        .Select(kind => kind.MinBy(p => p.Place.DistanceM))
-        .OrderBy(p => p.Index)
-        .Select(p => new { i = p.Index, n = p.Place.Name, t = p.Place.Tag, x = p.Place.Extra, d = p.Place.DistanceM });
-
-    // `needs` comes last: the listings form a prefix that repeats between questions, which the API caches.
-    private static string Input(IReadOnlyList<string> needs, AskCandidate[] batch) => JsonSerializer.Serialize(new
+    private static string Input(IReadOnlyList<AskNeed> needs, AskCandidate[] batch) => JsonSerializer.Serialize(new
     {
         listings = batch.Select(c => new
         {
             id = c.Listing.Id,
             fields = c.Fields.ToDictionary(f => f.Name, f => f.Value),
-            aiSummary = c.Listing.AiSummary,
-            description = c.Listing.DescriptionText.Length > DescriptionMaxLength
-                ? c.Listing.DescriptionText[..DescriptionMaxLength]
-                : c.Listing.DescriptionText,
-            nearby = NearestPerKind(c.Nearby),
+            description = JudgeInput.Description(c.Listing.DescriptionText, needs),
+            nearby = JudgeInput.Nearby(c.Nearby, needs),
             locationApproximate = c.Listing.LocationApproximate,
         }),
-        needs,
+        needs = needs.Select(n => n.Text),
     }, DossierJson.Options);
 }

@@ -36,7 +36,8 @@ builder.Services.AddSingleton(services =>
         new LlmJsonClient(settings.LlmModel, settings.OpenAiApiKey, TimeSpan.FromSeconds(settings.ChatTimeoutSeconds), maxRetries: 1,
             services.GetRequiredService<ILogger<LlmJsonClient>>()),
         PromptsDir(services, settings),
-        settings.LlmChatReasoningEffort);
+        settings.LlmChatReasoningEffort,
+        PlaceLabels.AllTags);
 });
 builder.Services.AddSingleton(services =>
 {

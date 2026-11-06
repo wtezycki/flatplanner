@@ -46,8 +46,9 @@ public sealed class AskService(
         var (asked, fallbackReason) = await InterpretAsync(message, meta, ct);
         var intent = SearchIntentNormalizer.Normalize(asked.ToSearchIntent(), meta).Intent;
 
-        var listings = await db.Listings.AsNoTracking().Apply(intent).ToListAsync(ct);
-        var candidates = listings.Select(AskCandidate.From).ToList();
+        var matched = await db.Listings.AsNoTracking().Apply(intent).ToListAsync(ct);
+        var limited = asked.Needs.Length > 0 && matched.Count > ListingJudge.MaxCandidates;
+        var candidates = (limited ? ListingJudge.Newest(matched) : matched).Select(AskCandidate.From).ToList();
 
         var outcome = asked.Needs.Length > 0 && candidates.Count > 0
             ? await judge.JudgeAsync(asked.Needs, candidates, ct)
@@ -63,6 +64,12 @@ public sealed class AskService(
         if (fallbackReason is not null)
         {
             notices.Add(AiUnavailable);
+        }
+
+        if (limited)
+        {
+            notices.Add(new AskNotice("judge_limited",
+                $"Oceniliśmy {candidates.Count} najnowszych z {matched.Count} ogłoszeń. Zawęź miasto, dzielnicę lub cenę, żeby sprawdzić resztę."));
         }
 
         if (outcome.AnyBatchFailed)

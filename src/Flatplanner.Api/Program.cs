@@ -33,7 +33,8 @@ builder.Services.AddSingleton(services =>
 {
     var settings = services.GetRequiredService<IOptions<FlatplannerOptions>>().Value;
     return new IntentInterpreter(
-        new LlmJsonClient(settings.LlmModel, settings.OpenAiApiKey, TimeSpan.FromSeconds(settings.ChatTimeoutSeconds), maxRetries: 1),
+        new LlmJsonClient(settings.LlmModel, settings.OpenAiApiKey, TimeSpan.FromSeconds(settings.ChatTimeoutSeconds), maxRetries: 1,
+            services.GetRequiredService<ILogger<LlmJsonClient>>()),
         PromptsDir(services, settings),
         settings.LlmChatReasoningEffort);
 });
@@ -41,7 +42,9 @@ builder.Services.AddSingleton(services =>
 {
     var settings = services.GetRequiredService<IOptions<FlatplannerOptions>>().Value;
     return new ListingJudge(
-        new LlmJsonClient(settings.LlmModel, settings.OpenAiApiKey, ListingJudge.Timeout, maxRetries: 1),
+        new LlmJsonClient(
+            string.IsNullOrWhiteSpace(settings.LlmJudgeModel) ? settings.LlmModel : settings.LlmJudgeModel,
+            settings.OpenAiApiKey, ListingJudge.Timeout, maxRetries: 1, services.GetRequiredService<ILogger<LlmJsonClient>>()),
         PromptsDir(services, settings),
         settings.LlmChatReasoningEffort,
         services.GetRequiredService<ILogger<ListingJudge>>());

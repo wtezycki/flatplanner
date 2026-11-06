@@ -7,10 +7,21 @@ namespace Flatplanner.Api.Chat;
 public sealed class ListingJudge(LlmJsonClient llm, string promptsDir, string reasoningEffort, ILogger<ListingJudge> logger)
 {
     private const int BatchSize = 15;
-    public static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
-    private const int Parallelism = 4;
+    public static readonly TimeSpan Timeout = TimeSpan.FromSeconds(60);
+
+    // A batch takes ~30 s of output, so all batches of the ~200 listings run at once (design 16.2 step 3).
+    private const int Parallelism = 14;
     private const int MaxOutputTokens = 8192;
     private const int DescriptionMaxLength = 8000;
+
+    // Cost cap: ~2k input tokens per listing (design 16.7).
+    public const int MaxCandidates = 40;
+
+    public static IReadOnlyList<Listing> Newest(IEnumerable<Listing> listings) => listings
+        .OrderByDescending(l => l.CreatedAtSource)
+        .ThenByDescending(l => l.Id)
+        .Take(MaxCandidates)
+        .ToList();
 
     public async Task<JudgeOutcome> JudgeAsync(IReadOnlyList<string> needs, IReadOnlyList<AskCandidate> candidates, CancellationToken ct)
     {
@@ -60,9 +71,17 @@ public sealed class ListingJudge(LlmJsonClient llm, string promptsDir, string re
         }
     }
 
+    // Indexes stay those of nearby_json, because EvidenceVerifier resolves `place` refs against it.
+    private static IEnumerable<object> NearestPerKind(IReadOnlyList<NearbyPlace> nearby) => nearby
+        .Select((place, index) => (Place: place, Index: index))
+        .GroupBy(p => (p.Place.Tag, p.Place.Extra))
+        .Select(kind => kind.MinBy(p => p.Place.DistanceM))
+        .OrderBy(p => p.Index)
+        .Select(p => new { i = p.Index, n = p.Place.Name, t = p.Place.Tag, x = p.Place.Extra, d = p.Place.DistanceM });
+
+    // `needs` comes last: the listings form a prefix that repeats between questions, which the API caches.
     private static string Input(IReadOnlyList<string> needs, AskCandidate[] batch) => JsonSerializer.Serialize(new
     {
-        needs,
         listings = batch.Select(c => new
         {
             id = c.Listing.Id,
@@ -71,8 +90,9 @@ public sealed class ListingJudge(LlmJsonClient llm, string promptsDir, string re
             description = c.Listing.DescriptionText.Length > DescriptionMaxLength
                 ? c.Listing.DescriptionText[..DescriptionMaxLength]
                 : c.Listing.DescriptionText,
-            nearby = c.Nearby.Select((p, i) => new { i, n = p.Name, t = p.Tag, x = p.Extra, d = p.DistanceM }),
+            nearby = NearestPerKind(c.Nearby),
             locationApproximate = c.Listing.LocationApproximate,
         }),
+        needs,
     }, DossierJson.Options);
 }

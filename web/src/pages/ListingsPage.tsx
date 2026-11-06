@@ -1,11 +1,9 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { Link, useSearchParams } from 'react-router'
 import { ApiError, DEFAULT_RETRY_AFTER_SECONDS, fetchListings, metaQuery } from '../api.ts'
-import Filters from '../components/Filters.tsx'
 import ListingCard from '../components/ListingCard.tsx'
 import Pagination from '../components/Pagination.tsx'
 import { formatListingsCount } from '../format.ts'
-import SearchBar from '../components/SearchBar.tsx'
 import { intentFromSearchParams, withoutWorkspaceParams } from '../intent.ts'
 
 const SKELETON_CARDS = 3
@@ -46,11 +44,7 @@ function Skeleton() {
   )
 }
 
-interface Props {
-  onBack?: () => void
-}
-
-export default function ListingsPage({ onBack }: Props) {
+export default function ListingsPage() {
   const [allParams, setSearchParams] = useSearchParams()
   const searchParams = withoutWorkspaceParams(allParams)
   const intent = intentFromSearchParams(searchParams)
@@ -108,50 +102,35 @@ export default function ListingsPage({ onBack }: Props) {
   }
 
   return (
-    <>
-      <div className="container">
-        <div className="classic__head">
-          {onBack && (
-            <button className="btn btn--link" type="button" onClick={onBack}>
-              ‹ Wróć do wyników
-            </button>
-          )}
-          <SearchBar />
+    <section className="results" aria-busy={listings.isPending}>
+      {data?.interpretation.warnings.map((warning) => (
+        <div key={`${warning.field}:${warning.message}`} className="notice notice--warning">
+          <span className="sr-only">Uwaga: </span>
+          {warning.message}
         </div>
-        {data?.interpretation.warnings.map((warning) => (
-          <div key={`${warning.field}:${warning.message}`} className="notice notice--warning">
-            <span className="sr-only">Uwaga: </span>
-            {warning.message}
-          </div>
-        ))}
-        <div className="layout">
-          <Filters />
-          <section className="results" aria-busy={listings.isPending}>
-            <div className="results__bar">
-              <p className="results__count" aria-live="polite">
-                {countLabel}
-              </p>
-              {sortOptions.length > 0 && (
-                <label className="results__sort">
-                  Sortuj
-                  <select
-                    className="field"
-                    value={data?.sort ?? searchParams.get('sort') ?? 'newest'}
-                    onChange={(event) => changeSort(event.target.value)}
-                  >
-                    {sortOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-            </div>
-            {body}
-          </section>
-        </div>
+      ))}
+      <div className="results__bar">
+        <p className="results__count" aria-live="polite">
+          {countLabel}
+        </p>
+        {sortOptions.length > 0 && (
+          <label className="results__sort">
+            Sortuj
+            <select
+              className="field"
+              value={data?.sort ?? searchParams.get('sort') ?? 'newest'}
+              onChange={(event) => changeSort(event.target.value)}
+            >
+              {sortOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
-    </>
+      {body}
+    </section>
   )
 }

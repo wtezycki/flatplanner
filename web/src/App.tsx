@@ -5,9 +5,7 @@ import AskPage from './pages/AskPage.tsx'
 
 function LegacyListings() {
   const { search } = useLocation()
-  const params = new URLSearchParams(search)
-  params.set('view', 'classic')
-  return <Navigate to={{ pathname: '/', search: params.toString() }} replace />
+  return <Navigate to={{ pathname: '/', search }} replace />
 }
 
 function LegacyListing() {

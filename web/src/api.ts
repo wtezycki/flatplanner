@@ -248,8 +248,8 @@ export function fetchListing(id: string, signal?: AbortSignal): Promise<ListingD
   return getJson(`/api/listings/${encodeURIComponent(id)}`, signal)
 }
 
-export function postAsk(message: string, excludeNeeds: number[], signal?: AbortSignal): Promise<AskResponse> {
-  return requestJson('/api/search/ask', {
+export function postAsk(message: string, excludeNeeds: number[], filters: string, signal?: AbortSignal): Promise<AskResponse> {
+  return requestJson(filters ? `/api/search/ask?${filters}` : '/api/search/ask', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ message, excludeNeeds }),

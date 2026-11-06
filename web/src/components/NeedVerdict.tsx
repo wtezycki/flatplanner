@@ -13,13 +13,17 @@ export default function NeedVerdict({ need, result }: Props) {
       <span className="verdict__icon" role="img" aria-label={label}>
         {icon}
       </span>
-      <div>
+      <div className="verdict__text">
         <p className="verdict__reason">{result.reason ?? need}</p>
-        {result.evidence.map((evidence) => (
-          <p key={`${evidence.kind}:${evidence.label}`} className="evidence">
-            {evidence.kind === 'quote' ? `„${evidence.label}”` : evidence.label}
+        {result.evidence.length > 0 && (
+          <p className="chips">
+            {result.evidence.map((evidence) => (
+              <span key={`${evidence.kind}:${evidence.label}`} className="chip" title={evidence.label}>
+                {evidence.kind === 'quote' ? `„${evidence.label}”` : evidence.label}
+              </span>
+            ))}
           </p>
-        ))}
+        )}
       </div>
     </li>
   )

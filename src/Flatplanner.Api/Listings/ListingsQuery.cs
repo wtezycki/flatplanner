@@ -1,10 +1,11 @@
 using Flatplanner.Core.Search;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Flatplanner.Api.Listings;
 
 public sealed record ListingsQuery(
-    string[]? Cities,
-    string[]? Districts,
+    [FromQuery] string[]? Cities,
+    [FromQuery] string[]? Districts,
     int? PriceMin,
     int? PriceMax,
     decimal? AreaMin,
@@ -19,9 +20,9 @@ public sealed record ListingsQuery(
     bool? RequireLift,
     bool? RequireBalcony,
     string? Text,
-    string[]? Preferences,
+    [FromQuery] string[]? Preferences,
     string? RequestedCityOutOfScope,
-    string[]? OutOfScope,
+    [FromQuery] string[]? OutOfScope,
     string? Sort,
     int? Page)
 {

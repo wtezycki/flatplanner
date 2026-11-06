@@ -25,7 +25,7 @@ public sealed class AskService(
     private static readonly AskNotice JudgeFailed =
         new("judge_failed", "Części ogłoszeń nie udało się sprawdzić — oznaczyliśmy je jako brak danych.");
 
-    public async Task<AskResponse> AskAsync(string message, IReadOnlyCollection<int> excludeNeeds, CancellationToken ct)
+    public async Task<AskResponse> AskAsync(string message, IReadOnlyCollection<int> excludeNeeds, SearchIntent filters, CancellationToken ct)
     {
         var meta = await SearchMetaLoader.LoadAsync(db, ct);
         var key = TextFolding.Fold(message);
@@ -38,7 +38,19 @@ public sealed class AskService(
             }
         }
 
-        return await RespondAsync(evaluation, excludeNeeds.ToHashSet(), meta, ct);
+        var allowed = await NarrowAsync(evaluation, SearchIntentNormalizer.Normalize(filters, meta).Intent, ct);
+        return await RespondAsync(evaluation, allowed, excludeNeeds.ToHashSet(), meta, ct);
+    }
+
+    private async Task<IReadOnlySet<long>> NarrowAsync(AskEvaluation evaluation, SearchIntent filters, CancellationToken ct)
+    {
+        var ids = evaluation.Candidates.Select(c => c.Listing.Id).ToList();
+        var allowed = await db.Listings.AsNoTracking()
+            .Where(l => ids.Contains(l.Id))
+            .Apply(filters)
+            .Select(l => l.Id)
+            .ToListAsync(ct);
+        return allowed.ToHashSet();
     }
 
     private async Task<AskEvaluation> EvaluateAsync(string message, SearchMeta meta, CancellationToken ct)
@@ -117,12 +129,14 @@ public sealed class AskService(
         };
     }
 
-    private async Task<AskResponse> RespondAsync(AskEvaluation evaluation, IReadOnlySet<int> excluded, SearchMeta meta, CancellationToken ct)
+    private async Task<AskResponse> RespondAsync(
+        AskEvaluation evaluation, IReadOnlySet<long> allowed, IReadOnlySet<int> excluded, SearchMeta meta, CancellationToken ct)
     {
         var filters = InterpretationBuilder.Build(evaluation.Intent, meta, []);
         var summary = string.Join(InterpretationBuilder.Separator, new[] { filters.Summary }.Concat(evaluation.Needs).Where(s => s.Length > 0));
 
         var rows = evaluation.Candidates
+            .Where(c => allowed.Contains(c.Listing.Id))
             .Select(c => new VerdictRow(c.Listing.Id, c.Listing.CreatedAtSource, evaluation.Results[c.Listing.Id].Select(r => r.Verdict).ToList()))
             .ToList();
         var candidates = evaluation.Candidates.ToDictionary(c => c.Listing.Id);

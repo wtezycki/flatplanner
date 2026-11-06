@@ -1,4 +1,5 @@
 using Flatplanner.Api.Chat;
+using Flatplanner.Api.Listings;
 using Flatplanner.Core.Options;
 using Microsoft.Extensions.Options;
 
@@ -10,6 +11,7 @@ public static class AskEndpoints
     {
         app.MapPost("/api/search/ask", async (
             AskRequest request,
+            [AsParameters] ListingsQuery filters,
             AskService ask,
             IOptions<FlatplannerOptions> options,
             CancellationToken ct) =>
@@ -24,7 +26,7 @@ public static class AskEndpoints
                 });
             }
 
-            return Results.Json(await ask.AskAsync(message, request.ExcludeNeeds ?? [], ct), ApiJson.Options);
+            return Results.Json(await ask.AskAsync(message, request.ExcludeNeeds ?? [], filters.ToIntent(), ct), ApiJson.Options);
         });
     }
 }

@@ -86,6 +86,31 @@ Districts with a single listing (manual review): gdansk/chelm, gdansk/kokoszki, 
 | gdynia | 59 | 11741 |
 | sopot | 30 | 25450 |
 
+## Listing dossier
+
+Prompt `listing-dossier.v2`, produced by: agent. `nearby_json` filled: 197/197 (100%).
+
+| facts_status | n |
+|---|---|
+| pending | 0 |
+| done | 197 |
+| skipped | 0 |
+| failed | 0 |
+
+Invalid lines: 0. Dropped risks: 2/137 (1.5%).
+
+| kind | accepted | dropped |
+|---|---|---|
+| extra_cost | 42 | 2 |
+| legal | 15 | 0 |
+| occupied | 8 | 0 |
+| noise | 23 | 0 |
+| field_mismatch | 47 | 0 |
+
+| drop reason | n |
+|---|---|
+| amount_not_in_quote | 2 |
+
 ## Duplicate candidates
 
 Pairs: 74; listings in at least one pair: 52/197 (26.4%).

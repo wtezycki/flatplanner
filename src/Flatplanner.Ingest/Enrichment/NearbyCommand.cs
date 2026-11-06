@@ -12,11 +12,10 @@ public sealed class NearbyCommand(FlatplannerDbContext db, ILogger<NearbyCommand
     private const string OverpassUrl = "https://overpass-api.de/api/interpreter";
     private const string UserAgent = "Flatplanner-Ingest/1.0 (one-off local import)";
     private const int RadiusM = 1_500;
-    private const int MaxPlaces = 60;
-
+    private const int PlacesPerKind = 3;
     private const int BusyRetries = 5;
+    private const double MetresPerDegreeLat = 111_320;
 
-    private static readonly TimeSpan RequestInterval = TimeSpan.FromSeconds(1);
     // overpass-api.de allows 2 query slots per IP and answers 429 while both cool down.
     private static readonly TimeSpan BusyDelay = TimeSpan.FromSeconds(30);
     private static readonly string[] ExtraTags = ["isced:level", "religion", "denomination"];
@@ -37,43 +36,65 @@ public sealed class NearbyCommand(FlatplannerDbContext db, ILogger<NearbyCommand
     public async Task RunAsync(CancellationToken cancellationToken)
     {
         var listings = await db.Listings.Where(l => l.NearbyJson == null).ToListAsync(cancellationToken);
-        var filled = 0;
-        foreach (var listing in listings)
+        if (listings.Count == 0)
         {
-            try
-            {
-                var places = await FetchPlacesAsync((double)listing.Lat, (double)listing.Lng, cancellationToken);
-                listing.NearbyJson = JsonSerializer.Serialize(places, DossierJson.Options);
-                await db.SaveChangesAsync(cancellationToken);
-                filled++;
-            }
-            catch (Exception ex) when (ex is HttpRequestException or JsonException or KeyNotFoundException or TaskCanceledException && !cancellationToken.IsCancellationRequested)
-            {
-                logger.LogError(ex, "Overpass failed for {ExternalId}", listing.ExternalId);
-            }
-
-            await Task.Delay(RequestInterval, cancellationToken);
+            logger.LogInformation("Nearby: no listings without nearby_json");
+            return;
         }
 
-        logger.LogInformation("Nearby: {Filled}/{Total} listings filled", filled, listings.Count);
+        List<OsmPlace> places;
+        try
+        {
+            places = await FetchPlacesAsync(BoundingBox(listings), cancellationToken);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException or KeyNotFoundException or TaskCanceledException && !cancellationToken.IsCancellationRequested)
+        {
+            logger.LogError(ex, "Overpass failed, nearby_json left empty for {Count} listings", listings.Count);
+            return;
+        }
+
+        foreach (var listing in listings)
+        {
+            var nearest = NearestPlaces(places, (double)listing.Lat, (double)listing.Lng);
+            listing.NearbyJson = JsonSerializer.Serialize(nearest, DossierJson.Options);
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        logger.LogInformation("Nearby: {Count} listings filled from {Places} OSM places", listings.Count, places.Count);
     }
 
     public void Dispose() => http.Dispose();
 
     private static HttpClient CreateHttpClient()
     {
-        var client = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
+        var client = new HttpClient { Timeout = TimeSpan.FromSeconds(200) };
         client.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent);
         return client;
     }
 
-    private async Task<List<NearbyPlace>> FetchPlacesAsync(double lat, double lng, CancellationToken cancellationToken)
+    private static string BoundingBox(IReadOnlyCollection<Listing> listings)
     {
-        using var response = await PostWithBusyRetryAsync(BuildQuery(lat, lng), cancellationToken);
+        var south = (double)listings.Min(l => l.Lat);
+        var north = (double)listings.Max(l => l.Lat);
+        var latMargin = RadiusM / MetresPerDegreeLat;
+        var lngMargin = RadiusM / (MetresPerDegreeLat * Math.Cos(north * Math.PI / 180));
+        return string.Create(CultureInfo.InvariantCulture,
+            $"{south - latMargin},{(double)listings.Min(l => l.Lng) - lngMargin},{north + latMargin},{(double)listings.Max(l => l.Lng) + lngMargin}");
+    }
+
+    private async Task<List<OsmPlace>> FetchPlacesAsync(string boundingBox, CancellationToken cancellationToken)
+    {
+        var filters = PlaceTags.Select(tag => $"nwr[{tag.Key}~\"^({string.Join('|', tag.Values)})$\"];");
+        var query = $"[out:json][timeout:180][bbox:{boundingBox}];({string.Concat(filters)});out center bb tags;";
+
+        using var response = await PostWithBusyRetryAsync(query, cancellationToken);
         response.EnsureSuccessStatusCode();
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
         using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
-        return ToPlaces(document.RootElement.GetProperty("elements"), lat, lng);
+        return document.RootElement.GetProperty("elements").EnumerateArray()
+            .Select(ToOsmPlace)
+            .OfType<OsmPlace>()
+            .ToList();
     }
 
     private async Task<HttpResponseMessage> PostWithBusyRetryAsync(string query, CancellationToken cancellationToken)
@@ -93,37 +114,21 @@ public sealed class NearbyCommand(FlatplannerDbContext db, ILogger<NearbyCommand
         }
     }
 
-    private static string BuildQuery(double lat, double lng)
-    {
-        var around = string.Create(CultureInfo.InvariantCulture, $"around:{RadiusM},{lat},{lng}");
-        var filters = PlaceTags.Select(tag => $"nwr({around})[{tag.Key}~\"^({string.Join('|', tag.Values)})$\"];");
-        return $"[out:json][timeout:25];({string.Concat(filters)});out center tags;";
-    }
-
-    private static List<NearbyPlace> ToPlaces(JsonElement elements, double lat, double lng) =>
-        elements.EnumerateArray()
-            .Select(element => ToPlace(element, lat, lng))
-            .OfType<NearbyPlace>()
+    // A global "nearest N" fills up with unnamed woods and playgrounds; a cap per kind keeps rarer places such as an Orthodox church (16.1).
+    private static List<NearbyPlace> NearestPlaces(IEnumerable<OsmPlace> places, double lat, double lng) =>
+        places
+            .Select(place => new NearbyPlace(place.Name, place.Tag, place.Extra, (int)Math.Round(place.DistanceM(lat, lng))))
+            .Where(place => place.DistanceM <= RadiusM)
             .GroupBy(place => place.Name is null ? (object)place : (place.Name, place.Tag))
             .Select(group => group.MinBy(place => place.DistanceM)!)
+            .GroupBy(place => (place.Tag, place.Extra))
+            .SelectMany(kind => kind.OrderBy(place => place.DistanceM).Take(PlacesPerKind))
             .OrderBy(place => place.DistanceM)
-            .Take(MaxPlaces)
             .ToList();
 
-    private static NearbyPlace? ToPlace(JsonElement element, double lat, double lng)
+    private static OsmPlace? ToOsmPlace(JsonElement element)
     {
-        if (!element.TryGetProperty("tags", out var tags))
-        {
-            return null;
-        }
-
-        var point = element.TryGetProperty("center", out var center) ? center : element;
-        if (!point.TryGetProperty("lat", out var placeLat) || !point.TryGetProperty("lon", out var placeLng))
-        {
-            return null;
-        }
-
-        if (MatchTag(tags) is not { } tag)
+        if (!element.TryGetProperty("tags", out var tags) || MatchTag(tags) is not { } tag)
         {
             return null;
         }
@@ -133,9 +138,22 @@ public sealed class NearbyCommand(FlatplannerDbContext db, ILogger<NearbyCommand
             .OfType<string>()
             .ToList();
         var name = tags.TryGetProperty("name", out var nameValue) ? nameValue.GetString() : null;
-        var distance = Haversine.DistanceM(lat, lng, placeLat.GetDouble(), placeLng.GetDouble());
+        var extra = extras.Count == 0 ? null : string.Join(';', extras);
 
-        return new NearbyPlace(name, tag, extras.Count == 0 ? null : string.Join(';', extras), (int)Math.Round(distance));
+        if (element.TryGetProperty("bounds", out var bounds))
+        {
+            return new OsmPlace(name, tag, extra,
+                bounds.GetProperty("minlat").GetDouble(), bounds.GetProperty("minlon").GetDouble(),
+                bounds.GetProperty("maxlat").GetDouble(), bounds.GetProperty("maxlon").GetDouble());
+        }
+
+        var point = element.TryGetProperty("center", out var center) ? center : element;
+        if (!point.TryGetProperty("lat", out var lat) || !point.TryGetProperty("lon", out var lon))
+        {
+            return null;
+        }
+
+        return new OsmPlace(name, tag, extra, lat.GetDouble(), lon.GetDouble(), lat.GetDouble(), lon.GetDouble());
     }
 
     private static string? MatchTag(JsonElement tags)
@@ -149,5 +167,12 @@ public sealed class NearbyCommand(FlatplannerDbContext db, ILogger<NearbyCommand
         }
 
         return null;
+    }
+
+    // Areas are measured to the nearest point of their bounding box, so a large forest counts from its edge.
+    private sealed record OsmPlace(string? Name, string Tag, string? Extra, double MinLat, double MinLng, double MaxLat, double MaxLng)
+    {
+        public double DistanceM(double lat, double lng) =>
+            Haversine.DistanceM(lat, lng, Math.Clamp(lat, MinLat, MaxLat), Math.Clamp(lng, MinLng, MaxLng));
     }
 }

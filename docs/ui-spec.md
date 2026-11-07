@@ -448,6 +448,8 @@ Green tokens from §2 map to teal (`--green-600` → `--teal-700`, `--green-50` 
 
 ### 11.2 Layout of `/`
 
+The hero, the example chips and the teal bands below were replaced by the layout of §11.5; the card and group rules still apply.
+
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │ Flatplanner                                         teal-900 header, 64 px    │
@@ -482,14 +484,13 @@ Green tokens from §2 map to teal (`--green-600` → `--teal-700`, `--green-50` 
 - Risks: under the needs in the AI column, heading "Na co uważać", one line per risk with its kind as a small badge and the evidence under it; an `extra_cost` risk with `totalWithExtrasPln` shows "Łącznie z dopłatą: {total}" in `--fs-md`, bold.
 - Details page: same tokens, no provenance badges (design §16.5).
 
-### 11.3 Copy for §7 (to be moved into §7.1 when implemented)
+### 11.3 Copy for §7 (implemented in #7′b; the single source stays this table, §7.1 adds only the strings below)
 
 | Key | Text |
 |---|---|
 | hero heading | Opisz, czego szukasz. Resztę przeczytamy za Ciebie. |
 | input placeholder | np. Pracuję na nocki i mam psa, szukam czegoś w Gdańsku do 700 tys. |
 | button | Szukaj |
-| example chips | Ukrainiec, szkoła na Morenie · Muzyk, ćwiczę codziennie · Pies i park · Rodzice na wózku |
 | progress steps | Rozumiem pytanie · Czytam ogłoszenia · Sprawdzam dowody |
 | summary prefix | Zrozumiałem: |
 | AI column heading | Dlaczego pasuje |
@@ -500,20 +501,24 @@ Green tokens from §2 map to teal (`--green-600` → `--teal-700`, `--green-50` 
 | unknown group | Ogłoszenie o tym nie mówi ({n}) |
 | relaxation lead (no `full`) | Żadne mieszkanie nie spełnia wszystkich warunków. Najczęściej odpada: {need} ({count} z {total}). |
 | relaxation button | Pokaż bez tego warunku ({count}) |
+| need chip remove button (aria-label) | Usuń warunek „{need}” |
+| restore excluded needs | Przywróć wszystkie warunki |
+| clear the question (aria-label) | Wyczyść pytanie |
 | hard-filter relaxation | Bez warunku „{filter}”: {count} mieszkań |
 | risks heading | Na co uważać |
 | risk kinds | Dopłata · Stan prawny · Lokal zajęty · Hałas · Niezgodność z danymi ogłoszenia |
 | real price | Łącznie z dopłatą: {total} |
-| classic link | Wolisz klasyczne filtry? |
+| ask network or 5xx error (under the field) | Nie udało się połączyć. Spróbuj ponownie lub skorzystaj z klasycznych filtrów. |
 | AI unavailable | AI chwilowo niedostępne — pokazujemy wyniki według podstawowych kryteriów. |
 | no results (no candidates and no relaxation helps) | Nie mamy mieszkań, które spełniają te warunki. Spróbuj opisać to inaczej. |
+| judge limited (API notice `judge_limited`) | Oceniliśmy {n} najnowszych z {m} ogłoszeń. Zawęź miasto, dzielnicę lub cenę, żeby sprawdzić resztę. |
 | judge batch failed (API notice `judge_failed`) | Części ogłoszeń nie udało się sprawdzić — oznaczyliśmy je jako brak danych. |
 | field evidence (API) | {7.2 label}: {value}; booleans „tak” / „nie”; floor as in 7.2 („4 z 6”, „parter”, „suterena”) |
 | unnamed place evidence (API, „{name} · {d} m”) | `amenity`: school szkoła · kindergarten przedszkole · place_of_worship miejsce kultu · pharmacy apteka · clinic przychodnia · hospital szpital · doctors gabinet lekarski · university uczelnia · veterinary weterynarz · bar bar · pub pub · nightclub klub nocny · restaurant restauracja · cafe kawiarnia · charging_station stacja ładowania · bicycle_rental wypożyczalnia rowerów; `leisure`: park park · playground plac zabaw · dog_park wybieg dla psów · fitness_centre siłownia · sports_centre centrum sportowe · swimming_pool basen · stadium stadion; `natural=wood`, `landuse=forest` las · `natural=beach` plaża · `landuse=cemetery` cmentarz; `railway`: station stacja kolejowa · halt przystanek kolejowy · tram_stop przystanek tramwajowy · rail linia kolejowa · tram torowisko tramwajowe; `highway`: bus_stop przystanek autobusowy · motorway autostrada · trunk droga ekspresowa · primary główna ulica; `shop`: supermarket supermarket · convenience sklep spożywczy · mall centrum handlowe; `place=city|town` centrum miasta · `aeroway=aerodrome` lotnisko; `route`: bus linia autobusowa · trolleybus linia trolejbusowa · tram linia tramwajowa · train linia kolejowa · light_rail kolej miejska; any other tag „miejsce” |
 
-### 11.4 Classic list `/` as built (item #5, restyled)
+### 11.4 Classic list as built (item #5, restyled; the results of `/` without a question since R26)
 
-The classic list uses the §11.1 tokens. Until `ask` exists (design §16.2) `/` stays the list; the text search sits in the top bar (no hero heading, no example chips, no progress card). Deviations from §4.1, §5.4 and §9, decided with the restyle:
+The classic list uses the §11.1 tokens. Since R26 it is what the results column of §11.5 shows while there is no `q`; the text search sits at the top of the filter panel. Deviations from §4.1, §5.4 and §9, decided with the restyle (the top-bar search field of the first bullet moved to the filter panel with R26):
 
 - **One top bar, no hero:** a single 72 px bar (64 px ≤ 640 px) on `--color-surface` with a 1 px `--color-border` bottom edge holds, in one row, the logo, the wordmark, the search field and the „Szukaj” button. There is no teal header or hero band and no gradient (the §11.2 teal bands are dropped for the classic list; the teal stays in buttons, pills, links and the focus ring). The search field is a 52 px pill on `--color-bg`. ≤ 640 px the wordmark is hidden. No tagline or data date, so the §5.1 right-hand text and the §7.1 header string are dropped.
 - **Brand assets:** `web/src/assets/flatplanner.svg` (logo, 40 px; the supplied file without its `#F5F2EF` background tile) and `flatbanner.svg` (wordmark, 26 px high, the supplied file as is) with the motto from §7.1 under it (`--fs-xs`, secondary). The logo link has `aria-label` „Flatplanner”. The logo is also the favicon (`index.html`).
@@ -526,3 +531,15 @@ The classic list uses the §11.1 tokens. Until `ask` exists (design §16.2) `/` 
 - **`--color-border-strong`** is `#8a8279`, not `#b6aea5`: the §11.1 value gives 2.19:1 on white, below the 3:1 §2 requires for field outlines (`#8a8279`: 3.78:1 on white, 3.39:1 on `--color-bg`).
 - **Contrast checked** with the WCAG formula: `--on-teal` on `--teal-900` 6.26:1 and on `--teal-700` 4.91:1; `--teal-900` on `--color-bg` 5.87:1; white on `--teal-700` 5.14:1; `--color-text-secondary` on `--color-bg` 4.64:1.
 - Provenance, verdict and info tokens are not defined in `styles.css` until a view uses them.
+
+### 11.5 Ask page `/` as built (item #7′b)
+
+- **One screen (R26, user decision 2026-11-06; replaces the chat column and the `?view=classic` panel of the first #7′b build):** `/` is a normal scrolling page in the 1280 px container: the hero heading and the AI composer on top, then the classic two-column layout of §11.4 (filter panel on the left with the text search above it, results on the right). Without `q` the results column is the classic list (results bar with count and sort, cards, pagination). With `q` it holds the reply (progress, summary, need chips, notices, relaxations) and the AI tiles; the filter panel narrows them through the `ask` query string, the previous results stay visible while a narrowed response loads, and the reply heading „Zrozumiałem:” shows the interpretation of the question only. `?listing=<id>` replaces the whole screen with the details and „‹ Wróć do wyników”. State is in the URL (`q`, `listing`, the filter parameters, `sort`, `page`), so refresh and „back” work. `/listings` and `/listings/:id` redirect to `/` with their parameters and to `/?listing=:id`.
+- The hero heading (28 px, centred above the composer, 22 px ≤ 640 px) stays visible without `q` and is visually hidden with `q` (it labels the input). The composer is a pill with the input, a „×” button while there is a `q` (aria-label „Wyczyść pytanie”, removes `q` and keeps the filters) and the „Szukaj” button; it keeps the current question for editing, submitting it unchanged re-sends it and clears excluded needs, submitting it empty removes `q`. Input `maxLength` is `chatMaxLength` from `/api/meta`. The filter panel collapses under a „Filtry” toggle whenever the content is narrower than 820 px.
+- The AI results are paginated, 12 tiles per page (`ASK_PAGE_SIZE`, shared `Pagination`, parameter `page`); the unknown group „Ogłoszenie o tym nie mówi ({n})” is a collapsed block on the last page. Only the latest question is shown (the backend keeps no conversation until #7′c).
+- The header is the white top bar of §11.4 on every page and holds no search field.
+- While `ask` runs, the reply shows one step at a time as text with three bouncing dots (CSS animation, a user-requested exception to §9; off under `prefers-reduced-motion`): „Rozumiem pytanie” → „Czytam ogłoszenia” (after 2 s) → „Sprawdzam dowody” (after 6 s). It is a timer, not real progress; the step text changes and the dots keep moving, so state is never conveyed by animation alone.
+- **Tiles instead of the §11.2 three-column card (user decision 2026-11-06, compacted by R26):** results are a grid of tiles (`repeat(auto-fill, minmax(260px, 1fr))`), each with a large 4:3 photo on top, price and parameters, location, title (the stretched link), then one row of verdict pills (verdict icon and the need, in the verdict colour on a light background; in the `near` group the failing need comes first) and the AI summary in a `--teal-50` box labelled „✨ AI:”, clamped to two lines. A collapsed `<details>` „Dlaczego pasuje” holds the reason and evidence per need (evidence as small chips: a quote in „…”, a place or field as given; a need without a reason shows the need text in `--verdict-unknown`). Risks are a collapsed `<details>` „Na co uważać ({n})” with the risk kinds as badges in the summary; „Łącznie z dopłatą” stays visible. Excluded needs are left out of the pills and the reasons.
+- Need chips (`--teal-50`, pill) have a „×” button (aria-label „Usuń warunek „{need}””) that re-sends the question with that need excluded; an excluded need leaves the chip row and „Przywróć wszystkie warunki” (link button) appears after the chips. Notices (`clarify`, `ai_unavailable`, `judge_limited`, `judge_failed`) and declined parts are plain secondary-colour lines with „ⓘ”, not coloured boxes. The relaxation lead stays a white panel with buttons.
+- Relaxation lead takes `{total}` as the number of cards shown; one button per relaxation. With no cards, hard-filter relaxations are plain lines.
+- With `needs: []` (AI fallback) the group headings are not shown, because the cards are plain filter results.

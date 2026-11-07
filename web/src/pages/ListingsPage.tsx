@@ -1,11 +1,10 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { Link, useSearchParams } from 'react-router'
 import { ApiError, DEFAULT_RETRY_AFTER_SECONDS, fetchListings, metaQuery } from '../api.ts'
-import Filters from '../components/Filters.tsx'
 import ListingCard from '../components/ListingCard.tsx'
 import Pagination from '../components/Pagination.tsx'
 import { formatListingsCount } from '../format.ts'
-import { intentFromSearchParams } from '../intent.ts'
+import { intentFromSearchParams, withoutWorkspaceParams } from '../intent.ts'
 
 const SKELETON_CARDS = 3
 
@@ -14,7 +13,7 @@ function ListError({ error, onRetry }: { error: Error; onRetry: () => void }) {
     return (
       <div className="notice notice--error">
         <p>Nieprawidłowe parametry wyszukiwania.</p>
-        <Link to="/">Wyczyść wyszukiwanie</Link>
+        <Link to="/listings">Wyczyść wyszukiwanie</Link>
       </div>
     )
   }
@@ -46,7 +45,8 @@ function Skeleton() {
 }
 
 export default function ListingsPage() {
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [allParams, setSearchParams] = useSearchParams()
+  const searchParams = withoutWorkspaceParams(allParams)
   const intent = intentFromSearchParams(searchParams)
   const meta = useQuery(metaQuery)
   const listings = useQuery({
@@ -62,7 +62,7 @@ export default function ListingsPage() {
   const marketLabel = (value: string) => meta.data?.enums.market.find((option) => option.value === value)?.label
 
   const changeSort = (sort: string) => {
-    const next = new URLSearchParams(searchParams)
+    const next = new URLSearchParams(allParams)
     next.set('sort', sort)
     next.delete('page')
     setSearchParams(next)
@@ -102,42 +102,35 @@ export default function ListingsPage() {
   }
 
   return (
-    <>
-      <div className="container">
-        {data?.interpretation.warnings.map((warning) => (
-          <div key={`${warning.field}:${warning.message}`} className="notice notice--warning">
-            <span className="sr-only">Uwaga: </span>
-            {warning.message}
-          </div>
-        ))}
-        <div className="layout">
-          <Filters />
-          <section className="results" aria-busy={listings.isPending}>
-            <div className="results__bar">
-              <p className="results__count" aria-live="polite">
-                {countLabel}
-              </p>
-              {sortOptions.length > 0 && (
-                <label className="results__sort">
-                  Sortuj
-                  <select
-                    className="field"
-                    value={data?.sort ?? searchParams.get('sort') ?? 'newest'}
-                    onChange={(event) => changeSort(event.target.value)}
-                  >
-                    {sortOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-            </div>
-            {body}
-          </section>
+    <section className="results" aria-busy={listings.isPending}>
+      {data?.interpretation.warnings.map((warning) => (
+        <div key={`${warning.field}:${warning.message}`} className="notice notice--warning">
+          <span className="sr-only">Uwaga: </span>
+          {warning.message}
         </div>
+      ))}
+      <div className="results__bar">
+        <p className="results__count" aria-live="polite">
+          {countLabel}
+        </p>
+        {sortOptions.length > 0 && (
+          <label className="results__sort">
+            Sortuj
+            <select
+              className="field"
+              value={data?.sort ?? searchParams.get('sort') ?? 'newest'}
+              onChange={(event) => changeSort(event.target.value)}
+            >
+              {sortOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
-    </>
+      {body}
+    </section>
   )
 }

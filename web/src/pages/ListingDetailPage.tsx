@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState, type ReactNode } from 'react'
-import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import {
   ApiError,
   DEFAULT_RETRY_AFTER_SECONDS,
@@ -58,20 +57,15 @@ function KeyFact({ icon, label, value }: { icon: IconName; label: string; value:
   )
 }
 
-function BackLink() {
-  const navigate = useNavigate()
-  const location = useLocation()
-
-  return location.key === 'default' ? (
-    <Link to="/">‹ Wszystkie oferty</Link>
-  ) : (
-    <button className="btn btn--link" type="button" onClick={() => void navigate(-1)}>
+function BackLink({ onClose }: { onClose: () => void }) {
+  return (
+    <button className="btn btn--link" type="button" onClick={onClose}>
       ‹ Wróć do wyników
     </button>
   )
 }
 
-function Details({ listing }: { listing: ListingDetail }) {
+function Details({ listing, onClose }: { listing: ListingDetail; onClose: () => void }) {
   const meta = useQuery(metaQuery).data
   const [openedPhoto, setOpenedPhoto] = useState<string>()
   const location = [listing.districtName, listing.street, listing.cityName].filter(Boolean).join(', ')
@@ -89,7 +83,7 @@ function Details({ listing }: { listing: ListingDetail }) {
   return (
     <div className="container detail">
       <div className="detail__back">
-        <BackLink />
+        <BackLink onClose={onClose} />
       </div>
       <article className="sheet">
         <div className="detail__gallery detail__gallery--mosaic">
@@ -194,13 +188,15 @@ function Skeleton() {
   return <div className="container detail detail--skeleton" aria-busy="true" />
 }
 
-function DetailError({ error, onRetry }: { error: Error; onRetry: () => void }) {
+function DetailError({ error, onRetry, onClose }: { error: Error; onRetry: () => void; onClose: () => void }) {
   if (error instanceof ApiError && error.status === 404) {
     return (
       <div className="container detail">
         <div className="notice notice--error">
           <p>Nie znaleziono oferty.</p>
-          <Link to="/">Wróć do listy ofert</Link>
+          <button className="btn btn--link" type="button" onClick={onClose}>
+            Wróć do listy ofert
+          </button>
         </div>
       </div>
     )
@@ -226,8 +222,12 @@ function DetailError({ error, onRetry }: { error: Error; onRetry: () => void }) 
   )
 }
 
-export default function ListingDetailPage() {
-  const { id = '' } = useParams()
+interface Props {
+  id: string
+  onClose: () => void
+}
+
+export default function ListingDetailPage({ id, onClose }: Props) {
   const meta = useQuery(metaQuery)
   const listing = useQuery({
     queryKey: ['listing', id],
@@ -236,7 +236,7 @@ export default function ListingDetailPage() {
   })
 
   if (listing.isError) {
-    return <DetailError error={listing.error} onRetry={() => void listing.refetch()} />
+    return <DetailError error={listing.error} onRetry={() => void listing.refetch()} onClose={onClose} />
   }
-  return listing.data && !meta.isPending ? <Details listing={listing.data} /> : <Skeleton />
+  return listing.data && !meta.isPending ? <Details listing={listing.data} onClose={onClose} /> : <Skeleton />
 }

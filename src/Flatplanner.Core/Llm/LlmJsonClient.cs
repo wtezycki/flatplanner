@@ -2,6 +2,7 @@ using System.ClientModel;
 using System.ClientModel.Primitives;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Logging;
 using OpenAI;
 using OpenAI.Chat;
 
@@ -19,11 +20,13 @@ public sealed class LlmJsonClient
 
     private readonly Lazy<ChatClient> client;
     private readonly TimeSpan timeout;
+    private readonly ILogger<LlmJsonClient> logger;
 
     // The client is created on first use, so CHAT_MODE=fallback runs without an API key.
-    public LlmJsonClient(string model, string apiKey, TimeSpan timeout, int maxRetries)
+    public LlmJsonClient(string model, string apiKey, TimeSpan timeout, int maxRetries, ILogger<LlmJsonClient> logger)
     {
         this.timeout = timeout;
+        this.logger = logger;
         client = new Lazy<ChatClient>(() => new ChatClient(
             model,
             new ApiKeyCredential(apiKey),
@@ -66,6 +69,9 @@ public sealed class LlmJsonClient
         {
             throw new LlmException(LlmFailure.ApiError, ex);
         }
+
+        logger.LogInformation("LLM call {Schema}: {InputTokens} input ({CachedTokens} cached), {OutputTokens} output tokens",
+            schemaName, completion.Usage?.InputTokenCount, completion.Usage?.InputTokenDetails?.CachedTokenCount, completion.Usage?.OutputTokenCount);
 
         if (completion.Refusal is not null || completion.FinishReason == ChatFinishReason.ContentFilter)
         {

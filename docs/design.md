@@ -1632,7 +1632,7 @@ A judged listing sends ~6 800 characters (~2 400 tokens; measured on the 40 newe
    The listings are no longer a prefix shared between questions, so the "`needs` last" prompt-cache note of 16.7 no longer applies; the response cache (16.2) is unchanged.
    Simulated on the 40 newest local listings: school + quiet + MSWiA ~1 100 characters per listing, dog walks ~600, night transit ~1 400, against ~6 800 before.
 3. **Shorter output** (`prompts/listing-judge.v2.md`): 1–2 evidence items, `reason` at most ~15 words. Output tokens cost 5× input (14.2).
-4. **Small model for both calls:** `LLM_MODEL` and `LLM_JUDGE_MODEL` default to `gpt-5.6-luna` (decided 2026-11-06, before the verdict check; supersedes the 14.2 choice of `gpt-6.1-terra`); an empty `LLM_JUDGE_MODEL` still falls back to `LLM_MODEL`. The interpretation carries the need plan every later step depends on, so its needs, places and keywords are read on the 16.6 scenarios too, and its latency must fit `CHAT_TIMEOUT_SECONDS` with the longer output (the first terra run timed out twice at 5 s) **[TO VERIFY on the first run]**. The verdicts for the demo listings (16.6: 70, 97, 166) are read against those of `LLM_MODEL` on the 16.6 scenarios and recorded here; effort `none` must be accepted by the model **[TO VERIFY on the first run]**.
+4. **Small model for both calls:** `LLM_MODEL` and `LLM_JUDGE_MODEL` default to `gpt-5.6-luna` (decided 2026-11-06, before the verdict check; supersedes the 14.2 choice of `gpt-6.1-terra`); an empty `LLM_JUDGE_MODEL` still falls back to `LLM_MODEL`. The interpretation carries the need plan every later step depends on, so its needs, places and keywords are read on the 16.6 scenarios too, and its latency must fit `CHAT_TIMEOUT_SECONDS` with the longer output (the first terra run timed out twice at 5 s) (verified 2026-11-07, below). The verdicts for the demo listings (16.6: 70, 97, 166) are read against those of `LLM_MODEL` on the 16.6 scenarios and recorded here; effort `none` must be accepted by the model (verified 2026-11-07, below).
 
 **Fallbacks:** unchanged. Interpret failure gives `needs: []`, so there is no judge call; the `places` enum is strict, so an unknown tag cannot arrive.
 
@@ -1640,4 +1640,14 @@ A judged listing sends ~6 800 characters (~2 400 tokens; measured on the 40 newe
 
 **Tests (§12):** `JudgeInputTests`: nearby limited to the planned tags with original indexes, route names dropped, sentences selected by folded keywords in their order, no match gives an empty description, an empty plan gives the full dossier. `SearchIntentSchemaTests`: the `places` enum, need deserialization, keyword cleaning.
 
-**Definition of done:** the judge input averages ≤ 600 tokens per listing in the `LLM call` log over the 16.6 scenarios **[TO VERIFY on the first run]**; the demo scenarios (16.6) give the same groups as before on listings 70, 97 and 166; a new question costs ≤ $0.02 by the usage log; tests green.
+**Definition of done:** the judge input averages ≤ 600 tokens per listing in the `LLM call` log over the 16.6 scenarios (verified 2026-11-07, below); the demo scenarios (16.6) give the same groups as before on listings 70, 97 and 166; a new question costs ≤ $0.02 by the usage log; tests green.
+
+**Measured (2026-11-07, `gpt-5.6-luna` for both calls, effort `none`, all 197 listings judged, no cap):** three 16.6 questions without hard filters (night worker + child to school; home office with clients + synagogue; Ukrainian buyer without the MSWiA permit + pre-war tenement). Every interpret call fit in 5 s (no fallback) and every judge batch returned (no `judge_failed`). Wall time 34 s, 15 s and 17 s.
+
+| Question | Judge input (14 batches) | Per listing | Judge output | Interpret in / out |
+|---|---|---|---|---|
+| night worker + school | 89 804 | 456 | 22 778 | 3 671 / 160 |
+| home office + synagogue | 81 805 | 415 | 15 447 | 3 665 / 145 |
+| Ukrainian buyer + tenement | 43 963 | 223 | 20 499 | 3 674 / 149 |
+
+Per listing includes the ~1 258-token prompt of each batch (cached). Output is now the larger cost: at the `gpt-6-luna` prices of 16.7 ($0.10 / $0.50) a question is ~$0.015–0.021, with the `gpt-5.6-luna` price itself not recorded in 14.2. Demo listings: 70 is `full` for night worker + school; 97 is `full` for home office + synagogue; 166 is `full` for the Ukrainian buyer and `partial` for home office (synagogue `unknown`). The earlier groups of these listings were not recorded, so "same groups as before" is checked only against the 16.6 expectations.

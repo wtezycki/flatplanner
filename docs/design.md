@@ -1579,7 +1579,7 @@ Anything outside these rules and the dossier is `unknown`.
 
 Kept as built: `GET /api/listings` (#4) and the listings page with filters (#5) as the secondary path. Changed: #6 details become a plain page with fields, description and a link to otodom (no provenance badges, no "Ask the seller"). Replaced: #7 → `ask` (16.2); #8 ranking → 16.2 steps 5–6; #12 "what blocks" → 16.2 step 6 (relaxations from verdicts, hard-filter counts only at zero candidates); #11 → dossier (16.1). Cut: the #12 `blockers` field and `Blockers.tsx`, #13 chips with removal, #14 ask the seller, medians, `why`, quality-flag UI.
 
-**New order:** #6′ minimal details → #11′ dossier (`nearby`, `export-dossiers`, agent run, `import-dossiers`) → #7′a `ask` backend (interpret, judge, verify, groups, relaxations) → #7′b UI (ui-spec §11) → #7′c judge context per need (16.8) → #9′ eval → #10 protection → #15 → #16 → #17.
+**New order:** #6′ minimal details → #11′ dossier (`nearby`, `export-dossiers`, agent run, `import-dossiers`) → #7′a `ask` backend (interpret, judge, verify, groups, relaxations) → #7′b UI (ui-spec §11) → #7′d judge context per need (16.8) → #9′ eval → #10 protection → #15 → #16 → #17.
 
 **#11′ definition of done** (replaces the #11 row; the real price moves to #7′a, 16.2 step 7): `nearby_json` is filled for every listing; the report gives accepted and dropped risks per kind and the dropped share; demo listing 70 has an `extra_cost` risk of 40 000 zł and a `legal` risk (bank mortgage repaid from the price), listing 97 a `field_mismatch` on rooms and the New Synagogue in `nearby_json`; tests green.
 

@@ -14,15 +14,6 @@ public sealed class ListingJudge(LlmJsonClient llm, string promptsDir, string re
     private const int Parallelism = 14;
     private const int MaxOutputTokens = 8192;
 
-    // Cost cap (design 16.7).
-    public const int MaxCandidates = 40;
-
-    public static IReadOnlyList<Listing> Newest(IEnumerable<Listing> listings) => listings
-        .OrderByDescending(l => l.CreatedAtSource)
-        .ThenByDescending(l => l.Id)
-        .Take(MaxCandidates)
-        .ToList();
-
     public async Task<JudgeOutcome> JudgeAsync(IReadOnlyList<AskNeed> needs, IReadOnlyList<AskCandidate> candidates, CancellationToken ct)
     {
         var prompt = await PromptFiles.LoadAsync(promptsDir, PromptVersions.ListingJudge, ct);

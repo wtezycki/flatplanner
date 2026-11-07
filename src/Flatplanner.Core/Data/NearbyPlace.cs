@@ -6,4 +6,7 @@ public sealed record NearbyPlace(
     [property: JsonPropertyName("n")] string? Name,
     [property: JsonPropertyName("t")] string Tag,
     [property: JsonPropertyName("x")] string? Extra,
-    [property: JsonPropertyName("d")] int DistanceM);
+    [property: JsonPropertyName("d")] int DistanceM)
+{
+    public const int RadiusM = 1_500;
+}

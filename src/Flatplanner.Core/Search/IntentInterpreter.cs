@@ -27,7 +27,7 @@ public sealed class IntentInterpreter(LlmJsonClient llm, string promptsDir, stri
 
     public static AskNeed Clean(AskNeed need) => new(
         need.Text.Trim(),
-        need.Places.Distinct().ToArray(),
+        need.Places.DistinctBy(p => p.Tag).ToArray(),
         need.Keywords
             .Select(TextFolding.Fold)
             .Where(k => k.Length >= SearchDefinitions.NeedKeywordMinLength)

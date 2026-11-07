@@ -26,7 +26,7 @@ public static class AskEndpoints
                 });
             }
 
-            return Results.Json(await ask.AskAsync(message, request.ExcludeNeeds ?? [], filters.ToIntent(), ct), ApiJson.Options);
+            return Results.Json(await ask.AskAsync(message, request.ExcludeNeeds ?? [], filters.ToIntent(), request.More ?? false, ct), ApiJson.Options);
         });
     }
 }

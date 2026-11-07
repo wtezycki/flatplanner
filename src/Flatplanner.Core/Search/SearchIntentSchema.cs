@@ -18,7 +18,11 @@ public static class SearchIntentSchema
         ["needs"] = StrictSchema.Array(StrictSchema.Object(new JsonObject
         {
             ["text"] = StrictSchema.String(),
-            ["places"] = StrictSchema.Array(StrictSchema.Enum(placeTags)),
+            ["places"] = StrictSchema.Array(StrictSchema.Object(new JsonObject
+            {
+                ["tag"] = StrictSchema.Enum(placeTags),
+                ["prefer"] = StrictSchema.Enum(PlacePreference.All),
+            })),
             ["keywords"] = StrictSchema.Array(StrictSchema.String()),
         })),
         ["declined"] = StrictSchema.Array(StrictSchema.Object(new JsonObject

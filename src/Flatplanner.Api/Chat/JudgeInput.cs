@@ -17,7 +17,7 @@ public static partial class JudgeInput
     // Indexes stay those of nearby_json, because EvidenceVerifier resolves `place` refs against it.
     public static IReadOnlyList<JudgePlace> Nearby(IReadOnlyList<NearbyPlace> nearby, IReadOnlyList<AskNeed> needs)
     {
-        var tags = needs.SelectMany(n => n.Places).ToHashSet();
+        var tags = needs.SelectMany(n => n.Places).Select(p => p.Tag).ToHashSet();
         var full = NeedsFullDossier(needs);
 
         return nearby
@@ -34,6 +34,12 @@ public static partial class JudgeInput
                 p.Place.DistanceM))
             .ToList();
     }
+
+    // Without a citable place or sentence the verifier could only leave `unknown`, so the listing is not sent (design 16.9).
+    public static bool HasContext(AskCandidate candidate, IReadOnlyList<AskNeed> needs) =>
+        NeedsFullDossier(needs)
+        || Nearby(candidate.Nearby, needs).Count > 0
+        || Description(candidate.Listing.DescriptionText, needs).Length > 0;
 
     public static string Description(string description, IReadOnlyList<AskNeed> needs)
     {

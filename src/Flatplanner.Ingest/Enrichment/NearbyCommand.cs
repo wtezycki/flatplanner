@@ -12,7 +12,6 @@ public sealed class NearbyCommand(FlatplannerDbContext db, ILogger<NearbyCommand
 {
     private const string OverpassUrl = "https://overpass-api.de/api/interpreter";
     private const string UserAgent = "Flatplanner-Ingest/1.0 (one-off local import)";
-    private const int RadiusM = 1_500;
     private const int TransitRadiusM = 500;
     private const int LandmarkMarginM = 20_000;
     private const int PlacesPerKind = 3;
@@ -69,7 +68,7 @@ public sealed class NearbyCommand(FlatplannerDbContext db, ILogger<NearbyCommand
         List<TransitRoute> routes;
         try
         {
-            places = await FetchPlacesAsync(BoundingBox(listings, RadiusM), cancellationToken);
+            places = await FetchPlacesAsync(BoundingBox(listings, NearbyPlace.RadiusM), cancellationToken);
             using var transit = await FetchJsonAsync(TransitAndLandmarksQuery(listings), cancellationToken);
             var elements = transit.RootElement.GetProperty("elements");
             routes = TransitLines.Parse(elements);
@@ -181,7 +180,7 @@ public sealed class NearbyCommand(FlatplannerDbContext db, ILogger<NearbyCommand
     // A global "nearest N" fills up with unnamed woods and playgrounds; a cap per kind keeps rarer places such as an Orthodox church (16.1).
     private static IEnumerable<NearbyPlace> WithinRadius(IEnumerable<NearbyPlace> measured) =>
         measured
-            .Where(place => place.DistanceM <= RadiusM)
+            .Where(place => place.DistanceM <= NearbyPlace.RadiusM)
             .GroupBy(place => place.Name is null && !IsLine(place.Tag) ? (object)place : (place.Name, place.Tag))
             .Select(group => group.MinBy(place => place.DistanceM)!)
             .GroupBy(place => (place.Tag, place.Extra))

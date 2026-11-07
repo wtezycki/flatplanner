@@ -265,6 +265,8 @@ button, input, select { font: inherit; color: inherit; }
 .ask-group__heading { font-size: var(--fs-xl); font-weight: var(--fw-semibold); }
 .ask-unknown summary { cursor: pointer; }
 .ask-unknown[open] summary { margin-bottom: var(--space-3); }
+.ask-more { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-3); }
+.ask-more__line { margin: 0; color: var(--color-text-secondary); font-size: var(--fs-sm); }
 .ask-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr)); gap: var(--space-4); }
 .tile.tile--skeleton { min-height: 360px; background: var(--color-surface-strong); }
 

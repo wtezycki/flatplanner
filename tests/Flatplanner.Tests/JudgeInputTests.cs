@@ -18,7 +18,7 @@ public sealed class JudgeInputTests
     ];
 
     private static AskNeed Need(string[] places, string[] keywords) =>
-        new("potrzeba", places.Select(t => new NeedPlace(t, PlacePreference.Near)).ToArray(), keywords);
+        new("potrzeba", places.Select(t => new NeedPlace(t, PlacePreference.Near, null)).ToArray(), keywords);
 
     [Fact]
     public void Nearby_PlannedTags_NearestPerKindWithOriginalIndex()

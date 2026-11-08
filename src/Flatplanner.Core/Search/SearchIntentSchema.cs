@@ -22,6 +22,7 @@ public static class SearchIntentSchema
             {
                 ["tag"] = StrictSchema.Enum(placeTags),
                 ["prefer"] = StrictSchema.Enum(PlacePreference.All),
+                ["extra"] = StrictSchema.Nullable("string"),
             })),
             ["keywords"] = StrictSchema.Array(StrictSchema.String()),
         })),

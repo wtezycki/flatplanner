@@ -1506,7 +1506,7 @@ Migration `AiDossier` adds the three columns. Overpass and the agent are never p
 
 ### 16.2 `POST /api/search/ask` (replaces `POST /api/search/interpret`, 6.3)
 
-Request `{ "message": string, "excludeNeeds": int[] }` (message 1–300 characters; `excludeNeeds` optional, indexes into the interpreted `needs`). The query string optionally carries the filter parameters of `GET /api/listings` (6.1; `sort` and `page` are ignored): after the cached evaluation the candidates are narrowed to those passing `ListingFilters.Apply` with the normalized filter intent, and groups, counts and relaxations are computed from what is left (R26; since 16.9 the filters are applied before ranking). One endpoint does the whole pipeline; the frontend keeps only `?q=<message>` in the URL, and the response cache makes refresh and "back" free.
+Request `{ "message": string, "excludeNeeds": int[], "history": string[] }` (message 1–300 characters; `excludeNeeds` optional, indexes into the interpreted `needs` of the whole conversation; `history` optional, the previous user messages oldest first, at most 4, each 1–300 characters, otherwise `400` with the `history` key, 16.5a). The query string optionally carries the filter parameters of `GET /api/listings` (6.1; `sort` and `page` are ignored): after the cached evaluation the candidates are narrowed to those passing `ListingFilters.Apply` with the normalized filter intent, and groups, counts and relaxations are computed from what is left (R26; since 16.9 the filters are applied before ranking). One endpoint does the whole pipeline; the frontend keeps only `?q=<message>` in the URL, and the response cache makes refresh and "back" free.
 
 1. **Interpret** (`prompts/search-intent.v2.md`, structured output): hard filters from `SearchIntent` (only `cities`, `districts`, `priceMax`, `areaMin`, `areaMax`, `roomsMin`) plus `needs: string[]` (max 4, each one restated in Polish: "podstawówka w zasięgu spaceru dla 7-latki") and `declined: [{ text, reason }]` for requests the system will not judge (16.4). "dom" means a place to live unless a house is named explicitly; "bez kredytu" is context, not a need.
 2. **Narrow** (C#): SQL with the hard filters → candidates (≤ 197). Since 16.9 the filter parameters of the query string are applied here too, the candidates are ranked by code and only one window of them is judged per call (16.9).
@@ -1595,20 +1595,20 @@ Kept as built: `GET /api/listings` (#4) and the listings page with filters (#5) 
 
 **Tests (§12, no LLM, no network):** `SearchIntentSchemaTests` for `needs`/`declined`; `EvidenceVerifierTests` (quote not in description, place index out of range, approximate location downgrade); grouping (`full`/`partial`/`near`/`unknown`/hidden) and relaxation counts from a fixed verdict table; `import-dossiers` risk validation (kind, quote not in description, amount not in quote or out of range); haversine. `tests/search-queries.json` holds the chat scenarios with the expected behaviour, run by `eval-intents` against the real model.
 
-### 16.5a Multi-turn conversation (planned, #7′c; decided 2026-11-06)
+### 16.5a Multi-turn conversation (backend built 2026-11-08, #7′c; decided 2026-11-06)
 
-After the first answer the buyer refines ("a w Gdyni?", "a coś bliżej morza?", "jednak bez parkingu"); today every question starts from nothing. This reverses the product-scope §8 cut "multi-step refinement". The points marked **[proposal]** are confirmed when #7′c starts.
+After the first answer the buyer refines ("a w Gdyni?", "a coś bliżej morza?", "jednak bez parkingu"); today every question starts from nothing. This reverses the product-scope §8 cut "multi-step refinement". The points marked **[proposal]** were confirmed on 2026-11-08 and built as described (`AskRequest.History`, `AskValidation`, `AskService.InterpretationKey`, `IntentInterpreter.ConversationText`, `prompts/search-intent.v6.md`); the thread UI follows with R28.
 
-- **Stateless server [proposal]:** the request gains `history: string[]`, the previous user messages, oldest first, at most 4, each 1–300 characters; the server keeps no session. `excludeNeeds` applies to the last message.
+- **Stateless server:** the request gains `history: string[]`, the previous user messages, oldest first, at most 4, each 1–300 characters; the server keeps no session. `excludeNeeds` applies to the last message.
 - **Interpret:** `prompts/search-intent.v6.md` (a new version file after the v5 of 16.9) receives the history and the message and returns the intent of the whole conversation; the output schema does not change. A refinement keeps earlier filters and needs unless the buyer withdraws them; "od nowa" starts clean. The fallback parser reads the last message only.
 - **Everything after interpretation is unchanged** (narrow, rank, judge one window, verify, group, relaxations; 16.9). Each turn costs one `ask`, so the cost is bounded by the turn limit.
-- **Limit [proposal]:** 5 turns per conversation (`history` ≤ 4). Over the limit the API answers `400` and the UI offers a restart (copy to be added to ui-spec §7 before it is built). Every turn counts for the rate limiter (section 8).
+- **Limit:** 5 turns per conversation (`history` ≤ 4, `SearchDefinitions.MaxHistory`). Over the limit the API answers `400` with the `history` key and the UI offers a restart (copy in ui-spec §7.3). Every turn counts for the rate limiter (section 8).
 - **Cache:** keyed by the folded `history` and message together; `excludeNeeds` as today. Logs never hold the messages (7.7), only the turn count.
 - **Guardrails (16.4)** apply to the whole conversation.
 - **UI [proposal]:** a thread of turns (bubble and reply as in ui-spec 11.5); the URL repeats `q` (`?q=…&q=…`, the last one is current), so refresh and "back" work; earlier replies stay on the page; the composer follows the last reply. New strings first in ui-spec §7.
 - **Not built:** sessions that outlive the page, reuse of verdicts between turns when the needs did not change, summarising long histories.
-- **Tests (§12, no LLM):** request validation (count, length), the cache key; refinement scenarios in `tests/search-queries.json` run by `eval-intents`.
-- **Definition of done [proposal]:** "2 pokoje w Gdańsku" then "a w Gdyni?" gives city Gdynia with the rooms kept; "jednak bez parkingu" drops that need; the 6th turn is rejected with `400`; tests green; the eval scenarios pass.
+- **Tests (§12, no LLM):** `AskConversationTests`: request validation (count, length), the cache key and the conversation text. The refinement scenarios were checked by hand against the live model on 2026-11-08 (“2 pokoje w Gdańsku do 700 tys., blisko parku” → “a w Gdyni?” keeps rooms, price and the park need; “jednak bez parku” drops it; “od nowa” starts clean; the 6th message gets `400`); `eval-intents` and `tests/search-queries.json` do not exist in the repository.
+- **Definition of done:** "2 pokoje w Gdańsku" then "a w Gdyni?" gives city Gdynia with the rooms kept; "jednak bez parkingu" drops that need; the 6th turn is rejected with `400`; tests green; the eval scenarios pass.
 
 ### 16.6 Demo listings (local import, 2026-11-05)
 

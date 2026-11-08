@@ -26,14 +26,23 @@ public sealed class AskService(
     private static readonly AskNotice JudgeFailed =
         new("judge_failed", "Części ogłoszeń nie udało się sprawdzić — oznaczyliśmy je jako brak danych.");
 
+    public static string InterpretationKey(IReadOnlyList<string> history, string message) =>
+        string.Join('\n', history.Append(message).Select(TextFolding.Fold));
+
     public async Task<AskResponse> AskAsync(
-        string message, IReadOnlyCollection<int> excludeNeeds, SearchIntent filters, bool more, CancellationToken ct)
+        string message,
+        IReadOnlyList<string> history,
+        IReadOnlyCollection<int> excludeNeeds,
+        SearchIntent filters,
+        bool more,
+        CancellationToken ct)
     {
+        logger.LogInformation("Ask turn {Turn}", history.Count + 1);
         var meta = await SearchMetaLoader.LoadAsync(db, ct);
-        var key = TextFolding.Fold(message);
+        var key = InterpretationKey(history, message);
         if (!interpretations.TryGetValue(key, out var interpretation))
         {
-            interpretation = await BuildInterpretationAsync(message, meta, ct);
+            interpretation = await BuildInterpretationAsync(message, history, meta, ct);
             if (interpretation.FallbackReason is null)
             {
                 interpretations[key] = interpretation;
@@ -103,9 +112,10 @@ public sealed class AskService(
         return new Shown(ranked.Take(prefix).ToList(), results, outcome.AnyBatchFailed);
     }
 
-    private async Task<AskInterpretation> BuildInterpretationAsync(string message, SearchMeta meta, CancellationToken ct)
+    private async Task<AskInterpretation> BuildInterpretationAsync(
+        string message, IReadOnlyList<string> history, SearchMeta meta, CancellationToken ct)
     {
-        var (asked, fallbackReason) = await InterpretAsync(message, meta, ct);
+        var (asked, fallbackReason) = await InterpretAsync(message, history, meta, ct);
         var notices = asked.Clarifications.Select(text => new AskNotice("clarify", text)).ToList();
         if (fallbackReason is not null)
         {
@@ -115,7 +125,8 @@ public sealed class AskService(
         return new AskInterpretation(asked, SearchIntentNormalizer.Normalize(asked.ToSearchIntent(), meta).Intent, notices, fallbackReason);
     }
 
-    private async Task<(AskIntent Intent, string? FallbackReason)> InterpretAsync(string message, SearchMeta meta, CancellationToken ct)
+    private async Task<(AskIntent Intent, string? FallbackReason)> InterpretAsync(
+        string message, IReadOnlyList<string> history, SearchMeta meta, CancellationToken ct)
     {
         if (options.Value.ChatMode == ChatMode.Fallback)
         {
@@ -124,7 +135,7 @@ public sealed class AskService(
 
         try
         {
-            return (await interpreter.InterpretWithLlmAsync(message, meta, ct), null);
+            return (await interpreter.InterpretWithLlmAsync(message, history, meta, ct), null);
         }
         catch (LlmException ex)
         {

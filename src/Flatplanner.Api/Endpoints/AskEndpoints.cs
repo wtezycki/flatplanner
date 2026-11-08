@@ -17,16 +17,15 @@ public static class AskEndpoints
             CancellationToken ct) =>
         {
             var message = request.Message?.Trim() ?? "";
-            var maxLength = options.Value.ChatMaxLength;
-            if (message.Length == 0 || message.Length > maxLength)
+            var history = (request.History ?? []).Select(entry => entry.Trim()).ToList();
+            if (AskValidation.Validate(message, history, options.Value.ChatMaxLength) is { } errors)
             {
-                return Results.ValidationProblem(new Dictionary<string, string[]>
-                {
-                    ["message"] = [$"Wpisz od 1 do {maxLength} znaków."],
-                });
+                return Results.ValidationProblem(errors);
             }
 
-            return Results.Json(await ask.AskAsync(message, request.ExcludeNeeds ?? [], filters.ToIntent(), request.More ?? false, ct), ApiJson.Options);
+            return Results.Json(
+                await ask.AskAsync(message, history, request.ExcludeNeeds ?? [], filters.ToIntent(), request.More ?? false, ct),
+                ApiJson.Options);
         });
     }
 }

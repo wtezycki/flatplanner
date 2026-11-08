@@ -377,6 +377,8 @@ Flags (design.md §3.6, only those visible in the details): `price_outlier` „N
 
 **Blockers** (`blockers[].label`): „bez limitu ceny (do {kwota} zł)”, „bez warunku: {etykieta chipa}”.
 
+**Validation of `ask`** (`errors.history`): „Rozmowa może mieć najwyżej 5 pytań.”
+
 **Warnings** (`warnings[].message`): „Nieznana dzielnica pominięta.”; „Przybliżony metraż zastąpiony zakresem.”
 
 **Ask the seller** (`askSeller[]`, design.md §6.2, same order): „Wysokość czynszu i co obejmuje” · „Rok budowy budynku” · „Piętro mieszkania” · „Liczbę pięter w budynku” · „Formę własności i księgę wieczystą” · „Czy jest miejsce postojowe i czy jest w cenie” · „Czy miejsce postojowe jest wliczone w cenę mieszkania”.

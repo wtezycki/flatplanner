@@ -1,6 +1,6 @@
 import { useSearchParams } from 'react-router'
 import type { AskItem } from '../api.ts'
-import { formatPrice, verdictPresentation } from '../format.ts'
+import { ASK_WHY_LABELS, formatPrice, verdictPresentation } from '../format.ts'
 import { listingSearch } from '../intent.ts'
 import type { CardLabels } from '../useCardLabels.ts'
 import ListingCardBody from './ListingCardBody.tsx'
@@ -49,7 +49,7 @@ export default function AskCard({ item, labels, needs, excludeNeeds }: Props) {
               })}
             </ul>
             <details className="tile__why">
-              <summary>Dlaczego pasuje</summary>
+              <summary>{ASK_WHY_LABELS[item.group] ?? ASK_WHY_LABELS.full}</summary>
               <ul className="verdicts">
                 {ordered.map(({ need, result }) => (
                   <NeedVerdict key={need} need={need} result={result} />

@@ -100,6 +100,13 @@ export const ASK_GROUP_HEADINGS: Record<string, string> = {
   near: 'Prawie pasuje: jedna rzecz nie gra',
 }
 
+export const ASK_WHY_LABELS: Record<string, string> = {
+  full: 'Dlaczego pasuje',
+  partial: 'Dlaczego częściowo',
+  near: 'Co nie pasuje',
+  unknown: 'Co sprawdziliśmy',
+}
+
 export const ASK_GROUP_HINTS: Record<string, string> = {
   full: 'Spełnia wszystkie Twoje warunki',
   partial: 'Część warunków wymaga potwierdzenia',

@@ -14,7 +14,6 @@ public sealed class NearbyCommand(FlatplannerDbContext db, ILogger<NearbyCommand
     private const string UserAgent = "Flatplanner-Ingest/1.0 (one-off local import)";
     private const int TransitRadiusM = 500;
     private const int LandmarkMarginM = 20_000;
-    private const int PlacesPerKind = 3;
     private const int BusyRetries = 5;
     private const double MetresPerDegreeLat = 111_320;
 
@@ -184,7 +183,7 @@ public sealed class NearbyCommand(FlatplannerDbContext db, ILogger<NearbyCommand
             .GroupBy(place => place.Name is null && !IsLine(place.Tag) ? (object)place : (place.Name, place.Tag))
             .Select(group => group.MinBy(place => place.DistanceM)!)
             .GroupBy(place => (place.Tag, place.Extra))
-            .SelectMany(kind => kind.OrderBy(place => place.DistanceM).Take(PlacesPerKind));
+            .SelectMany(kind => kind.OrderBy(place => place.DistanceM).Take(NearbyPlace.MaxPerKind));
 
     private static OsmPlace? ToOsmPlace(JsonElement element)
     {

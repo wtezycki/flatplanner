@@ -17,14 +17,16 @@ public static partial class JudgeInput
     // Indexes stay those of nearby_json, because EvidenceVerifier resolves `place` refs against it.
     public static IReadOnlyList<JudgePlace> Nearby(IReadOnlyList<NearbyPlace> nearby, IReadOnlyList<AskNeed> needs)
     {
-        var tags = needs.SelectMany(n => n.Places).Select(p => p.Tag).ToHashSet();
+        var planned = needs.SelectMany(n => n.Places).ToList();
         var full = NeedsFullDossier(needs);
+        // A named place can be the third of three sports centres ("Kyokushin Karate"); a full dossier keeps one per kind to stay small (design 16.9).
+        var perKind = full ? 1 : NearbyPlace.MaxPerKind;
 
         return nearby
             .Select((place, index) => (Place: place, Index: index))
-            .Where(p => full || tags.Contains(p.Place.Tag))
+            .Where(p => full || planned.Any(n => n.Accepts(p.Place)))
             .GroupBy(p => (p.Place.Tag, p.Place.Extra))
-            .Select(kind => kind.MinBy(p => p.Place.DistanceM))
+            .SelectMany(kind => kind.OrderBy(p => p.Place.DistanceM).Take(perKind))
             .OrderBy(p => p.Index)
             .Select(p => new JudgePlace(
                 p.Index,
@@ -53,7 +55,7 @@ public static partial class JudgeInput
     }
 
     private static bool Mentions(string foldedSentence, IReadOnlyList<AskNeed> needs) =>
-        needs.SelectMany(n => n.Keywords).Any(k => foldedSentence.Contains(k, StringComparison.Ordinal));
+        needs.Any(n => n.Mentions(foldedSentence));
 
     [GeneratedRegex(@"(?<=[.!?])\s+|[\r\n]+")]
     private static partial Regex SentenceBreak();

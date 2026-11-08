@@ -23,5 +23,10 @@ public static class Haversine
         return DistanceM(lat, lng, start.Lat + t * (end.Lat - start.Lat), start.Lng + t * (end.Lng - start.Lng));
     }
 
+    public static double DistanceToPolylineM(double lat, double lng, IReadOnlyList<(double Lat, double Lng)> points) =>
+        points.Count == 1
+            ? DistanceM(lat, lng, points[0].Lat, points[0].Lng)
+            : Enumerable.Range(0, points.Count - 1).Min(i => DistanceToSegmentM(lat, lng, points[i], points[i + 1]));
+
     private static double ToRadians(double degrees) => degrees * Math.PI / 180;
 }

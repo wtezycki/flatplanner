@@ -283,7 +283,7 @@ a.pagination__step:hover { background: var(--teal-50); border-color: var(--teal-
 .dock { position: sticky; bottom: 0; z-index: 5; padding: var(--space-3) 0 var(--space-4); background: linear-gradient(to top, var(--color-bg) 65%, rgba(245, 242, 239, 0)); }
 .dock__inner { position: relative; display: flex; align-items: flex-end; gap: var(--space-2); max-width: 920px; }
 .dock .composer { flex: 1; max-width: none; margin: 0; }
-.dock__new, .chat-help--compact .chat-help__toggle { display: grid; flex: none; place-items: center; width: 52px; height: 52px; border: 1px solid var(--color-border); border-radius: var(--radius-pill); background: var(--color-surface); color: var(--color-text-secondary); cursor: pointer; }
+.dock__new, .chat-help--compact .chat-help__toggle { display: grid; flex: none; place-items: center; width: 52px; height: 52px; border: 1px solid var(--color-border); border-radius: var(--radius-pill); background: var(--color-surface); color: var(--color-text-secondary); margin-bottom: 5px; cursor: pointer; }
 .dock__new:hover, .chat-help--compact .chat-help__toggle:hover, .chat-help--compact[open] .chat-help__toggle { background: var(--teal-50); color: var(--teal-900); }
 .chat-help { width: 100%; max-width: 760px; }
 .chat-help__toggle { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--teal-900); font-size: var(--fs-sm); font-weight: var(--fw-semibold); cursor: pointer; list-style: none; }
@@ -402,7 +402,7 @@ a.pagination__step:hover { background: var(--teal-50); border-color: var(--teal-
   .ask-list { grid-template-columns: minmax(0, 1fr); }
   .bubble { max-width: 92%; }
   .turn__answer { gap: var(--space-2); }
-  .dock__new, .chat-help--compact .chat-help__toggle { width: 44px; height: 44px; margin-bottom: 6px; }
+  .dock__new, .chat-help--compact .chat-help__toggle { width: 44px; height: 44px; margin-bottom: 9px; }
   .dock .composer__box { padding-left: var(--space-4); }
   .dock .composer__input::placeholder { overflow: hidden; white-space: nowrap; font-size: var(--fs-sm); }
   .chat-help--compact .chat-help__panel { left: var(--space-4); width: calc(100% - 2 * var(--space-4)); }

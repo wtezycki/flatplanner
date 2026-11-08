@@ -1,3 +1,5 @@
+import type { IconName } from './components/Icon.tsx'
+
 const integerFormat = new Intl.NumberFormat('pl-PL', { maximumFractionDigits: 0 })
 const decimalFormat = new Intl.NumberFormat('pl-PL', { maximumFractionDigits: 2 })
 
@@ -62,14 +64,14 @@ export function formatDetailFloor(
 
 export const formatPhotosCount = (count: number) => `${count} ${pluralPl(count, 'zdjęcie', 'zdjęcia', 'zdjęć')}`
 
-const VERDICT_PRESENTATION: Record<string, { icon: string; label: string }> = {
-  yes: { icon: '✓', label: 'pasuje' },
-  partly: { icon: '◐', label: 'częściowo' },
-  no: { icon: '✗', label: 'nie pasuje' },
-  unknown: { icon: '?', label: 'brak danych' },
+const VERDICT_PRESENTATION: Record<string, { icon: IconName; label: string }> = {
+  yes: { icon: 'check', label: 'pasuje' },
+  partly: { icon: 'halfCircle', label: 'częściowo' },
+  no: { icon: 'cross', label: 'nie pasuje' },
+  unknown: { icon: 'help', label: 'brak danych' },
 }
 
-export function verdictPresentation(verdict: string): { icon: string; label: string } {
+export function verdictPresentation(verdict: string): { icon: IconName; label: string } {
   return VERDICT_PRESENTATION[verdict] ?? VERDICT_PRESENTATION.unknown
 }
 
@@ -89,6 +91,14 @@ export const RISK_KIND_HINTS: Record<string, string> = {
   field_mismatch: 'Opis przeczy jednemu z pól ogłoszenia, np. liczbie pokoi, piętru albo czynszowi. Dopytaj sprzedającego.',
 }
 
+export const APPROXIMATE_LOCATION_HINT = 'Ogłaszający nie podał dokładnej lokalizacji.'
+
+export const BELOW_MEDIAN_HINT = 'Cena za m² niższa niż mediana ofert z tego miasta (bez ofert z nietypową ceną).'
+
+export const NEARBY_STOP_HINT = 'Najbliższy przystanek, odległość w linii prostej (dane OpenStreetMap).'
+
+export const NEARBY_PARK_HINT = 'Najbliższy park, odległość w linii prostej (dane OpenStreetMap).'
+
 export const PRICE_OUTLIER_HINT = 'Cena za m² poza zakresem 7 000–40 000 zł. Może to być błąd w ogłoszeniu, sprawdź opis.'
 
 export const RISK_SOURCE_NOTE =
@@ -98,4 +108,16 @@ export const ASK_GROUP_HEADINGS: Record<string, string> = {
   full: 'Pasuje',
   partial: 'Pasuje częściowo',
   near: 'Prawie pasuje: jedna rzecz nie gra',
+}
+
+export const ASK_WHY_LABELS: Record<string, string> = {
+  full: 'Dlaczego pasuje',
+  partial: 'Dlaczego pasuje częściowo',
+  near: 'Co nie pasuje',
+}
+
+export const ASK_GROUP_HINTS: Record<string, string> = {
+  full: 'Spełnia wszystkie Twoje warunki',
+  partial: 'Część warunków wymaga potwierdzenia',
+  near: 'Warto rzucić okiem, jeśli odpuścisz jeden warunek',
 }

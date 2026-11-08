@@ -22,45 +22,10 @@ public sealed class ListingsService(FlatplannerDbContext db)
         var rows = await Sort(filtered, sort)
                 .Skip((page - 1) * SearchDefinitions.PageSize)
                 .Take(SearchDefinitions.PageSize)
-                .Select(l => new
-                {
-                    l.Id,
-                    l.Title,
-                    l.PricePln,
-                    l.AreaM2,
-                    l.PricePerM2,
-                    l.Rooms,
-                    l.Floor,
-                    l.BuildingFloors,
-                    l.CitySlug,
-                    l.DistrictName,
-                    l.ImageUrls,
-                    l.Market,
-                    l.CreatedAtSource,
-                    l.LocationApproximate,
-                    l.QualityFlags,
-                    l.BuildYear,
-                    l.FinishCondition,
-                    l.Ownership,
-                    l.HasLift,
-                    l.HasBalcony,
-                    l.HasGarage,
-                    l.HasBasement,
-                    l.RisksJson,
-                    l.NearbyJson,
-                })
+                .Select(ListingCardRow.Projection)
                 .ToListAsync(ct);
         var medians = await CardSignals.CityMediansAsync(db, ct);
-
-        var items = rows.Select(r => new ListingItem(
-            r.Id, r.Title, r.PricePln, r.AreaM2, r.PricePerM2, r.Rooms, r.Floor,
-            r.QualityFlags.Contains(QualityFlag.FloorHigher10), r.BuildingFloors,
-            r.CitySlug, EnumLabels.CityNames[r.CitySlug], r.DistrictName,
-            r.ImageUrls, r.Market, DateTime.SpecifyKind(r.CreatedAtSource, DateTimeKind.Utc),
-            r.LocationApproximate, r.QualityFlags.Contains(QualityFlag.PriceOutlier),
-            r.BuildYear, r.FinishCondition, r.Ownership, r.HasLift, r.HasBalcony, r.HasGarage, r.HasBasement,
-            CardSignals.RiskKinds(r.RisksJson), CardSignals.NearestStop(r.NearbyJson, r.LocationApproximate), CardSignals.NearestPark(r.NearbyJson, r.LocationApproximate),
-            r.QualityFlags.Contains(QualityFlag.PriceOutlier) ? null : CardSignals.BelowMedianPercent(r.PricePerM2, medians.GetValueOrDefault(r.CitySlug)))).ToList();
+        var items = rows.Select(r => r.ToItem(medians)).ToList();
 
         return new ListingsResponse(items, page, SearchDefinitions.PageSize, total, totalPages, sort, interpretation);
     }

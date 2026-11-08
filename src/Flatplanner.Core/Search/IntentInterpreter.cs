@@ -7,7 +7,7 @@ public sealed class IntentInterpreter(LlmJsonClient llm, string promptsDir, stri
 {
     private const int MaxOutputTokens = 1024;
 
-    public async Task<AskIntent> InterpretWithLlmAsync(string message, SearchMeta meta, CancellationToken ct)
+    public async Task<AskIntent> InterpretWithLlmAsync(string message, IReadOnlyList<string> history, SearchMeta meta, CancellationToken ct)
     {
         var template = await PromptFiles.LoadAsync(promptsDir, PromptVersions.SearchIntent, ct);
         var systemPrompt = template
@@ -15,7 +15,7 @@ public sealed class IntentInterpreter(LlmJsonClient llm, string promptsDir, stri
             .Replace("{{DISTRICT_LIST}}", string.Join('\n', meta.Districts.Select(d => $"{d.Key} — {d.Name} ({d.CitySlug})")));
 
         var intent = await llm.CompleteJsonAsync<AskIntent>(
-            systemPrompt, message, SearchIntentSchema.Name, SearchIntentSchema.Build(meta, placeTags), reasoningEffort, MaxOutputTokens, ct);
+            systemPrompt, ConversationText(history, message), SearchIntentSchema.Name, SearchIntentSchema.Build(meta, placeTags), reasoningEffort, MaxOutputTokens, ct);
 
         return intent with
         {
@@ -24,6 +24,10 @@ public sealed class IntentInterpreter(LlmJsonClient llm, string promptsDir, stri
             Clarifications = NonEmpty(intent.Clarifications).ToArray(),
         };
     }
+
+    public static string ConversationText(IReadOnlyList<string> history, string message) => history.Count == 0
+        ? message
+        : $"Previous messages, oldest first:\n{string.Join('\n', history.Select((entry, i) => $"{i + 1}. {entry}"))}\n\nNew message: {message}";
 
     public static AskNeed Clean(AskNeed need) => new(
         need.Text.Trim(),

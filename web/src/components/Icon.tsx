@@ -137,6 +137,40 @@ const PATHS = {
       <circle cx="12" cy="12" r="2.5" />
     </>
   ),
+  sparkles: (
+    <>
+      <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z" />
+      <path d="M5 3v4M3 5h4M19 17v4M17 19h4" />
+    </>
+  ),
+  list: <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />,
+  arrowUp: <path d="m5 12 7-7 7 7M12 19V5" />,
+  newChat: (
+    <>
+      <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+      <path d="M18.4 2.6a2.1 2.1 0 1 1 3 3L12 15l-4 1 1-4Z" />
+    </>
+  ),
+  search: (
+    <>
+      <circle cx="11" cy="11" r="8" />
+      <path d="m21 21-4.3-4.3" />
+    </>
+  ),
+  check: <path d="M20 6 9 17l-5-5" />,
+  halfCircle: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 3a9 9 0 0 1 0 18Z" fill="currentColor" />
+    </>
+  ),
+  cross: <path d="M18 6 6 18M6 6l12 12" />,
+  help: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01" />
+    </>
+  ),
   chevronLeft: <path d="m15 18-6-6 6-6" />,
   chevronRight: <path d="m9 18 6-6-6-6" />,
   fresh: <path d="m12 3 1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3Z" />,

@@ -1,5 +1,6 @@
 import type { NeedResult } from '../api.ts'
 import { verdictPresentation } from '../format.ts'
+import Icon from './Icon.tsx'
 
 interface Props {
   need: string
@@ -11,13 +12,13 @@ export default function NeedVerdict({ need, result }: Props) {
   return (
     <li className={`verdict verdict--${result.verdict}`}>
       <span className="verdict__icon" role="img" aria-label={label}>
-        {icon}
+        <Icon name={icon} />
       </span>
       <div className="verdict__text">
-        <p className="verdict__reason">{result.reason ?? need}</p>
+        <p className="verdict__reason">{result.reason || need}</p>
         {result.evidence.length > 0 && (
           <p className="chips">
-            {result.evidence.map((evidence) => (
+            {result.evidence.slice(0, 1).map((evidence) => (
               <span key={`${evidence.kind}:${evidence.label}`} className="chip" title={evidence.label}>
                 {evidence.kind === 'quote' ? `„${evidence.label}”` : evidence.label}
               </span>

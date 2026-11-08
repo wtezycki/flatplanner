@@ -27,13 +27,12 @@ export default function Pagination({ page, totalPages }: Props) {
     }
     return { search: next.toString() }
   }
-  const scrollToTop = () => window.scrollTo(0, 0)
   const pages = pagesToShow(page, totalPages)
 
   return (
     <nav className="pagination" aria-label="Paginacja">
       {page > 1 ? (
-        <Link className="pagination__step" to={target(page - 1)} aria-label="Poprzednia strona" onClick={scrollToTop}>
+        <Link className="pagination__step" to={target(page - 1)} aria-label="Poprzednia strona">
           <Icon name="chevronLeft" />
         </Link>
       ) : (
@@ -54,7 +53,7 @@ export default function Pagination({ page, totalPages }: Props) {
                 {n}
               </span>
             ) : (
-              <Link className="pagination__number" to={target(n)} onClick={scrollToTop}>
+              <Link className="pagination__number" to={target(n)}>
                 {n}
               </Link>
             )}
@@ -65,7 +64,7 @@ export default function Pagination({ page, totalPages }: Props) {
         {page} / {totalPages}
       </span>
       {page < totalPages ? (
-        <Link className="pagination__step" to={target(page + 1)} aria-label="Następna strona" onClick={scrollToTop}>
+        <Link className="pagination__step" to={target(page + 1)} aria-label="Następna strona">
           <Icon name="chevronRight" />
         </Link>
       ) : (

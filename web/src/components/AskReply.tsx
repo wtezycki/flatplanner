@@ -1,14 +1,19 @@
 import type { AskResponse } from '../api.ts'
 import { pluralPl } from '../format.ts'
+import TypedText from './TypedText.tsx'
 
 interface RelaxationsProps {
   response: AskResponse
   onExcludeNeed: (index: number) => void
 }
 
-interface Props extends RelaxationsProps {
+interface Props {
+  reply: Pick<AskResponse, 'summary' | 'needs' | 'declined' | 'notices'>
+  response?: AskResponse
   excludeNeeds: number[]
-  onRestoreNeeds: () => void
+  animate: boolean
+  onExcludeNeed?: (index: number) => void
+  onRestoreNeeds?: () => void
 }
 
 function Relaxations({ response, onExcludeNeed }: RelaxationsProps) {
@@ -52,13 +57,13 @@ function Relaxations({ response, onExcludeNeed }: RelaxationsProps) {
   )
 }
 
-export default function AskReply({ response, excludeNeeds, onExcludeNeed, onRestoreNeeds }: Props) {
-  const { summary, needs, declined, notices } = response
+export default function AskReply({ reply, response, excludeNeeds, animate, onExcludeNeed, onRestoreNeeds }: Props) {
+  const { summary, needs, declined, notices } = reply
 
   return (
     <div className="ask-reply">
       <p className="ask-summary">
-        <strong>Zrozumiałem:</strong> {summary}
+        <strong>Zrozumiałem:</strong> <TypedText text={summary} animate={animate} />
       </p>
       {needs.length > 0 && (
         <ul className="ask-needs">
@@ -66,18 +71,20 @@ export default function AskReply({ response, excludeNeeds, onExcludeNeed, onRest
             excludeNeeds.includes(index) ? null : (
               <li key={need} className="ask-needs__chip">
                 {need}
-                <button
-                  className="ask-needs__remove"
-                  type="button"
-                  aria-label={`Usuń warunek „${need}”`}
-                  onClick={() => onExcludeNeed(index)}
-                >
-                  ×
-                </button>
+                {onExcludeNeed && (
+                  <button
+                    className="ask-needs__remove"
+                    type="button"
+                    aria-label={`Usuń warunek „${need}”`}
+                    onClick={() => onExcludeNeed(index)}
+                  >
+                    ×
+                  </button>
+                )}
               </li>
             ),
           )}
-          {excludeNeeds.length > 0 && (
+          {excludeNeeds.length > 0 && onRestoreNeeds && (
             <li>
               <button className="btn btn--link ask-needs__restore" type="button" onClick={onRestoreNeeds}>
                 Przywróć wszystkie warunki
@@ -96,7 +103,7 @@ export default function AskReply({ response, excludeNeeds, onExcludeNeed, onRest
           <span aria-hidden="true">ⓘ</span> {notice.text}
         </p>
       ))}
-      <Relaxations response={response} onExcludeNeed={onExcludeNeed} />
+      {response && onExcludeNeed && <Relaxations response={response} onExcludeNeed={onExcludeNeed} />}
     </div>
   )
 }

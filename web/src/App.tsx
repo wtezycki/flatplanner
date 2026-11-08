@@ -1,16 +1,13 @@
-import { Link, Navigate, Route, Routes, useLocation, useParams } from 'react-router'
+import { Link, Navigate, Route, Routes, useParams } from 'react-router'
 import wordmark from './assets/flatbanner.svg'
 import logo from './assets/flatplanner.svg'
+import ModeSwitch from './components/ModeSwitch.tsx'
 import AskPage from './pages/AskPage.tsx'
-
-function LegacyListings() {
-  const { search } = useLocation()
-  return <Navigate to={{ pathname: '/', search }} replace />
-}
+import ClassicPage from './pages/ClassicPage.tsx'
 
 function LegacyListing() {
   const { id = '' } = useParams()
-  return <Navigate to={{ pathname: '/', search: new URLSearchParams({ listing: id }).toString() }} replace />
+  return <Navigate to={{ pathname: '/listings', search: new URLSearchParams({ listing: id }).toString() }} replace />
 }
 
 export default function App() {
@@ -25,12 +22,13 @@ export default function App() {
               <span className="header__motto">Przeczytamy ogłoszenia za Ciebie.</span>
             </span>
           </Link>
+          <ModeSwitch />
         </div>
       </header>
       <main>
         <Routes>
           <Route path="/" element={<AskPage />} />
-          <Route path="/listings" element={<LegacyListings />} />
+          <Route path="/listings" element={<ClassicPage />} />
           <Route path="/listings/:id" element={<LegacyListing />} />
         </Routes>
       </main>

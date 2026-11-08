@@ -17,6 +17,7 @@ import PhotoLightbox from '../components/PhotoLightbox.tsx'
 import PhotoMosaic from '../components/PhotoMosaic.tsx'
 import RiskBox from '../components/RiskBox.tsx'
 import {
+  APPROXIMATE_LOCATION_HINT,
   formatArea,
   formatDate,
   formatDetailFloor,
@@ -101,7 +102,7 @@ function Details({ listing, onClose }: { listing: ListingDetail; onClose: () => 
               <strong>{location}</strong>
             </span>
             {listing.locationApproximate && (
-              <span className="detail__approximate" title="Ogłaszający nie podał dokładnej lokalizacji.">
+              <span className="detail__approximate" title={APPROXIMATE_LOCATION_HINT}>
                 Lokalizacja przybliżona
               </span>
             )}

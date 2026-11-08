@@ -1,5 +1,5 @@
 using System.Collections.Concurrent;
-using Flatplanner.Api.Endpoints;
+using System.Runtime.CompilerServices;
 using Flatplanner.Api.Listings;
 using Flatplanner.Core.Data;
 using Flatplanner.Core.Llm;
@@ -26,19 +26,48 @@ public sealed class AskService(
     private static readonly AskNotice JudgeFailed =
         new("judge_failed", "Części ogłoszeń nie udało się sprawdzić — oznaczyliśmy je jako brak danych.");
 
+    public static string InterpretationKey(IReadOnlyList<string> history, string message) =>
+        string.Join('\n', history.Append(message).Select(TextFolding.Fold));
+
     public async Task<AskResponse> AskAsync(
-        string message, IReadOnlyCollection<int> excludeNeeds, SearchIntent filters, bool more, CancellationToken ct)
+        string message,
+        IReadOnlyList<string> history,
+        IReadOnlyCollection<int> excludeNeeds,
+        SearchIntent filters,
+        bool more,
+        CancellationToken ct)
     {
+        AskResults? results = null;
+        await foreach (var ev in AskStreamAsync(message, history, excludeNeeds, filters, more, ct))
+        {
+            results = ev as AskResults ?? results;
+        }
+
+        return results?.Response ?? throw new InvalidOperationException("The ask pipeline produced no results.");
+    }
+
+    // The first event arrives right after the interpretation, the second once the listings are judged (design 16.5b).
+    public async IAsyncEnumerable<AskEvent> AskStreamAsync(
+        string message,
+        IReadOnlyList<string> history,
+        IReadOnlyCollection<int> excludeNeeds,
+        SearchIntent filters,
+        bool more,
+        [EnumeratorCancellation] CancellationToken ct)
+    {
+        logger.LogInformation("Ask turn {Turn}", history.Count + 1);
         var meta = await SearchMetaLoader.LoadAsync(db, ct);
-        var key = TextFolding.Fold(message);
+        var key = InterpretationKey(history, message);
         if (!interpretations.TryGetValue(key, out var interpretation))
         {
-            interpretation = await BuildInterpretationAsync(message, meta, ct);
+            interpretation = await BuildInterpretationAsync(message, history, meta, ct);
             if (interpretation.FallbackReason is null)
             {
                 interpretations[key] = interpretation;
             }
         }
+
+        yield return Understand(interpretation, meta);
 
         var viewFilters = SearchIntentNormalizer.Normalize(filters, meta).Intent;
         var listings = await db.Listings.AsNoTracking()
@@ -53,7 +82,16 @@ public sealed class AskService(
             : await JudgeWindowAsync(ranked, needs, more, ct);
 
         var notices = shown.JudgeFailed ? [.. interpretation.Notices, JudgeFailed] : interpretation.Notices;
-        return await RespondAsync(interpretation, viewFilters, notices, shown, ranked.Count - shown.Candidates.Count, excludeNeeds.ToHashSet(), meta, ct);
+        yield return new AskResults(
+            await RespondAsync(interpretation, viewFilters, notices, shown, ranked.Count - shown.Candidates.Count, excludeNeeds.ToHashSet(), meta, ct));
+    }
+
+    private static AskUnderstood Understand(AskInterpretation interpretation, SearchMeta meta)
+    {
+        var filters = InterpretationBuilder.Build(interpretation.Intent, meta, []);
+        var needs = interpretation.Asked.Needs.Select(n => n.Text).ToList();
+        var summary = string.Join(InterpretationBuilder.Separator, new[] { filters.Summary }.Concat(needs).Where(s => s.Length > 0));
+        return new AskUnderstood(summary, needs, interpretation.Asked.Declined, interpretation.Notices);
     }
 
     private async Task<Shown> JudgeWindowAsync(IReadOnlyList<AskCandidate> ranked, AskNeed[] needs, bool more, CancellationToken ct)
@@ -103,9 +141,10 @@ public sealed class AskService(
         return new Shown(ranked.Take(prefix).ToList(), results, outcome.AnyBatchFailed);
     }
 
-    private async Task<AskInterpretation> BuildInterpretationAsync(string message, SearchMeta meta, CancellationToken ct)
+    private async Task<AskInterpretation> BuildInterpretationAsync(
+        string message, IReadOnlyList<string> history, SearchMeta meta, CancellationToken ct)
     {
-        var (asked, fallbackReason) = await InterpretAsync(message, meta, ct);
+        var (asked, fallbackReason) = await InterpretAsync(message, history, meta, ct);
         var notices = asked.Clarifications.Select(text => new AskNotice("clarify", text)).ToList();
         if (fallbackReason is not null)
         {
@@ -115,7 +154,8 @@ public sealed class AskService(
         return new AskInterpretation(asked, SearchIntentNormalizer.Normalize(asked.ToSearchIntent(), meta).Intent, notices, fallbackReason);
     }
 
-    private async Task<(AskIntent Intent, string? FallbackReason)> InterpretAsync(string message, SearchMeta meta, CancellationToken ct)
+    private async Task<(AskIntent Intent, string? FallbackReason)> InterpretAsync(
+        string message, IReadOnlyList<string> history, SearchMeta meta, CancellationToken ct)
     {
         if (options.Value.ChatMode == ChatMode.Fallback)
         {
@@ -124,7 +164,7 @@ public sealed class AskService(
 
         try
         {
-            return (await interpreter.InterpretWithLlmAsync(message, meta, ct), null);
+            return (await interpreter.InterpretWithLlmAsync(message, history, meta, ct), null);
         }
         catch (LlmException ex)
         {
@@ -163,15 +203,15 @@ public sealed class AskService(
         CancellationToken ct)
     {
         var filters = InterpretationBuilder.Build(interpretation.Intent, meta, []);
-        var needs = interpretation.Asked.Needs.Select(n => n.Text).ToList();
-        var summary = string.Join(InterpretationBuilder.Separator, new[] { filters.Summary }.Concat(needs).Where(s => s.Length > 0));
+        var (summary, needs, _, _) = Understand(interpretation, meta);
 
         var rows = shown.Candidates
             .Select(c => new VerdictRow(c.Listing.Id, c.Listing.CreatedAtSource, shown.Results[c.Listing.Id].Select(r => r.Verdict).ToList()))
             .ToList();
         var candidates = shown.Candidates.ToDictionary(c => c.Listing.Id);
         var arranged = AskGrouping.Arrange(rows, excluded);
-        var items = arranged.Select(r => Item(candidates[r.Row.Id], r.Group, shown.Results[r.Row.Id])).ToList();
+        var medians = await CardSignals.CityMediansAsync(db, ct);
+        var items = arranged.Select(r => Item(candidates[r.Row.Id], r.Group, shown.Results[r.Row.Id], medians)).ToList();
 
         var relaxations = shown.Candidates.Count == 0
             ? await HardFilterRelaxationsAsync(interpretation.Intent, viewFilters, filters.Chips, ct)
@@ -190,15 +230,12 @@ public sealed class AskService(
             interpretation.FallbackReason);
     }
 
-    private static AskItem Item(AskCandidate candidate, string group, IReadOnlyList<NeedResult> needs)
+    private static AskItem Item(AskCandidate candidate, string group, IReadOnlyList<NeedResult> needs, IReadOnlyDictionary<string, int> medians)
     {
-        var listing = candidate.Listing;
         var extras = candidate.Risks.Where(r => r.Kind == RiskKind.ExtraCost && r.AmountPln is not null).Sum(r => r.AmountPln!.Value);
 
         return new AskItem(
-            listing.Id, listing.Title, listing.PricePln, listing.AreaM2, listing.Rooms, listing.Floor, listing.BuildingFloors,
-            EnumLabels.CityNames[listing.CitySlug], listing.DistrictName, listing.ImageUrls.FirstOrDefault(), listing.AiSummary,
-            listing.LocationApproximate, group, needs, candidate.Risks, extras > 0 ? listing.PricePln + extras : null);
+            ListingCardRow.From(candidate.Listing).ToItem(medians), group, needs, extras > 0 ? candidate.Listing.PricePln + extras : null);
     }
 
     private async Task<IReadOnlyList<Relaxation>> HardFilterRelaxationsAsync(

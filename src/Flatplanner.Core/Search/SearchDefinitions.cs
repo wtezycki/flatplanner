@@ -6,6 +6,7 @@ public static class SearchDefinitions
     public const int TextMaxLength = 100;
     public const int TextMaxTokens = 5;
     public const int TextMinTokenLength = 2;
+    public const int MaxHistory = 4;
     public const int MaxNeeds = 4;
     public const int MaxNeedKeywords = 6;
     public const int NeedKeywordMinLength = 3;

@@ -16,7 +16,7 @@ public static class HealthEndpoints
         ILogger<Program> logger,
         CancellationToken ct)
     {
-        var clientIp = http.Request.Headers["X-Real-IP"].FirstOrDefault() ?? http.Connection.RemoteIpAddress?.ToString();
+        var clientIp = ClientIp.Of(http);
         try
         {
             await db.Database.ExecuteSqlRawAsync("SELECT 1", ct);

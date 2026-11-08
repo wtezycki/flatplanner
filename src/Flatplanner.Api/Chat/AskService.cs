@@ -29,23 +29,6 @@ public sealed class AskService(
     public static string InterpretationKey(IReadOnlyList<string> history, string message) =>
         string.Join('\n', history.Append(message).Select(TextFolding.Fold));
 
-    public async Task<AskResponse> AskAsync(
-        string message,
-        IReadOnlyList<string> history,
-        IReadOnlyCollection<int> excludeNeeds,
-        SearchIntent filters,
-        bool more,
-        CancellationToken ct)
-    {
-        AskResults? results = null;
-        await foreach (var ev in AskStreamAsync(message, history, excludeNeeds, filters, more, ct))
-        {
-            results = ev as AskResults ?? results;
-        }
-
-        return results?.Response ?? throw new InvalidOperationException("The ask pipeline produced no results.");
-    }
-
     // The first event arrives right after the interpretation, the second once the listings are judged (design 16.5b).
     public async IAsyncEnumerable<AskEvent> AskStreamAsync(
         string message,

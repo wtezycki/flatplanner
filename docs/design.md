@@ -1221,24 +1221,26 @@ docker compose exec -T -e MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql mysqldump -uroo
    ```bash
    docker compose exec -T -e MYSQL_PWD="$PROD_MYSQL_PASSWORD" mysql mysql -h <proxy-host> -P <proxy-port> -u root --default-character-set=utf8mb4 <MYSQLDATABASE> < data/dumps/flatplanner-data.sql
    ```
-4. Check: `SELECT COUNT(*) FROM listings;` (= local) and `SELECT district_name FROM listings WHERE district_name LIKE 'Ś%' LIMIT 3;` (Polish characters).
+4. Check: `SELECT COUNT(*) FROM listings;` (= local) and `SELECT district_name FROM listings WHERE district_name LIKE 'Ś%' LIMIT 3;` (Polish characters). Run the client with `--default-character-set=utf8mb4`: with its default charset the `Ś` is sent as `?` and the query finds nothing even when the data is correct.
 5. Turn off Public Access.
 
 `__EFMigrationsHistory` is not transferred.
 
 ### 11.5 Smoke test on production (`$URL` = the public address)
 
+After the pivot (16.5, R31) the chat has one endpoint, `POST /api/search/ask/stream` (16.5b); the `interpret` endpoint, `sort=relevance`, `why` and `askSeller` no longer exist. `ask` calls are paid, so the whole test makes three of them (steps 3 and 4 and the first of step 5).
+
 1. `curl -s $URL/api/health`: `db: ok`, `clientIp` = your public IPv4 (compare with `curl -4 -s ifconfig.me`); repeat from another network; a request with a forged `X-Real-IP` must still show your own address.
-   Run the smoke test after the last data import: the chat schema contains the district list, so the first LLM call after an import may be slower (step 3 doubles as a warm-up).
-2. **Scenario A:** `curl -s "$URL/api/listings?cities=gdansk&areaMin=40&areaMax=80" | jq '.total, .items[0].id'` → total > 0. Then `curl -s $URL/api/listings/<id> | jq '.fields.pricePln, .askSeller'`. In the browser: filter → district → sort by price/m² → details → “back” preserves the filters.
-3. **Scenario B:**
+   Run the smoke test after the last data import and set `CHAT_MODE=llm` first. The first `ask` after an import is slower: the interpretation schema contains the district list (step 3 doubles as a warm-up).
+2. **Scenario A (list and details):** `curl -s "$URL/api/listings?cities=gdansk&areaMin=40&areaMax=80" | jq '.total, .items[0].id'` → total > 0. Then `curl -s $URL/api/listings/<id> | jq '.pricePln, .descriptionText'` (the details are flat, 6.2). In the browser at `$URL/listings`: filter → district → sort by price/m² → details → “back” preserves the filters.
+3. **Scenario B (chat):**
    ```bash
-   curl -s -X POST $URL/api/search/interpret -H 'content-type: application/json' -d '{"message":"chcę ładne, tanie mieszkanie, 40 m w Gdańsku"}' | jq
+   curl -sN -X POST "$URL/api/search/ask/stream" -H 'content-type: application/json' -d '{"message":"mam psa i pracuję na nocki, 2 pokoje w Gdańsku do 700 tys."}'
    ```
-   Expected: `usedFallback: false`, `areaApprox: 40`, both preferences. Then GET with this intent → `sort: relevance`, `why` non-empty.
+   Expected: an `understood` event with `needs` for the dog and the night work (a few seconds), then a `results` event with `usedFallback: false`, non-empty `items`, each with verdicts and evidence (16.2). In the browser at `$URL/`: the same message shows the thread with the two-stage answer.
 4. **Text search:** `curl -s "$URL/api/listings?cities=gdansk&text=morena" | jq '.total'` → the listed items contain „morena” in the title, description or street.
-5. **Kraków:** `{"message":"2 pokoje w Krakowie"}` (2 rooms in Kraków) → `requestedCityOutOfScope: "Kraków"`, `cities: ["gdansk"]`.
-6. **Protection:** 6 interpret requests in a minute from one IP → the sixth gives 429.
+5. **Kraków:** `{"message":"2 pokoje w Krakowie"}` → the `understood` event carries a `clarify` notice that only Gdańsk, Gdynia and Sopot are served (checked locally in fallback mode, 2026-11-08), and the `results` event has `usedFallback: false` and no item outside the three cities (16.2, 7.6).
+6. **Protection:** 6 `ask/stream` requests in a minute from one IP → the sixth gives 429 with `Retry-After`. Send an invalid body (an empty `message`) so that the first five fail validation with 400 before any LLM call and cost nothing; the rate limiter runs before validation (section 8), so they still count.
 7. **Response shape:** `curl -s "$URL/api/listings?cities=gdansk" | grep -c ':null'` → `0` (the serialization rule from §6 works over HTTP, including `TypedResults`). `curl -sI -H 'Accept-Encoding: br, gzip' "$URL/api/listings"` → `content-encoding` present (by the Railway proxy or by our middleware, §6).
 
 

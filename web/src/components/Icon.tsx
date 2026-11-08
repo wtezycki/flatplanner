@@ -164,6 +164,13 @@ const PATHS = {
       <path d="M12 3a9 9 0 0 1 0 18Z" fill="currentColor" />
     </>
   ),
+  cross: <path d="M18 6 6 18M6 6l12 12" />,
+  help: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01" />
+    </>
+  ),
   chevronLeft: <path d="m15 18-6-6 6-6" />,
   chevronRight: <path d="m9 18 6-6-6-6" />,
   fresh: <path d="m12 3 1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3Z" />,

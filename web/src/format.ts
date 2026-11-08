@@ -1,3 +1,5 @@
+import type { IconName } from './components/Icon.tsx'
+
 const integerFormat = new Intl.NumberFormat('pl-PL', { maximumFractionDigits: 0 })
 const decimalFormat = new Intl.NumberFormat('pl-PL', { maximumFractionDigits: 2 })
 
@@ -62,14 +64,14 @@ export function formatDetailFloor(
 
 export const formatPhotosCount = (count: number) => `${count} ${pluralPl(count, 'zdjęcie', 'zdjęcia', 'zdjęć')}`
 
-const VERDICT_PRESENTATION: Record<string, { icon: string; label: string }> = {
-  yes: { icon: '✓', label: 'pasuje' },
-  partly: { icon: '◐', label: 'częściowo' },
-  no: { icon: '✗', label: 'nie pasuje' },
-  unknown: { icon: '?', label: 'brak danych' },
+const VERDICT_PRESENTATION: Record<string, { icon: IconName; label: string }> = {
+  yes: { icon: 'check', label: 'pasuje' },
+  partly: { icon: 'halfCircle', label: 'częściowo' },
+  no: { icon: 'cross', label: 'nie pasuje' },
+  unknown: { icon: 'help', label: 'brak danych' },
 }
 
-export function verdictPresentation(verdict: string): { icon: string; label: string } {
+export function verdictPresentation(verdict: string): { icon: IconName; label: string } {
   return VERDICT_PRESENTATION[verdict] ?? VERDICT_PRESENTATION.unknown
 }
 
@@ -102,9 +104,8 @@ export const ASK_GROUP_HEADINGS: Record<string, string> = {
 
 export const ASK_WHY_LABELS: Record<string, string> = {
   full: 'Dlaczego pasuje',
-  partial: 'Dlaczego częściowo',
+  partial: 'Dlaczego pasuje częściowo',
   near: 'Co nie pasuje',
-  unknown: 'Co sprawdziliśmy',
 }
 
 export const ASK_GROUP_HINTS: Record<string, string> = {

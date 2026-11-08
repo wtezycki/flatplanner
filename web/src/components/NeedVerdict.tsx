@@ -1,5 +1,6 @@
 import type { NeedResult } from '../api.ts'
 import { verdictPresentation } from '../format.ts'
+import Icon from './Icon.tsx'
 
 interface Props {
   need: string
@@ -11,7 +12,7 @@ export default function NeedVerdict({ need, result }: Props) {
   return (
     <li className={`verdict verdict--${result.verdict}`}>
       <span className="verdict__icon" role="img" aria-label={label}>
-        {icon}
+        <Icon name={icon} />
       </span>
       <div className="verdict__text">
         <p className="verdict__reason">{result.reason || need}</p>

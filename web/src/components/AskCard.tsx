@@ -3,6 +3,7 @@ import type { AskItem } from '../api.ts'
 import { ASK_WHY_LABELS, formatPrice, verdictPresentation } from '../format.ts'
 import { listingSearch } from '../intent.ts'
 import type { CardLabels } from '../useCardLabels.ts'
+import Icon from './Icon.tsx'
 import ListingCardBody from './ListingCardBody.tsx'
 import NeedVerdict from './NeedVerdict.tsx'
 import PhotoCarousel from './PhotoCarousel.tsx'
@@ -23,6 +24,7 @@ export default function AskCard({ item, labels, needs, excludeNeeds }: Props) {
     .filter(({ index }) => !excludeNeeds.includes(index))
   const failing = verdicts.filter(({ result }) => result.verdict === 'no')
   const ordered = item.group === 'near' ? [...failing, ...verdicts.filter((entry) => !failing.includes(entry))] : verdicts
+  const explained = ordered.filter(({ result }) => result.reason)
 
   return (
     <article className="tile">
@@ -41,21 +43,25 @@ export default function AskCard({ item, labels, needs, excludeNeeds }: Props) {
                 return (
                   <li key={need} className={`verdict-pill verdict-pill--${result.verdict}`}>
                     <span role="img" aria-label={label}>
-                      {icon}
+                      <Icon name={icon} />
                     </span>
-                    {need}
+                    <span className="verdict-pill__text" title={need}>
+                      {need}
+                    </span>
                   </li>
                 )
               })}
             </ul>
-            <details className="tile__why">
-              <summary>{ASK_WHY_LABELS[item.group] ?? ASK_WHY_LABELS.full}</summary>
-              <ul className="verdicts">
-                {ordered.map(({ need, result }) => (
-                  <NeedVerdict key={need} need={need} result={result} />
-                ))}
-              </ul>
-            </details>
+            {explained.length > 0 && (
+              <details className="tile__why">
+                <summary>{ASK_WHY_LABELS[item.group] ?? ASK_WHY_LABELS.full}</summary>
+                <ul className="verdicts">
+                  {explained.map(({ need, result }) => (
+                    <NeedVerdict key={need} need={need} result={result} />
+                  ))}
+                </ul>
+              </details>
+            )}
           </div>
         )}
       </ListingCardBody>

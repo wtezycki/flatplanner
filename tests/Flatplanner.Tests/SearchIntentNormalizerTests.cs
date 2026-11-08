@@ -36,4 +36,16 @@ public sealed class SearchIntentNormalizerTests
         Assert.Equal(4, intent.RoomsMax);
         Assert.Empty(warnings);
     }
+
+    [Fact]
+    public void Normalize_UnknownEnumValues_AreRemoved()
+    {
+        var intent = new SearchIntent { FinishCondition = "luxury", Ownership = Ownership.Full, Heating = "solar" };
+
+        var normalized = SearchIntentNormalizer.Normalize(intent, Meta).Intent;
+
+        Assert.Null(normalized.FinishCondition);
+        Assert.Null(normalized.Heating);
+        Assert.Equal(Ownership.Full, normalized.Ownership);
+    }
 }

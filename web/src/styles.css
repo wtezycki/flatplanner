@@ -105,6 +105,7 @@ button, input, select { font: inherit; color: inherit; }
 .filters__details summary { margin-bottom: 0; cursor: pointer; list-style: none; }
 .filters__details summary::after { content: " ▾"; }
 .filters__details[open] summary { margin-bottom: var(--space-2); }
+.filters__more { display: flex; flex-direction: column; gap: var(--space-4); }
 .filters__pills { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .filters__pair { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
 .filters__pair .field { width: 100%; min-width: 0; }
@@ -136,7 +137,7 @@ button, input, select { font: inherit; color: inherit; }
 .card__fact .icon { color: var(--teal-700); }
 .card__location { display: flex; align-items: center; gap: var(--space-1); }
 .card__location .icon { width: 16px; height: 16px; }
-.card__approximate { cursor: help; }
+.card__approximate { display: inline-flex; cursor: help; color: var(--color-warning-text); }
 .card__price-per-m2, .card__location { font-size: var(--fs-sm); color: var(--color-text-secondary); }
 .card__title { display: -webkit-box; overflow: hidden; margin-top: var(--space-2); font-size: var(--fs-md); -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .card__link, .card__link:hover { color: var(--color-text); text-decoration: none; }

@@ -14,8 +14,21 @@ export interface SearchIntent {
   floorMax?: number
   market?: string
   advertiserType?: string
+  buildYearMin?: number
+  buildYearMax?: number
+  pricePerM2Min?: number
+  pricePerM2Max?: number
+  rentMin?: number
+  rentMax?: number
+  finishCondition?: string
+  ownership?: string
+  buildingType?: string
+  heating?: string
+  buildingMaterial?: string
   requireLift: boolean
   requireBalcony: boolean
+  requireGarage: boolean
+  requireBasement: boolean
   text?: string
   preferences: string[]
   requestedCityOutOfScope?: string

@@ -72,6 +72,61 @@ public static class ListingFilters
             query = query.Where(l => l.AdvertiserType == advertiserType);
         }
 
+        if (intent.BuildYearMin is { } buildYearMin)
+        {
+            query = query.Where(l => l.BuildYear >= buildYearMin);
+        }
+
+        if (intent.BuildYearMax is { } buildYearMax)
+        {
+            query = query.Where(l => l.BuildYear <= buildYearMax);
+        }
+
+        if (intent.PricePerM2Min is { } pricePerM2Min)
+        {
+            query = query.Where(l => l.PricePerM2 >= pricePerM2Min);
+        }
+
+        if (intent.PricePerM2Max is { } pricePerM2Max)
+        {
+            query = query.Where(l => l.PricePerM2 <= pricePerM2Max);
+        }
+
+        if (intent.RentMin is { } rentMin)
+        {
+            query = query.Where(l => l.RentPln >= rentMin);
+        }
+
+        if (intent.RentMax is { } rentMax)
+        {
+            query = query.Where(l => l.RentPln <= rentMax);
+        }
+
+        if (intent.FinishCondition is { } finishCondition)
+        {
+            query = query.Where(l => l.FinishCondition == finishCondition);
+        }
+
+        if (intent.Ownership is { } ownership)
+        {
+            query = query.Where(l => l.Ownership == ownership);
+        }
+
+        if (intent.BuildingType is { } buildingType)
+        {
+            query = query.Where(l => l.BuildingType == buildingType);
+        }
+
+        if (intent.Heating is { } heating)
+        {
+            query = query.Where(l => l.Heating == heating);
+        }
+
+        if (intent.BuildingMaterial is { } buildingMaterial)
+        {
+            query = query.Where(l => l.BuildingMaterial == buildingMaterial);
+        }
+
         if (intent.RequireLift)
         {
             query = query.Where(l => l.HasLift == true);
@@ -80,6 +135,16 @@ public static class ListingFilters
         if (intent.RequireBalcony)
         {
             query = query.Where(l => l.HasBalcony == true);
+        }
+
+        if (intent.RequireGarage)
+        {
+            query = query.Where(l => l.HasGarage == true);
+        }
+
+        if (intent.RequireBasement)
+        {
+            query = query.Where(l => l.HasBasement == true);
         }
 
         return intent.Text is null ? query : query.ApplyText(intent.Text);

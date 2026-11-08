@@ -47,6 +47,10 @@ public static partial class SearchIntentNormalizer
         var (roomsMin, roomsMax) = Ordered(intent.RoomsMin, intent.RoomsMax);
         var (floorMin, floorMax) = Ordered(intent.FloorMin, intent.FloorMax);
 
+        var (buildYearMin, buildYearMax) = Ordered(intent.BuildYearMin, intent.BuildYearMax);
+        var (pricePerM2Min, pricePerM2Max) = Ordered(intent.PricePerM2Min, intent.PricePerM2Max);
+        var (rentMin, rentMax) = Ordered(intent.RentMin, intent.RentMax);
+
         var areaApprox = intent.AreaApprox is > 0 ? intent.AreaApprox : null;
         if (areaApprox is not null && (areaMin is not null || areaMax is not null))
         {
@@ -73,8 +77,19 @@ public static partial class SearchIntentNormalizer
             RoomsMax = roomsMax,
             FloorMin = floorMin,
             FloorMax = floorMax,
+            BuildYearMin = buildYearMin,
+            BuildYearMax = buildYearMax,
+            PricePerM2Min = pricePerM2Min,
+            PricePerM2Max = pricePerM2Max,
+            RentMin = rentMin,
+            RentMax = rentMax,
             Market = Market.All.Contains(intent.Market) ? intent.Market : null,
             AdvertiserType = AdvertiserType.All.Contains(intent.AdvertiserType) ? intent.AdvertiserType : null,
+            FinishCondition = FinishCondition.All.Contains(intent.FinishCondition) ? intent.FinishCondition : null,
+            Ownership = Ownership.All.Contains(intent.Ownership) ? intent.Ownership : null,
+            BuildingType = BuildingType.All.Contains(intent.BuildingType) ? intent.BuildingType : null,
+            Heating = Heating.All.Contains(intent.Heating) ? intent.Heating : null,
+            BuildingMaterial = BuildingMaterial.All.Contains(intent.BuildingMaterial) ? intent.BuildingMaterial : null,
             Text = string.IsNullOrEmpty(text) ? null : text,
             Preferences = Preference.All.Where(intent.Preferences.Contains).ToArray(),
             RequestedCityOutOfScope = requestedCity,

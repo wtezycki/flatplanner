@@ -59,6 +59,46 @@ public static class InterpretationBuilder
             yield return new Chip("advertiserType", EnumLabels.AdvertiserTypeOptions.First(o => o.Value == advertiserType).Label);
         }
 
+        if (RangeLabel(intent.BuildYearMin, intent.BuildYearMax, "rok budowy", "", grouped: false) is { } buildYear)
+        {
+            yield return new Chip("buildYear", buildYear);
+        }
+
+        if (RangeLabel(intent.PricePerM2Min, intent.PricePerM2Max, "", " zł/m²") is { } pricePerM2)
+        {
+            yield return new Chip("pricePerM2", pricePerM2);
+        }
+
+        if (RangeLabel(intent.RentMin, intent.RentMax, "czynsz", " zł") is { } rent)
+        {
+            yield return new Chip("rent", rent);
+        }
+
+        if (intent.FinishCondition is { } finishCondition)
+        {
+            yield return new Chip("finishCondition", Label(EnumLabels.FinishConditionOptions, finishCondition));
+        }
+
+        if (intent.Ownership is { } ownership)
+        {
+            yield return new Chip("ownership", Label(EnumLabels.OwnershipOptions, ownership));
+        }
+
+        if (intent.BuildingType is { } buildingType)
+        {
+            yield return new Chip("buildingType", Label(EnumLabels.BuildingTypeOptions, buildingType));
+        }
+
+        if (intent.Heating is { } heating)
+        {
+            yield return new Chip("heating", $"ogrzewanie: {Label(EnumLabels.HeatingOptions, heating)}");
+        }
+
+        if (intent.BuildingMaterial is { } buildingMaterial)
+        {
+            yield return new Chip("buildingMaterial", $"materiał: {Label(EnumLabels.BuildingMaterialOptions, buildingMaterial)}");
+        }
+
         if (intent.RequireLift)
         {
             yield return new Chip("requireLift", "z windą");
@@ -67,6 +107,16 @@ public static class InterpretationBuilder
         if (intent.RequireBalcony)
         {
             yield return new Chip("requireBalcony", "z balkonem");
+        }
+
+        if (intent.RequireGarage)
+        {
+            yield return new Chip("requireGarage", "z garażem");
+        }
+
+        if (intent.RequireBasement)
+        {
+            yield return new Chip("requireBasement", "z piwnicą");
         }
 
         if (intent.Text is { } text)
@@ -147,6 +197,21 @@ public static class InterpretationBuilder
         ({ } min, { } max) when min == max => min switch { -1 => "suterena", 0 => "parter", _ => $"piętro {min}" },
         ({ } min, { } max) => $"piętro {min}–{max}",
     };
+
+    private static string Label(IReadOnlyList<EnumOption> options, string value) => options.First(o => o.Value == value).Label;
+
+    private static string? RangeLabel(int? min, int? max, string noun, string unit, bool grouped = true)
+    {
+        string Show(int value) => grouped ? Number(value) : value.ToString(CultureInfo.InvariantCulture);
+        var prefix = noun.Length > 0 ? $"{noun} " : "";
+        return (min, max) switch
+        {
+            (null, null) => null,
+            ({ } from, null) => $"{prefix}od {Show(from)}{unit}",
+            (null, { } to) => $"{prefix}do {Show(to)}{unit}",
+            ({ } from, { } to) => $"{prefix}{Show(from)}–{Show(to)}{unit}",
+        };
+    }
 
     private static string Number(decimal value) =>
         value.ToString("#,0.##", CultureInfo.InvariantCulture).Replace(',', ' ').Replace('.', ',');

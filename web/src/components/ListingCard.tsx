@@ -74,13 +74,14 @@ export default function ListingCard({ item, labels }: Props) {
           {item.buildYear !== undefined && <Fact icon="year">{String(item.buildYear)}</Fact>}
         </p>
         <p className="card__location">
-          <Icon name="pin" />
-          {location}
-          {item.locationApproximate && (
-            <span className="card__approximate" title="Ogłaszający nie podał dokładnej lokalizacji." aria-label="Lokalizacja przybliżona">
-              ≈
+          {item.locationApproximate ? (
+            <span className="card__approximate" title="Ogłaszający nie podał dokładnej lokalizacji." role="img" aria-label="Lokalizacja przybliżona">
+              <Icon name="pinApprox" />
             </span>
+          ) : (
+            <Icon name="pin" />
           )}
+          {location}
         </p>
         <p className="card__title">
           <Link className="card__link" to={href}>

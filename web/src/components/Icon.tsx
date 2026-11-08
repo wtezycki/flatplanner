@@ -131,6 +131,12 @@ const PATHS = {
       <path d="M16 17h6v-6" />
     </>
   ),
+  pinApprox: (
+    <>
+      <circle cx="12" cy="12" r="9" strokeDasharray="3 3" />
+      <circle cx="12" cy="12" r="2.5" />
+    </>
+  ),
   fresh: <path d="m12 3 1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3Z" />,
 } satisfies Record<string, ReactNode>
 

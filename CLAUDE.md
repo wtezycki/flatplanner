@@ -12,7 +12,7 @@ Constraint from the task: avoid overengineering; limited time. Scope is fixed; q
 
 - `src/Flatplanner.Core`: `DbContext`, entities, migrations, enum constants, options, `SearchIntent` + normalizer + schema + fallback parser, `TextFolding`, `AnchorValidator`, `LlmJsonClient`.
 - `src/Flatplanner.Api`: Minimal API endpoints (`Endpoints/`), list queries, ranking, interpretation, chat, SPA hosting.
-- `src/Flatplanner.Ingest`: local-only console app (scrape, normalize, nearby, export-dossiers, import-dossiers, report, eval-intents). Never deployed.
+- `src/Flatplanner.Ingest`: local-only console app (scrape, normalize, nearby, export-dossiers, import-dossiers, report, eval-intents, eval-judge). Never deployed.
 - `tests/Flatplanner.Tests`: xUnit; `tests/search-queries.json`: the 10 chat queries.
 - `web/`: React SPA, built into the API's `wwwroot` in the container. `prompts/`: versioned LLM prompts.
 - Data reaches production only as a `mysqldump` of `listings` and `listing_facts` (§11.4).
@@ -49,7 +49,7 @@ dotnet format Flatplanner.sln --verify-no-changes     # not defined by the desig
 docker compose up -d mysql                            # local MySQL 8.4
 dotnet ef migrations add <Name> --project src/Flatplanner.Core --startup-project src/Flatplanner.Api
 dotnet run --project src/Flatplanner.Api --urls http://localhost:5080
-dotnet run --project src/Flatplanner.Ingest -- <scrape|normalize|nearby|export-dossiers|import-dossiers|report|all|eval-intents>
+dotnet run --project src/Flatplanner.Ingest -- <scrape|normalize|nearby|export-dossiers|import-dossiers|report|all|eval-intents|eval-judge>
 docker compose up --build                             # app + MySQL, as in production
 ```
 
@@ -62,7 +62,7 @@ npm run build     # tsc + vite build -> web/dist
 npm run lint      # template script; the design does not mention it
 ```
 
-Environment: `set -a; source .env; set +a` before `dotnet run` (design §10). `eval-intents` calls the paid OpenAI API: run it only when the item requires it. The dossier text is produced by the agent in-session from `prompts/listing-dossier.v2.md`, never through the API.
+Environment: `set -a; source .env; set +a` before `dotnet run` (design §10). `eval-intents` and the API behind `eval-judge` (started with `CHAT_MODE=llm`) call the paid OpenAI API: run them only when the item requires it. The dossier text is produced by the agent in-session from `prompts/listing-dossier.v2.md`, never through the API.
 
 ## Hard rules
 
@@ -87,7 +87,7 @@ Environment: `set -a; source .env; set +a` before `dotnet run` (design §10). `e
 - `sealed record` for DTOs and value types.
 - `async` all the way with `CancellationToken` passed through; no `.Result` / `.Wait()`.
 - Configuration only through `FlatplannerOptions` (`[ConfigurationKeyName]`, `ValidateOnStart`); no direct `Environment.GetEnvironmentVariable`.
-- Logging via `ILogger<T>` with message templates (`"Rejected {ExternalId}: {Reason}"`), no string interpolation, no `Console.WriteLine` except Ingest command output the design specifies (`report`, `eval-intents`, `scrape` counters).
+- Logging via `ILogger<T>` with message templates (`"Rejected {ExternalId}: {Reason}"`), no string interpolation, no `Console.WriteLine` except Ingest command output the design specifies (`report`, `eval-intents`, `eval-judge`, `scrape` counters).
 - Exceptions: catch only what the design maps (e.g. §7.7 table), log it, and take the designed path. No empty `catch`. Errors to clients as `ProblemDetails`.
 - Constants the design names (`SearchDefinitions`, `DbConstants.ServerVersion`, `FallbackDictionaries`, `KeywordRules`, page size 20, scrape quotas) live in code, not configuration, and are not duplicated as literals.
 - **Comments: default is none.** Names and small functions carry the meaning. Add a comment only when the code cannot show the reason: a non-obvious constraint or a decision from the design (e.g. why `ForwardLimit = 1`, why `has_lift` is never `false`), one line, with the design section if there is one. No comments that restate the code, no XML doc comments on internal members, no section banners, no commented-out code. Applies to C#, TypeScript, SQL and config files.

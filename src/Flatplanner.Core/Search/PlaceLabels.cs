@@ -1,4 +1,4 @@
-namespace Flatplanner.Api.Chat;
+namespace Flatplanner.Core.Search;
 
 public static class PlaceLabels
 {

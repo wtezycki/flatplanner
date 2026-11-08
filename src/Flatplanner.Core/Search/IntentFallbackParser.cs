@@ -28,6 +28,21 @@ public static partial class IntentFallbackParser
         };
     }
 
+    public static AskIntent ParseAsk(string message, SearchMeta meta)
+    {
+        var parsed = Parse(message, meta);
+
+        return new AskIntent
+        {
+            Cities = parsed.Cities,
+            Districts = parsed.Districts,
+            PriceMax = parsed.PriceMax,
+            AreaMin = parsed.AreaMin ?? parsed.AreaApprox,
+            AreaMax = parsed.AreaMax,
+            RoomsMin = parsed.RoomsMin,
+        };
+    }
+
     private static string[] Cities(string plain) =>
         Regex.IsMatch(plain, $@"\b(?:{FallbackDictionaries.TricityPattern})\b")
             ? City.All
@@ -57,6 +72,11 @@ public static partial class IntentFallbackParser
         if (AreaRange().Match(text) is { Success: true } range)
         {
             return (Number(range.Groups[1].Value), Number(range.Groups[2].Value), null);
+        }
+
+        if (AreaUpperLimit().Match(text) is { Success: true } upper)
+        {
+            return (null, Number(upper.Groups[1].Value), null);
         }
 
         return AreaSingle().Match(text) is { Success: true } single
@@ -97,6 +117,9 @@ public static partial class IntentFallbackParser
 
     [GeneratedRegex(@"(\d+(?:[.,]\d+)?)\s*(?:-|do)\s*(\d+(?:[.,]\d+)?)\s*(?:m2|m|mkw|metr\w*)\b")]
     private static partial Regex AreaRange();
+
+    [GeneratedRegex(@"(?:do|max|maks\w*|ponizej)\s*(\d+(?:[.,]\d+)?)\s*(?:m2|m|mkw|metr\w*)\b")]
+    private static partial Regex AreaUpperLimit();
 
     [GeneratedRegex(@"(\d+(?:[.,]\d+)?)\s*(?:m2|m|mkw|metr\w*)\b")]
     private static partial Regex AreaSingle();

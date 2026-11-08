@@ -1,3 +1,4 @@
+using Flatplanner.Core.Search;
 using Flatplanner.Core.Text;
 
 namespace Flatplanner.Api.Chat;

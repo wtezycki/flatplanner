@@ -21,6 +21,7 @@ export default function AskPage() {
   const maxLength = useQuery(metaQuery).data?.chatMaxLength
   const thread = useRef<HTMLDivElement>(null)
   const previousTurns = useRef(turns.length)
+  const previousPage = useRef(page)
   const limitReached = turns.length >= MAX_TURNS
 
   const ask = (text: string) => {
@@ -39,7 +40,14 @@ export default function AskPage() {
 
   useEffect(() => {
     window.scrollTo(0, 0)
-  }, [page, listingId])
+  }, [listingId])
+
+  useEffect(() => {
+    if (page !== previousPage.current) {
+      thread.current?.lastElementChild?.scrollIntoView({ block: 'start' })
+    }
+    previousPage.current = page
+  }, [page])
 
   useEffect(() => {
     if (turns.length > previousTurns.current) {

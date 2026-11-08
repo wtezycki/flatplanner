@@ -20,6 +20,7 @@ builder.Services.AddOptions<FlatplannerOptions>()
 builder.Services.ConfigureHttpJsonOptions(o =>
     o.SerializerOptions.DefaultIgnoreCondition = ApiJson.Options.DefaultIgnoreCondition);
 builder.Services.AddProblemDetails();
+builder.Services.AddResponseCompression(o => o.EnableForHttps = true);
 builder.Services.AddFlatplannerRateLimiter();
 
 builder.Services.AddDbContext<FlatplannerDbContext>((services, db) =>
@@ -66,6 +67,7 @@ if (app.Services.GetRequiredService<IOptions<FlatplannerOptions>>().Value.DbMigr
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 app.UseRateLimiter();
+app.UseResponseCompression();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 

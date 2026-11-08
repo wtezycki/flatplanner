@@ -488,7 +488,7 @@ Common rules:
   - there is no exception: a missing value in details is an omitted field, which the UI shows as “brak danych” (6.2, 14.1);
   - TypeScript types in `web/src/api.ts` mark every omittable field as optional (`why?: string`);
   - the options live in one static `ApiJson.Options` used both by `ConfigureHttpJsonOptions` and by `ApiSerializationTests` (section 12), which serialize sample DTOs and assert: no `:null` in the list response, `null` kept inside `remove`. `ConfigureHttpJsonOptions` verified in #1 for endpoints that return a DTO (`/api/meta` omits `dataAsOf` when it is `null`); `Results.Json` is given `ApiJson.Options` explicitly. **[TO BE VERIFIED]** for `TypedResults` in .NET 9 (aspnetcore issue #45872); the smoke test (11.5, step 7) checks the real HTTP response;
-- **compression:** after the first deploy check `curl -sI -H 'Accept-Encoding: br, gzip' $URL/api/listings`. If the response has no `content-encoding`, add `builder.Services.AddResponseCompression(o => o.EnableForHttps = true)` and `app.UseResponseCompression()` before `UseStaticFiles` (Kestrel does not compress on its own; behind the proxy the request scheme is `https` after `UseForwardedHeaders`). BREACH needs a secret in the response next to reflected input; this API has no auth, cookies or CSRF tokens, so the risk is negligible. Compression is the only change with a real effect on transfer: JSON shrinks by ~70–85%, and the SPA bundle gains the most.
+- **compression:** after the first deploy check `curl -s -o /dev/null -D - -H 'Accept-Encoding: br, gzip' $URL/api/listings | grep -i content-encoding` (`curl -I` sends `HEAD`, which the `GET`-only routes answer with `404`). If the response has no `content-encoding`, add `builder.Services.AddResponseCompression(o => o.EnableForHttps = true)` and `app.UseResponseCompression()` before `UseStaticFiles` (Kestrel does not compress on its own). Checked on the deployed app on 2026-11-08: the Railway proxy does not compress, so both lines are in `Program.cs`. The default MIME types do not include `text/event-stream`, so the `ask` stream (16.5b) is not buffered by the compressor. BREACH needs a secret in the response next to reflected input; this API has no auth, cookies or CSRF tokens, so the risk is negligible. Compression is the only change with a real effect on transfer: JSON shrinks by ~70–85%, and the SPA bundle gains the most.
 
 ### 6.1 `GET /api/listings`
 
@@ -988,7 +988,7 @@ The user sees above the results: “Simplified query understanding (AI temporari
 
 ## 8. Protection of the public chatbox
 
-Middleware order in `Program.cs`: `UseExceptionHandler` → `UseStatusCodePages` → `UseRateLimiter` → `UseDefaultFiles` → `UseStaticFiles` → endpoints → `MapFallbackToFile("index.html")`.
+Middleware order in `Program.cs`: `UseExceptionHandler` → `UseStatusCodePages` → `UseRateLimiter` → `UseResponseCompression` → `UseDefaultFiles` → `UseStaticFiles` → endpoints → `MapFallbackToFile("index.html")`.
 
 **Client IP:** behind the Railway proxy `RemoteIpAddress` is the proxy edge address, so the per-IP limiter would put everyone into one bucket. Verified on the deployed skeleton (§13 #2, 2026-11-05), from a home network and from a phone on LTE:
 
@@ -1241,7 +1241,7 @@ After the pivot (16.5, R31) the chat has one endpoint, `POST /api/search/ask/str
 4. **Text search:** `curl -s "$URL/api/listings?cities=gdansk&text=morena" | jq '.total'` → the listed items contain „morena” in the title, description or street.
 5. **Kraków:** `{"message":"2 pokoje w Krakowie"}` → the `understood` event carries a `clarify` notice that only Gdańsk, Gdynia and Sopot are served (checked locally in fallback mode, 2026-11-08), and the `results` event has `usedFallback: false` and no item outside the three cities (16.2, 7.6).
 6. **Protection:** 6 `ask/stream` requests in a minute from one IP → the sixth gives 429 with `Retry-After`. Send an invalid body (an empty `message`) so that the first five fail validation with 400 before any LLM call and cost nothing; the rate limiter runs before validation (section 8), so they still count.
-7. **Response shape:** `curl -s "$URL/api/listings?cities=gdansk" | grep -c ':null'` → `0` (the serialization rule from §6 works over HTTP, including `TypedResults`). `curl -sI -H 'Accept-Encoding: br, gzip' "$URL/api/listings"` → `content-encoding` present (by the Railway proxy or by our middleware, §6).
+7. **Response shape:** `curl -s "$URL/api/listings?cities=gdansk" | grep -c ':null'` → `0` (the serialization rule from §6 works over HTTP, including `TypedResults`). `curl -s -o /dev/null -D - -H 'Accept-Encoding: br, gzip' "$URL/api/listings" | grep -i content-encoding` → present (the routes are `GET` only, so `curl -I` gives `404`; the Railway proxy does not compress, so it comes from our middleware, §6).
 
 
 ### 11.6 CI and CD
@@ -1477,7 +1477,6 @@ Places where earlier documents or data allowed two variants, and the variant ado
 - Render prices (alternative);
 - whether `ConfigureHttpJsonOptions` applies to `TypedResults` in .NET 9 (§6, smoke 11.5 step 7);
 - that `DefaultIgnoreCondition` keeps `null` values inside the `remove` dictionary (`ApiSerializationTests`);
-- whether the Railway proxy compresses responses on its own (§6, smoke 11.5 step 7);
 - LLM and Railway cost estimates marked **[estimate]**.
 
 ### 14.4 Elements beyond product-scope and the order of cuts

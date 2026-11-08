@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useSearchParams } from 'react-router'
+import Icon from './Icon.tsx'
 
 const TEXT_MAX_LENGTH = 100
 
@@ -24,9 +25,10 @@ export default function SearchBar() {
   }
 
   return (
-    <form className="search" role="search" onSubmit={submit}>
+    <form className="searchbar" role="search" onSubmit={submit}>
+      <Icon name="search" />
       <input
-        className="field search__input"
+        className="searchbar__input"
         type="search"
         aria-label="Szukaj w ofertach"
         placeholder="np. Morena, Wrzeszcz, balkon"

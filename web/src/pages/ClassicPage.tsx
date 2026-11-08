@@ -29,9 +29,9 @@ export default function ClassicPage() {
 
   return (
     <div className="container">
+      <SearchBar />
       <div className="layout">
         <div className="layout__side">
-          <SearchBar />
           <Filters />
         </div>
         <ListingsPage />

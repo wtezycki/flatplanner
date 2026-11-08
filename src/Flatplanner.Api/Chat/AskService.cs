@@ -58,9 +58,7 @@ public sealed class AskService(
         var (asked, fallbackReason) = await InterpretAsync(message, meta, ct);
         var intent = SearchIntentNormalizer.Normalize(asked.ToSearchIntent(), meta).Intent;
 
-        var matched = await db.Listings.AsNoTracking().Apply(intent).ToListAsync(ct);
-        var limited = asked.Needs.Length > 0 && matched.Count > ListingJudge.MaxCandidates;
-        var candidates = (limited ? ListingJudge.Newest(matched) : matched).Select(AskCandidate.From).ToList();
+        var candidates = (await db.Listings.AsNoTracking().Apply(intent).ToListAsync(ct)).Select(AskCandidate.From).ToList();
 
         var outcome = asked.Needs.Length > 0 && candidates.Count > 0
             ? await judge.JudgeAsync(asked.Needs, candidates, ct)
@@ -78,18 +76,12 @@ public sealed class AskService(
             notices.Add(AiUnavailable);
         }
 
-        if (limited)
-        {
-            notices.Add(new AskNotice("judge_limited",
-                $"Oceniliśmy {candidates.Count} najnowszych z {matched.Count} ogłoszeń. Zawęź miasto, dzielnicę lub cenę, żeby sprawdzić resztę."));
-        }
-
         if (outcome.AnyBatchFailed)
         {
             notices.Add(JudgeFailed);
         }
 
-        return new AskEvaluation(intent, asked.Needs, asked.Declined, notices, fallbackReason, candidates, results, outcome.AnyBatchFailed);
+        return new AskEvaluation(intent, asked.Needs.Select(n => n.Text).ToList(), asked.Declined, notices, fallbackReason, candidates, results, outcome.AnyBatchFailed);
     }
 
     private async Task<(AskIntent Intent, string? FallbackReason)> InterpretAsync(string message, SearchMeta meta, CancellationToken ct)

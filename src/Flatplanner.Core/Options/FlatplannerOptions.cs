@@ -26,10 +26,10 @@ public sealed class FlatplannerOptions : IValidatableObject
 
     [Required]
     [ConfigurationKeyName("LLM_MODEL")]
-    public string LlmModel { get; set; } = "gpt-6.1-terra";
+    public string LlmModel { get; set; } = "gpt-5.6-luna";
 
     [ConfigurationKeyName("LLM_JUDGE_MODEL")]
-    public string LlmJudgeModel { get; set; } = "";
+    public string LlmJudgeModel { get; set; } = "gpt-5.6-luna";
 
     [Required]
     [ConfigurationKeyName("LLM_CHAT_REASONING_EFFORT")]

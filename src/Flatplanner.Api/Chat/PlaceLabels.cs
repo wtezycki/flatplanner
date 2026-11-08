@@ -53,6 +53,8 @@ public static class PlaceLabels
         ["route=light_rail"] = "kolej miejska",
     };
 
+    public static IReadOnlyCollection<string> AllTags => Tags.Keys;
+
     public static string Of(string? name, string tag, int distanceM) =>
         $"{name ?? Tags.GetValueOrDefault(tag, "miejsce")} · {distanceM} m";
 }

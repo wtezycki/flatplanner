@@ -1610,6 +1610,18 @@ After the first answer the buyer refines ("a w Gdyni?", "a coś bliżej morza?",
 - **Tests (§12, no LLM):** `AskConversationTests`: request validation (count, length), the cache key and the conversation text. The refinement scenarios were checked by hand against the live model on 2026-11-08 (“2 pokoje w Gdańsku do 700 tys., blisko parku” → “a w Gdyni?” keeps rooms, price and the park need; “jednak bez parku” drops it; “od nowa” starts clean; the 6th message gets `400`); `eval-intents` and `tests/search-queries.json` do not exist in the repository.
 - **Definition of done:** "2 pokoje w Gdańsku" then "a w Gdyni?" gives city Gdynia with the rooms kept; "jednak bez parkingu" drops that need; the 6th turn is rejected with `400`; tests green; the eval scenarios pass.
 
+### 16.5b Staged streaming of the answer (built 2026-11-08)
+
+`POST /api/search/ask/stream` takes the same request and query string as `/api/search/ask` and answers `text/event-stream`. Validation errors (`400`) come before the first byte as ProblemDetails; the pipeline is the same `AskService.AskStreamAsync`, and `/api/search/ask` returns its last event as JSON.
+
+| Event | `data` | When |
+|---|---|---|
+| `understood` | `{ summary, needs, declined, notices }` | right after the interpretation (about 2–3 s), before the database and the judge |
+| `results` | the whole `AskResponse` of 6.x | when the window of listings is judged and verified (about 5 s later); its `summary`, `needs`, `declined` and `notices` supersede the first event (`notices` may gain `judge_failed`) |
+| `error` | `{}` | a failure after the stream started; the client shows the connection error |
+
+The reply is structured data, not free text, so there are no token events: the stream only splits the wait in two honest stages and replaces the timer of the progress indicator. The `understood` event is not cached separately (the interpretation cache makes a repeated question fast anyway). `ApiSerializationTests` keep the arrays of `understood`.
+
 ### 16.6 Demo listings (local import, 2026-11-05)
 
 Listings are named by local `id` with the otodom `external_id` in brackets: local ids are not stable across imports.

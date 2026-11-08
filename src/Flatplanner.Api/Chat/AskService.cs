@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using Flatplanner.Api.Endpoints;
 using Flatplanner.Api.Listings;
 using Flatplanner.Core.Data;
@@ -37,6 +38,24 @@ public sealed class AskService(
         bool more,
         CancellationToken ct)
     {
+        AskResults? results = null;
+        await foreach (var ev in AskStreamAsync(message, history, excludeNeeds, filters, more, ct))
+        {
+            results = ev as AskResults ?? results;
+        }
+
+        return results?.Response ?? throw new InvalidOperationException("The ask pipeline produced no results.");
+    }
+
+    // The first event arrives right after the interpretation, the second once the listings are judged (design 16.5b).
+    public async IAsyncEnumerable<AskEvent> AskStreamAsync(
+        string message,
+        IReadOnlyList<string> history,
+        IReadOnlyCollection<int> excludeNeeds,
+        SearchIntent filters,
+        bool more,
+        [EnumeratorCancellation] CancellationToken ct)
+    {
         logger.LogInformation("Ask turn {Turn}", history.Count + 1);
         var meta = await SearchMetaLoader.LoadAsync(db, ct);
         var key = InterpretationKey(history, message);
@@ -48,6 +67,8 @@ public sealed class AskService(
                 interpretations[key] = interpretation;
             }
         }
+
+        yield return Understand(interpretation, meta);
 
         var viewFilters = SearchIntentNormalizer.Normalize(filters, meta).Intent;
         var listings = await db.Listings.AsNoTracking()
@@ -62,7 +83,16 @@ public sealed class AskService(
             : await JudgeWindowAsync(ranked, needs, more, ct);
 
         var notices = shown.JudgeFailed ? [.. interpretation.Notices, JudgeFailed] : interpretation.Notices;
-        return await RespondAsync(interpretation, viewFilters, notices, shown, ranked.Count - shown.Candidates.Count, excludeNeeds.ToHashSet(), meta, ct);
+        yield return new AskResults(
+            await RespondAsync(interpretation, viewFilters, notices, shown, ranked.Count - shown.Candidates.Count, excludeNeeds.ToHashSet(), meta, ct));
+    }
+
+    private static AskUnderstood Understand(AskInterpretation interpretation, SearchMeta meta)
+    {
+        var filters = InterpretationBuilder.Build(interpretation.Intent, meta, []);
+        var needs = interpretation.Asked.Needs.Select(n => n.Text).ToList();
+        var summary = string.Join(InterpretationBuilder.Separator, new[] { filters.Summary }.Concat(needs).Where(s => s.Length > 0));
+        return new AskUnderstood(summary, needs, interpretation.Asked.Declined, interpretation.Notices);
     }
 
     private async Task<Shown> JudgeWindowAsync(IReadOnlyList<AskCandidate> ranked, AskNeed[] needs, bool more, CancellationToken ct)
@@ -174,8 +204,7 @@ public sealed class AskService(
         CancellationToken ct)
     {
         var filters = InterpretationBuilder.Build(interpretation.Intent, meta, []);
-        var needs = interpretation.Asked.Needs.Select(n => n.Text).ToList();
-        var summary = string.Join(InterpretationBuilder.Separator, new[] { filters.Summary }.Concat(needs).Where(s => s.Length > 0));
+        var (summary, needs, _, _) = Understand(interpretation, meta);
 
         var rows = shown.Candidates
             .Select(c => new VerdictRow(c.Listing.Id, c.Listing.CreatedAtSource, shown.Results[c.Listing.Id].Select(r => r.Verdict).ToList()))

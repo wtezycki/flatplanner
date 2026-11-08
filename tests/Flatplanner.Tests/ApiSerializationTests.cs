@@ -67,6 +67,16 @@ public sealed class ApiSerializationTests
     }
 
     [Fact]
+    public void AskUnderstood_NoNeeds_KeepsArrays()
+    {
+        var json = JsonSerializer.Serialize(new AskUnderstood("Gdańsk", [], [], []), ApiJson.Options);
+
+        Assert.Contains("\"needs\":[]", json);
+        Assert.Contains("\"declined\":[]", json);
+        Assert.Contains("\"notices\":[]", json);
+    }
+
+    [Fact]
     public void AskResponse_NothingRemaining_KeepsRemainingCount()
     {
         var response = new AskResponse("", [], [], [], [], 0, 0, [], false, null);

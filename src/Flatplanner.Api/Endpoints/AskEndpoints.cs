@@ -16,8 +16,7 @@ public static class AskEndpoints
             IOptions<FlatplannerOptions> options,
             CancellationToken ct) =>
         {
-            var message = request.Message?.Trim() ?? "";
-            var history = (request.History ?? []).Select(entry => entry.Trim()).ToList();
+            var (message, history) = Normalize(request);
             if (AskValidation.Validate(message, history, options.Value.ChatMaxLength) is { } errors)
             {
                 return Results.ValidationProblem(errors);
@@ -27,5 +26,26 @@ public static class AskEndpoints
                 await ask.AskAsync(message, history, request.ExcludeNeeds ?? [], filters.ToIntent(), request.More ?? false, ct),
                 ApiJson.Options);
         });
+
+        app.MapPost("/api/search/ask/stream", IResult (
+            AskRequest request,
+            [AsParameters] ListingsQuery filters,
+            AskService ask,
+            IOptions<FlatplannerOptions> options,
+            ILoggerFactory loggerFactory,
+            CancellationToken ct) =>
+        {
+            var (message, history) = Normalize(request);
+            if (AskValidation.Validate(message, history, options.Value.ChatMaxLength) is { } errors)
+            {
+                return Results.ValidationProblem(errors);
+            }
+
+            var events = ask.AskStreamAsync(message, history, request.ExcludeNeeds ?? [], filters.ToIntent(), request.More ?? false, ct);
+            return new AskStreamResult(events, loggerFactory.CreateLogger("Flatplanner.Api.Ask"));
+        });
     }
+
+    private static (string Message, List<string> History) Normalize(AskRequest request) =>
+        (request.Message?.Trim() ?? "", (request.History ?? []).Select(entry => entry.Trim()).ToList());
 }

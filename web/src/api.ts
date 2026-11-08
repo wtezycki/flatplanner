@@ -71,6 +71,7 @@ export interface MetaResponse {
   }
   chatMode: string
   chatMaxLength: number
+  chatMaxTurns: number
   dataAsOf?: string
 }
 

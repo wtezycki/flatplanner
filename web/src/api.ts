@@ -14,8 +14,21 @@ export interface SearchIntent {
   floorMax?: number
   market?: string
   advertiserType?: string
+  buildYearMin?: number
+  buildYearMax?: number
+  pricePerM2Min?: number
+  pricePerM2Max?: number
+  rentMin?: number
+  rentMax?: number
+  finishConditions: string[]
+  ownerships: string[]
+  buildingTypes: string[]
+  heatings: string[]
+  buildingMaterials: string[]
   requireLift: boolean
   requireBalcony: boolean
+  requireGarage: boolean
+  requireBasement: boolean
   text?: string
   preferences: string[]
   requestedCityOutOfScope?: string
@@ -79,6 +92,17 @@ export interface ListingItem {
   createdAtSource: string
   locationApproximate: boolean
   priceOutlier: boolean
+  buildYear?: number
+  finishCondition?: string
+  ownership?: string
+  hasLift?: boolean
+  hasBalcony?: boolean
+  hasGarage?: boolean
+  hasBasement?: boolean
+  riskKinds: string[]
+  nearbyStop?: string
+  nearbyPark?: string
+  belowMedianPercent?: number
 }
 
 export interface SearchWarning {
@@ -145,6 +169,8 @@ export interface ListingDetail {
   hasGarage?: boolean
   hasBasement?: boolean
   advertiserType?: string
+  priceOutlier: boolean
+  risks: ListingRisk[]
 }
 
 export interface Evidence {

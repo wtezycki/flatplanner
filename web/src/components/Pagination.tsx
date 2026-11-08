@@ -1,4 +1,5 @@
 import { Link, useSearchParams } from 'react-router'
+import Icon from './Icon.tsx'
 
 interface Props {
   page: number
@@ -33,11 +34,11 @@ export default function Pagination({ page, totalPages }: Props) {
     <nav className="pagination" aria-label="Paginacja">
       {page > 1 ? (
         <Link className="pagination__step" to={target(page - 1)} aria-label="Poprzednia strona" onClick={scrollToTop}>
-          ‹<span className="pagination__step-text"> Poprzednia</span>
+          <Icon name="chevronLeft" />
         </Link>
       ) : (
-        <span className="pagination__step pagination__step--disabled" aria-disabled="true">
-          ‹<span className="pagination__step-text"> Poprzednia</span>
+        <span className="pagination__step pagination__step--disabled" role="img" aria-label="Poprzednia strona" aria-disabled="true">
+          <Icon name="chevronLeft" />
         </span>
       )}
       <ul className="pagination__numbers">
@@ -65,11 +66,11 @@ export default function Pagination({ page, totalPages }: Props) {
       </span>
       {page < totalPages ? (
         <Link className="pagination__step" to={target(page + 1)} aria-label="Następna strona" onClick={scrollToTop}>
-          <span className="pagination__step-text">Następna </span>›
+          <Icon name="chevronRight" />
         </Link>
       ) : (
-        <span className="pagination__step pagination__step--disabled" aria-disabled="true">
-          <span className="pagination__step-text">Następna </span>›
+        <span className="pagination__step pagination__step--disabled" role="img" aria-label="Następna strona" aria-disabled="true">
+          <Icon name="chevronRight" />
         </span>
       )}
     </nav>

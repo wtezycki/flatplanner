@@ -11,4 +11,7 @@ public static class DossierJson
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
+
+    public static IReadOnlyList<T> ParseList<T>(string? json) =>
+        json is null ? [] : JsonSerializer.Deserialize<T[]>(json, Options) ?? [];
 }

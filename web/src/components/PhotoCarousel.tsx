@@ -1,11 +1,14 @@
 import { useRef, useState } from 'react'
+import { Link } from 'react-router'
+import type { To } from 'react-router'
 
 interface Props {
   urls: string[]
   onOpen?: (url: string) => void
+  href?: To
 }
 
-export default function PhotoCarousel({ urls, onOpen }: Props) {
+export default function PhotoCarousel({ urls, onOpen, href }: Props) {
   const track = useRef<HTMLDivElement>(null)
   const [index, setIndex] = useState(0)
   const [failed, setFailed] = useState<string[]>([])
@@ -21,27 +24,38 @@ export default function PhotoCarousel({ urls, onOpen }: Props) {
     track.current?.scrollTo({ left: target * track.current.clientWidth })
   }
 
+  const trackElement = (
+    <div
+      ref={track}
+      className="gallery__track"
+      tabIndex={href ? undefined : 0}
+      onClick={() => onOpen?.(photos[current])}
+      onScroll={(event) => setIndex(Math.round(event.currentTarget.scrollLeft / event.currentTarget.clientWidth))}
+    >
+      {photos.map((url) => (
+        <img
+          key={url}
+          className="gallery__image"
+          src={url}
+          alt=""
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          draggable={false}
+          onError={() => setFailed((current) => [...current, url])}
+        />
+      ))}
+    </div>
+  )
+
   return (
     <div className="gallery" role="group" aria-label="Zdjęcia oferty">
-      <div
-        ref={track}
-        className="gallery__track"
-        tabIndex={0}
-        onClick={() => onOpen?.(photos[current])}
-        onScroll={(event) => setIndex(Math.round(event.currentTarget.scrollLeft / event.currentTarget.clientWidth))}
-      >
-        {photos.map((url) => (
-          <img
-            key={url}
-            className="gallery__image"
-            src={url}
-            alt=""
-            loading="lazy"
-            referrerPolicy="no-referrer"
-            onError={() => setFailed((current) => [...current, url])}
-          />
-        ))}
-      </div>
+      {href ? (
+        <Link className="gallery__link" to={href}>
+          {trackElement}
+        </Link>
+      ) : (
+        trackElement
+      )}
       {photos.length > 1 && (
         <>
           <button

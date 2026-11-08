@@ -15,8 +15,21 @@ public sealed record SearchIntent
     public int? FloorMax { get; init; }
     public string? Market { get; init; }
     public string? AdvertiserType { get; init; }
+    public int? BuildYearMin { get; init; }
+    public int? BuildYearMax { get; init; }
+    public int? PricePerM2Min { get; init; }
+    public int? PricePerM2Max { get; init; }
+    public int? RentMin { get; init; }
+    public int? RentMax { get; init; }
+    public string[] FinishConditions { get; init; } = [];
+    public string[] Ownerships { get; init; } = [];
+    public string[] BuildingTypes { get; init; } = [];
+    public string[] Heatings { get; init; } = [];
+    public string[] BuildingMaterials { get; init; } = [];
     public bool RequireLift { get; init; }
     public bool RequireBalcony { get; init; }
+    public bool RequireGarage { get; init; }
+    public bool RequireBasement { get; init; }
     public string? Text { get; init; }
     public string[] Preferences { get; init; } = [];
     public string? RequestedCityOutOfScope { get; init; }

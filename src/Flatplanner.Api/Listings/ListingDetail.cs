@@ -1,3 +1,5 @@
+using Flatplanner.Core.Data;
+
 namespace Flatplanner.Api.Listings;
 
 public sealed record ListingDetail(
@@ -37,4 +39,6 @@ public sealed record ListingDetail(
     bool? HasBalcony,
     bool? HasGarage,
     bool? HasBasement,
-    string? AdvertiserType);
+    string? AdvertiserType,
+    bool PriceOutlier,
+    IReadOnlyList<ListingRisk> Risks);

@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Numerics;
 using System.Text.RegularExpressions;
 using Flatplanner.Core.Data;
@@ -43,12 +42,16 @@ public static partial class SearchIntentNormalizer
             cities = [meta.DefaultCitySlug];
         }
 
-        var (priceMin, priceMax) = ClipRange("Cena", "priceMin", "priceMax", intent.PriceMin, intent.PriceMax, SearchDefinitions.PriceMin, SearchDefinitions.PriceMax, warnings);
-        var (areaMin, areaMax) = ClipRange("Metraż", "areaMin", "areaMax", intent.AreaMin, intent.AreaMax, SearchDefinitions.AreaMin, SearchDefinitions.AreaMax, warnings);
-        var (roomsMin, roomsMax) = ClipRange("Liczba pokoi", "roomsMin", "roomsMax", intent.RoomsMin, intent.RoomsMax, SearchDefinitions.RoomsMin, SearchDefinitions.RoomsMax, warnings);
-        var (floorMin, floorMax) = ClipRange("Piętro", "floorMin", "floorMax", intent.FloorMin, intent.FloorMax, SearchDefinitions.FloorMin, SearchDefinitions.FloorMax, warnings);
+        var (priceMin, priceMax) = Ordered(intent.PriceMin, intent.PriceMax);
+        var (areaMin, areaMax) = Ordered(intent.AreaMin, intent.AreaMax);
+        var (roomsMin, roomsMax) = Ordered(intent.RoomsMin, intent.RoomsMax);
+        var (floorMin, floorMax) = Ordered(intent.FloorMin, intent.FloorMax);
 
-        var (areaApprox, _) = ClipRange("Przybliżony metraż", "areaApprox", "areaApprox", intent.AreaApprox, null, SearchDefinitions.AreaMin, SearchDefinitions.AreaMax, warnings);
+        var (buildYearMin, buildYearMax) = Ordered(intent.BuildYearMin, intent.BuildYearMax);
+        var (pricePerM2Min, pricePerM2Max) = Ordered(intent.PricePerM2Min, intent.PricePerM2Max);
+        var (rentMin, rentMax) = Ordered(intent.RentMin, intent.RentMax);
+
+        var areaApprox = intent.AreaApprox is > 0 ? intent.AreaApprox : null;
         if (areaApprox is not null && (areaMin is not null || areaMax is not null))
         {
             areaApprox = null;
@@ -74,8 +77,19 @@ public static partial class SearchIntentNormalizer
             RoomsMax = roomsMax,
             FloorMin = floorMin,
             FloorMax = floorMax,
+            BuildYearMin = buildYearMin,
+            BuildYearMax = buildYearMax,
+            PricePerM2Min = pricePerM2Min,
+            PricePerM2Max = pricePerM2Max,
+            RentMin = rentMin,
+            RentMax = rentMax,
             Market = Market.All.Contains(intent.Market) ? intent.Market : null,
             AdvertiserType = AdvertiserType.All.Contains(intent.AdvertiserType) ? intent.AdvertiserType : null,
+            FinishConditions = FinishCondition.All.Where(intent.FinishConditions.Contains).ToArray(),
+            Ownerships = Ownership.All.Where(intent.Ownerships.Contains).ToArray(),
+            BuildingTypes = BuildingType.All.Where(intent.BuildingTypes.Contains).ToArray(),
+            Heatings = Heating.All.Where(intent.Heatings.Contains).ToArray(),
+            BuildingMaterials = BuildingMaterial.All.Where(intent.BuildingMaterials.Contains).ToArray(),
             Text = string.IsNullOrEmpty(text) ? null : text,
             Preferences = Preference.All.Where(intent.Preferences.Contains).ToArray(),
             RequestedCityOutOfScope = requestedCity,
@@ -85,38 +99,9 @@ public static partial class SearchIntentNormalizer
         return new NormalizedSearch(normalized, warnings);
     }
 
-    private static (T? Min, T? Max) ClipRange<T>(
-        string label,
-        string minField,
-        string maxField,
-        T? min,
-        T? max,
-        T lower,
-        T upper,
-        List<SearchWarning> warnings)
-        where T : struct, INumber<T>
-    {
-        if (min > max)
-        {
-            (min, max) = (max, min);
-        }
-
-        return (Clip(minField, min), Clip(maxField, max));
-
-        T? Clip(string field, T? value)
-        {
-            if (value is not { } v || (v >= lower && v <= upper))
-            {
-                return value;
-            }
-
-            warnings.Add(new SearchWarning(field, $"{label} {Show(v)} pominięte: poza zakresem {Show(lower)}–{Show(upper)}."));
-            return null;
-        }
-    }
-
-    private static string Show<T>(T value) where T : INumber<T> =>
-        value.ToString(null, CultureInfo.InvariantCulture);
+    private static (T? Min, T? Max) Ordered<T>(T? min, T? max)
+        where T : struct, INumber<T> =>
+        min > max ? (max, min) : (min, max);
 
     [GeneratedRegex(@"^\p{L}[\p{L} \-]{1,39}$")]
     private static partial Regex RequestedCityPattern();

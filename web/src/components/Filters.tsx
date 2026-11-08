@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useId, useRef, useState } from 'react'
-import type { InputHTMLAttributes, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { useSearchParams } from 'react-router'
 import { metaQuery } from '../api.ts'
 import type { EnumOption, MetaResponse, SearchIntent } from '../api.ts'
@@ -18,15 +18,32 @@ interface FilterForm {
   roomsMax: string
   floorMin: string
   floorMax: string
+  buildYearMin: string
+  buildYearMax: string
+  pricePerM2Min: string
+  pricePerM2Max: string
+  rentMin: string
+  rentMax: string
   market: string
   advertiserType: string
+  finishConditions: string[]
+  ownerships: string[]
+  buildingTypes: string[]
+  heatings: string[]
+  buildingMaterials: string[]
   requireLift: boolean
   requireBalcony: boolean
+  requireGarage: boolean
+  requireBasement: boolean
 }
 
-type RangeField = 'price' | 'area' | 'rooms' | 'floor'
+type RangeField = 'price' | 'area' | 'rooms' | 'floor' | 'buildYear' | 'pricePerM2' | 'rent'
 
 const TEXT_DEBOUNCE_MS = 500
+
+const ENUM_PARAMS = ['market', 'advertiserType'] as const
+const MULTI_PARAMS = ['cities', 'districts', 'finishConditions', 'ownerships', 'buildingTypes', 'heatings', 'buildingMaterials'] as const
+const FLAG_PARAMS = ['requireLift', 'requireBalcony', 'requireGarage', 'requireBasement'] as const
 
 const fieldText = (value: number | undefined) => (value === undefined ? '' : String(value))
 
@@ -42,19 +59,74 @@ function formFromIntent(intent: SearchIntent): FilterForm {
     roomsMax: fieldText(intent.roomsMax),
     floorMin: fieldText(intent.floorMin),
     floorMax: fieldText(intent.floorMax),
+    buildYearMin: fieldText(intent.buildYearMin),
+    buildYearMax: fieldText(intent.buildYearMax),
+    pricePerM2Min: fieldText(intent.pricePerM2Min),
+    pricePerM2Max: fieldText(intent.pricePerM2Max),
+    rentMin: fieldText(intent.rentMin),
+    rentMax: fieldText(intent.rentMax),
     market: intent.market ?? '',
     advertiserType: intent.advertiserType ?? '',
+    finishConditions: intent.finishConditions,
+    ownerships: intent.ownerships,
+    buildingTypes: intent.buildingTypes,
+    heatings: intent.heatings,
+    buildingMaterials: intent.buildingMaterials,
     requireLift: intent.requireLift,
     requireBalcony: intent.requireBalcony,
+    requireGarage: intent.requireGarage,
+    requireBasement: intent.requireBasement,
   }
 }
 
-function numberValue(raw: string, integer: boolean): string | undefined {
-  const value = Number(raw.replace(/\s/g, '').replace(',', '.'))
-  if (!raw.trim() || !Number.isFinite(value) || (integer && !Number.isInteger(value))) {
-    return undefined
+interface RangeSpec {
+  field: RangeField
+  integer: boolean
+}
+
+const RANGE_SPECS: RangeSpec[] = [
+  { field: 'price', integer: true },
+  { field: 'area', integer: false },
+  { field: 'rooms', integer: true },
+  { field: 'floor', integer: true },
+  { field: 'buildYear', integer: true },
+  { field: 'pricePerM2', integer: true },
+  { field: 'rent', integer: true },
+]
+
+const RANGE_ERRORS = {
+  notNumber: 'Wpisz liczbę.',
+  order: 'Wartość „od” nie może być większa niż „do”.',
+}
+
+interface RangeIssue {
+  message: string
+  min: boolean
+  max: boolean
+}
+
+const sanitizeBound = (raw: string, integer: boolean) => raw.replace(integer ? /[^\d\s]/g : /[^\d\s.,]/g, '')
+
+function parseBound(raw: string): { value?: number; message?: string } {
+  const text = raw.replace(/\s/g, '').replace(',', '.')
+  if (!text) {
+    return {}
   }
-  return String(value)
+  const value = Number(text)
+  return Number.isFinite(value) ? { value } : { message: RANGE_ERRORS.notNumber }
+}
+
+function parseRange(form: FilterForm, spec: RangeSpec) {
+  const min = parseBound(form[`${spec.field}Min`])
+  const max = parseBound(form[`${spec.field}Max`])
+  const message = min.message ?? max.message
+  let issue: RangeIssue | undefined
+  if (message) {
+    issue = { message, min: min.message !== undefined, max: max.message !== undefined }
+  } else if (min.value !== undefined && max.value !== undefined && min.value > max.value) {
+    issue = { message: RANGE_ERRORS.order, min: true, max: true }
+  }
+  return { min: min.value, max: max.value, issue }
 }
 
 function applyFilters(searchParams: URLSearchParams, form: FilterForm): URLSearchParams {
@@ -66,39 +138,32 @@ function applyFilters(searchParams: URLSearchParams, form: FilterForm): URLSearc
   }
   next.delete('page')
 
-  for (const city of form.cities) {
-    next.append('cities', city)
-  }
-  for (const district of form.districts) {
-    next.append('districts', district)
-  }
-  const numbers: [string, string, boolean][] = [
-    ['priceMin', form.priceMin, true],
-    ['priceMax', form.priceMax, true],
-    ['areaMin', form.areaMin, false],
-    ['areaMax', form.areaMax, false],
-    ['roomsMin', form.roomsMin, true],
-    ['roomsMax', form.roomsMax, true],
-    ['floorMin', form.floorMin, true],
-    ['floorMax', form.floorMax, true],
-  ]
-  for (const [param, raw, integer] of numbers) {
-    const value = numberValue(raw, integer)
-    if (value !== undefined) {
-      next.set(param, value)
+  for (const param of MULTI_PARAMS) {
+    for (const value of form[param]) {
+      next.append(param, value)
     }
   }
-  if (form.market) {
-    next.set('market', form.market)
+  for (const spec of RANGE_SPECS) {
+    const { min, max, issue } = parseRange(form, spec)
+    if (issue) {
+      continue
+    }
+    if (min !== undefined) {
+      next.set(`${spec.field}Min`, String(min))
+    }
+    if (max !== undefined) {
+      next.set(`${spec.field}Max`, String(max))
+    }
   }
-  if (form.advertiserType) {
-    next.set('advertiserType', form.advertiserType)
+  for (const param of ENUM_PARAMS) {
+    if (form[param]) {
+      next.set(param, form[param])
+    }
   }
-  if (form.requireLift) {
-    next.set('requireLift', 'true')
-  }
-  if (form.requireBalcony) {
-    next.set('requireBalcony', 'true')
+  for (const param of FLAG_PARAMS) {
+    if (form[param]) {
+      next.set(param, 'true')
+    }
   }
 
   if (next.has('areaMin') || next.has('areaMax')) {
@@ -120,34 +185,41 @@ interface RangeProps {
   field: RangeField
   form: FilterForm
   onChange: (patch: Partial<FilterForm>) => void
-  inputProps: InputHTMLAttributes<HTMLInputElement>
   hint?: string
 }
 
-function Range({ legend, label, field, form, onChange, inputProps, hint }: RangeProps) {
+function Range({ legend, label, field, form, onChange, hint }: RangeProps) {
   const minKey = `${field}Min` as const
   const maxKey = `${field}Max` as const
+  const errorId = useId()
+  const spec = RANGE_SPECS.find((candidate) => candidate.field === field)
+  const integer = spec?.integer ?? true
+  const issue = spec ? parseRange(form, spec).issue : undefined
+  const bound = (key: typeof minKey | typeof maxKey, suffix: 'od' | 'do', invalid: boolean | undefined) => (
+    <input
+      className="field"
+      type="text"
+      inputMode={integer ? 'numeric' : 'decimal'}
+      aria-label={`${label} ${suffix}`}
+      placeholder={suffix}
+      value={form[key]}
+      aria-invalid={invalid || undefined}
+      aria-describedby={issue ? errorId : undefined}
+      onChange={(event) => onChange({ [key]: sanitizeBound(event.target.value, integer) })}
+    />
+  )
   return (
     <fieldset className="filters__group">
       <legend>{legend}</legend>
       <div className="filters__pair">
-        <input
-          className="field"
-          aria-label={`${label} od`}
-          placeholder="od"
-          value={form[minKey]}
-          onChange={(event) => onChange({ [minKey]: event.target.value })}
-          {...inputProps}
-        />
-        <input
-          className="field"
-          aria-label={`${label} do`}
-          placeholder="do"
-          value={form[maxKey]}
-          onChange={(event) => onChange({ [maxKey]: event.target.value })}
-          {...inputProps}
-        />
+        {bound(minKey, 'od', issue?.min)}
+        {bound(maxKey, 'do', issue?.max)}
       </div>
+      {issue && (
+        <p id={errorId} className="filters__error">
+          {issue.message}
+        </p>
+      )}
       {hint && <p className="filters__hint">{hint}</p>}
     </fieldset>
   )
@@ -191,6 +263,28 @@ function Radios({ legend, name, value, options, onChange }: RadiosProps) {
       <div className="filters__pills">
         {[{ value: '', label: 'dowolny' }, ...options].map((option) => (
           <Pill key={option.value} type="radio" name={name} checked={value === option.value} onChange={() => onChange(option.value)}>
+            {option.label}
+          </Pill>
+        ))}
+      </div>
+    </fieldset>
+  )
+}
+
+interface ChecksProps {
+  legend: string
+  values: string[]
+  options: EnumOption[]
+  onChange: (values: string[]) => void
+}
+
+function Checks({ legend, values, options, onChange }: ChecksProps) {
+  return (
+    <fieldset className="filters__group">
+      <legend>{legend}</legend>
+      <div className="filters__pills">
+        {options.map((option) => (
+          <Pill key={option.value} type="checkbox" checked={values.includes(option.value)} onChange={() => onChange(toggle(values, option.value))}>
             {option.label}
           </Pill>
         ))}
@@ -257,6 +351,9 @@ function FilterFields({ meta, intent }: FieldsProps) {
   }
 
   const selectedCities = meta.cities.filter((city) => form.cities.includes(city.slug))
+  const moreActive =
+    [form.buildYearMin, form.buildYearMax, form.pricePerM2Min, form.pricePerM2Max, form.rentMin, form.rentMax].some(Boolean) ||
+    [form.finishConditions, form.ownerships, form.buildingTypes, form.buildingMaterials, form.heatings].some((values) => values.length > 0)
   const approximateArea = intent.areaMin === undefined && intent.areaMax === undefined ? intent.areaApprox : undefined
 
   return (
@@ -311,7 +408,6 @@ function FilterFields({ meta, intent }: FieldsProps) {
         field="price"
         form={form}
         onChange={patchText}
-        inputProps={{ type: 'text', inputMode: 'numeric' }}
       />
       <Range
         legend="Powierzchnia (m²)"
@@ -319,7 +415,6 @@ function FilterFields({ meta, intent }: FieldsProps) {
         field="area"
         form={form}
         onChange={patchText}
-        inputProps={{ type: 'text', inputMode: 'decimal' }}
         hint={
           approximateArea === undefined
             ? undefined
@@ -332,7 +427,6 @@ function FilterFields({ meta, intent }: FieldsProps) {
         field="rooms"
         form={form}
         onChange={patchText}
-        inputProps={{ type: 'number', min: 1, max: 10 }}
       />
       <Range
         legend="Piętro"
@@ -340,7 +434,6 @@ function FilterFields({ meta, intent }: FieldsProps) {
         field="floor"
         form={form}
         onChange={patchText}
-        inputProps={{ type: 'number', min: -1, max: 40 }}
       />
 
       <Radios
@@ -362,14 +455,58 @@ function FilterFields({ meta, intent }: FieldsProps) {
         <legend>Udogodnienia</legend>
         <div className="filters__pills">
           <Pill type="checkbox" checked={form.requireLift} onChange={(requireLift) => patch({ requireLift })}>
-            Tylko z windą
+            Winda
           </Pill>
           <Pill type="checkbox" checked={form.requireBalcony} onChange={(requireBalcony) => patch({ requireBalcony })}>
-            Tylko z balkonem
+            Balkon
+          </Pill>
+          <Pill type="checkbox" checked={form.requireGarage} onChange={(requireGarage) => patch({ requireGarage })}>
+            Garaż
+          </Pill>
+          <Pill type="checkbox" checked={form.requireBasement} onChange={(requireBasement) => patch({ requireBasement })}>
+            Piwnica
           </Pill>
         </div>
-        <p className="filters__hint">Oferty bez tej informacji zostaną pominięte.</p>
       </fieldset>
+
+      <details className="filters__details" open={moreActive}>
+        <summary>Więcej filtrów</summary>
+        <div className="filters__more">
+          <Range legend="Rok budowy" label="Rok budowy" field="buildYear" form={form} onChange={patchText} />
+          <Range legend="Cena za m² (zł)" label="Cena za m²" field="pricePerM2" form={form} onChange={patchText} />
+          <Range legend="Czynsz (zł/mies.)" label="Czynsz" field="rent" form={form} onChange={patchText} />
+          <Checks
+            legend="Stan wykończenia"
+            values={form.finishConditions}
+            options={meta.enums.finishCondition}
+            onChange={(finishConditions) => patch({ finishConditions })}
+          />
+          <Checks
+            legend="Forma własności"
+            values={form.ownerships}
+            options={meta.enums.ownership}
+            onChange={(ownerships) => patch({ ownerships })}
+          />
+          <Checks
+            legend="Typ budynku"
+            values={form.buildingTypes}
+            options={meta.enums.buildingType}
+            onChange={(buildingTypes) => patch({ buildingTypes })}
+          />
+          <Checks
+            legend="Materiał budynku"
+            values={form.buildingMaterials}
+            options={meta.enums.buildingMaterial}
+            onChange={(buildingMaterials) => patch({ buildingMaterials })}
+          />
+          <Checks
+            legend="Ogrzewanie"
+            values={form.heatings}
+            options={meta.enums.heating}
+            onChange={(heatings) => patch({ heatings })}
+          />
+        </div>
+      </details>
     </form>
   )
 }

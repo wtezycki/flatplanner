@@ -304,6 +304,7 @@ a.pagination__step:hover { background: var(--teal-50); border-color: var(--teal-
 .ask-needs__remove:hover { background: var(--color-surface); }
 .ask-needs__restore { font-size: var(--fs-sm); }
 .ask-note { color: var(--color-text-secondary); font-size: var(--fs-sm); }
+.ask-offtopic { font-size: var(--fs-lg); }
 .ask-relax { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); font-size: var(--fs-sm); }
 .ask-relaxations { display: flex; flex-direction: column; gap: var(--space-2); width: 100%; }
 .ask-relaxations li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }

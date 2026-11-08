@@ -1,3 +1,4 @@
+import { OFF_TOPIC_NOTICE } from '../api.ts'
 import type { AskResponse } from '../api.ts'
 import { ASK_GROUP_HEADINGS, ASK_GROUP_HINTS, formatListingsCount } from '../format.ts'
 import { useCardLabels } from '../useCardLabels.ts'
@@ -21,13 +22,17 @@ interface Props {
 }
 
 export default function AskResults({ response, excludeNeeds, page, interactive, checkingMore, onCheckMore }: Props) {
-  const { needs, items, unknownCount, remainingCount } = response
+  const { needs, items, notices, unknownCount, remainingCount } = response
   const cardLabels = useCardLabels()
   const matching = items.filter((item) => item.group !== 'unknown')
   const unknownItems = items.filter((item) => item.group === 'unknown')
   const totalPages = Math.max(1, Math.ceil(matching.length / ASK_PAGE_SIZE))
   const current = Math.min(Math.max(page, 1), totalPages)
   const pageItems = matching.slice((current - 1) * ASK_PAGE_SIZE, current * ASK_PAGE_SIZE)
+
+  if (items.length === 0 && notices.some((notice) => notice.code === OFF_TOPIC_NOTICE)) {
+    return null
+  }
 
   if (items.length === 0) {
     return (

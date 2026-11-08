@@ -2,6 +2,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { Link, useSearchParams } from 'react-router'
 import { ApiError, DEFAULT_RETRY_AFTER_SECONDS, fetchListings, metaQuery } from '../api.ts'
 import type { EnumOption } from '../api.ts'
+import Icon from '../components/Icon.tsx'
 import ListingCard from '../components/ListingCard.tsx'
 import Pagination from '../components/Pagination.tsx'
 import { formatListingsCount } from '../format.ts'
@@ -85,6 +86,9 @@ export default function ListingsPage() {
   } else if (data.total === 0) {
     body = (
       <div className="empty">
+        <span className="empty__icon" aria-hidden="true">
+          <Icon name="search" />
+        </span>
         <p className="empty__title">Brak ofert dla tych kryteriów.</p>
       </div>
     )

@@ -2,125 +2,149 @@
 
 A flat listings portal for the Tricity (Gdańsk, Gdynia, Sopot), sales only, where the buyer describes their life in their own words and the portal says which flats fit, partly fit, or leave the question open, each verdict backed by evidence.
 
+**Try it live: https://flatplanner-production.up.railway.app** (the interface and every answer are in Polish)
+
+**Read the one-pager:** [English](docs/one-pager.md) · [Polski](docs/one-pager-pl.md)
+
 ## What this is and why
 
 **The problem.** A listing's fields do not answer what decides a purchase. In the 197 listings used here the maintenance fee is filled in for 40%, the lift for 66%, and the surroundings for none. Buyers think in needs ("I work nights and sleep in the day", "my mother uses a wheelchair"), not in fields, and no filter catalogue covers every life situation.
 
 **What the product does.**
-- **Once, at import:** every listing gets a *dossier*: a short summary, the buyer risks its description admits to (extra costs, legal status, noise, fields that contradict the text), each backed by a quote, and the places within 1.5 km from OpenStreetMap.
-- **At question time:** the buyer writes one message. The portal pulls out hard limits (city, price, area) and the needs behind them, then rates listings against each need as fits, partly, does not fit, or the listing does not say. Every rating shows its evidence: a quote, a nearby place with its distance, or a field. A rating without evidence becomes "the listing does not say".
-- Listings come back grouped by how well they fit the buyer, with the reason next to each. If the model is down, keyword search still answers.
+- **Once, at import:** every listing gets a *dossier*: a short summary, the buyer risks its description admits to (extra costs, legal status, noise, fields that contradict the text), each backed by a quote, and the places within 1.5 km from OpenStreetMap. 135 risks were kept; 2 were dropped because the description did not support them.
+- **At question time:** the buyer writes one message. The portal pulls out the hard limits (city, price, area) and the needs behind them, then rates listings against each need: fits, partly, does not fit, or the listing does not say. Every rating shows its evidence: a quote, a nearby place with its distance, or a field. A rating without evidence becomes "the listing does not say".
+- **The result:** listings come back grouped by how well they fit the buyer, with the reason next to each. If the AI is unavailable, keyword search still answers.
 
-**The goal.** This is a prototype built for the Docplanner recruitment task. It is meant to show product reasoning: which gap in the data matters, where AI earns its place, what the key assumption is, how it would be measured and how it can fail. The business case is that a buyer who sees listings judged against their own situation reaches a seller better qualified, and a better-qualified lead is what a portal's advertisers pay for. That link is a hypothesis, not a result: the prototype records no events.
-
-**Data.** 197 flat-sale listings fetched once from otodom.pl (Gdańsk, Gdynia, Sopot). Demo use only. Sellers' contact details are stripped on import, the data is not committed and not indexed; every listing links back to its otodom page.
+**The goal.** This is a prototype built for the Docplanner recruitment task. It shows product reasoning: which gap in the data matters, where AI earns its place, what the key assumption is and how it would be measured. The business case is that a buyer who sees listings judged against their own situation reaches a seller better qualified, and a better-qualified lead is what a portal's advertisers pay for. That link is a hypothesis, not a result: the prototype records no events.
 
 ## Where to read more
 
+**Start with the one-pager.** It is the shortest way to see the reasoning: which data, where and why AI, the key assumption, the success metric, how it can fail and what comes next.
+
+- [One-pager (English)](docs/one-pager.md)
+- [One-pager (Polski)](docs/one-pager-pl.md)
+
 | Document | Contents |
 |---|---|
-| [One-pager (English)](docs/one-pager.md) | data choices, where and why AI, key assumption, success metric, failure mode, what comes next |
-| [One-pager (Polski)](docs/one-pager-pl.md) | the same, in Polish |
-| [docs/product-scope.md](docs/product-scope.md) | personas, features and acceptance criteria, deliberate cuts |
-| [docs/design.md](docs/design.md) | implementation design: data model, API contract, LLM pipeline, tests, deploy |
+| [docs/product-scope.md](docs/product-scope.md) | who it is for, features and acceptance criteria, deliberate cuts |
+| [docs/ingest-report.md](docs/ingest-report.md) | the numbers behind the one-pager: fill rates, flags, rent gaps |
+| [docs/design.md](docs/design.md) | implementation design: data model, API contract, AI pipeline, tests, deploy |
 | [docs/ui-spec.md](docs/ui-spec.md) | UI layout, components, states, Polish interface texts |
-| [docs/ingest-report.md](docs/ingest-report.md) | generated import report: fill rates, flags, rent gaps |
 | [docs/README.md](docs/README.md) | index of the documents above |
 
-The interface and every answer are in Polish; the documentation is in English except the Polish one-pager.
+The documentation is in English except the Polish one-pager.
 
-## Two-minute demo
+## Try it
 
-Run the app first (see [Run it](#run-it)); links below use `http://localhost:8080`. Listing numbers are local ids of the demo import, so they match the dump described under [Data](#data).
+Open [the live app](https://flatplanner-production.up.railway.app) and paste one of these into the chat on the home page. The chat answers in a few seconds, accepts 5 questions per minute per IP, and takes messages up to 300 characters. Its thread is not in the URL, so a question cannot be shared as a link.
 
-1. **Scenario A, filters and a list:** [`/listings?cities=gdansk&areaMin=40&areaMax=80`](http://localhost:8080/listings?cities=gdansk&areaMin=40&areaMax=80). Narrow to a district, sort by price per m², open a listing, go back: the filters stay, because they live in the URL.
-2. **A listing whose description holds what no field has:** [listing 70](http://localhost:8080/listings?listing=70), Ujeścisko-Łostowice, 680 000 zł. The description says nobody walks above the flat and a primary school is two minutes away; parking and storage are an optional extra of 40 000 zł, and a bank mortgage is to be repaid from the price. The card shows these as risks with their quotes.
-3. **A listing whose field contradicts its description:** [listing 97](http://localhost:8080/listings?listing=97), Wrzeszcz Górny. otodom says 3 rooms, the description says the land register shows 2 rooms and the kitchen was turned into an office.
-4. **A needs-based question** on [`/`](http://localhost:8080/), paste:
-   > mam psa i pracuję na nocki, 2 pokoje w Gdańsku do 700 tys.
+| Say | What it shows |
+|---|---|
+| `mam psa i pracuję na nocki, 2 pokoje w Gdańsku do 700 tys.` | needs (a dog, sleeping by day) judged per listing, grouped by fit, each verdict with a quote or a nearby place |
+| `Jestem z Ukrainy, szukam mieszkania w starej kamienicy z osobnym pokojem na biuro` | domain knowledge in the judge: a foreign buyer's permit rules, checked against ownership and the description |
+| `2 pokoje w Krakowie` | the portal serves only Gdańsk, Gdynia and Sopot and says so; the task's Kraków example therefore runs on Gdańsk |
 
-   First the portal shows how it understood the question (hard limits and needs, a few seconds), then the listings grouped by fit, each verdict with its evidence. Steps 4–6 need `CHAT_MODE=llm` and an `OPENAI_API_KEY` (see [Configuration](#configuration)); with `CHAT_MODE=fallback` the portal shows only the notice "AI chwilowo niedostępne" and the results of the basic filters, with no needs and no verdicts.
-5. **A question from a different life:** paste `Jestem z Ukrainy, szukam mieszkania w starej kamienicy z osobnym pokojem na biuro` and open [listing 166](http://localhost:8080/listings?listing=166), Grabówek: the description says foreigners can buy without the MSWiA permit, and `ownership` confirms it.
-6. **Outside the data:** paste `2 pokoje w Krakowie`. The portal says it has listings only from Gdańsk, Gdynia and Sopot and shows no result from Kraków. The task's Kraków example therefore runs on Gdańsk.
+Listings worth opening, each with a "Na co uważać" box of risks quoted from the description:
+- [Listing 70](https://flatplanner-production.up.railway.app/listings?listing=70): parking and storage cost 40 000 zł extra, and a bank mortgage is repaid from the price.
+- [Listing 97](https://flatplanner-production.up.railway.app/listings?listing=97): the field says 3 rooms, the land register 2 plus a kitchen; the rent is 450 zł, 900 zł in winter.
+- [Listing 166](https://flatplanner-production.up.railway.app/listings?listing=166): a cooperative right, and foreigners can buy it without the MSWiA permit.
 
-The chat thread is kept in the browser's query cache for five minutes and is not in the URL, so a question cannot be shared as a link.
+Prefer filters? The [classic list](https://flatplanner-production.up.railway.app/listings?cities=gdansk&areaMin=40&areaMax=80) has them, and they live in the URL, so a search can be shared.
 
-## How it works
+## How a question is answered
 
-1. **Import (local only, never deployed):** `scrape` and `normalize` produce `listings` from otodom's raw data; `nearby` fetches places from OpenStreetMap by code; `export-dossiers` writes the descriptions to a file; a coding agent writes the summaries and risks from the versioned prompt [`prompts/listing-dossier.v2.md`](prompts/listing-dossier.v2.md), at no API cost; `import-dossiers` validates them. A risk survives only if its quote is in the description (after normalisation) and an amount is in the quote; invalid risks are dropped and counted.
-2. **Interpret:** one model call turns the message into hard filters and up to four needs, validated against a strict schema. On failure the keyword fallback answers, never a 5xx.
-3. **Rank, then judge one window:** code ranks the candidates (below), and the model judges only the 20 most promising per call, in 2 parallel batches; "Sprawdź kolejne ogłoszenia" asks for the next window. Cost and wait therefore do not grow with the number of listings.
-4. **Verify:** the model judges, code verifies. Quotes must be substrings of the description, places must be real entries of the listing's nearby list, fields must exist. Anything unverifiable is downgraded to "the listing does not say". Hard filters, grouping and distances are plain C#.
+```mermaid
+flowchart LR
+    A["Buyer writes<br/>one message"] --> B["Hard limits and needs<br/>city, price, area, a dog, night shifts"]
+    B --> C["Rank candidates<br/>by what the needs ask for"]
+    C --> D["AI judges the 20<br/>most promising"]
+    D --> E["Code verifies<br/>every piece of evidence"]
+    E --> F["Pasuje<br/>fits"]
+    E --> G["Pasuje częściowo<br/>partly fits"]
+    E --> H["Prawie pasuje<br/>one thing off"]
+    E --> I["Ogłoszenie o tym nie mówi<br/>does not say, collapsed"]
+```
 
-Stack: .NET 9 Minimal API with EF Core 9 (Pomelo MySQL), React + Vite + TypeScript, MySQL 8.4, OpenAI (`gpt-5.6-luna` by default). Why C#: the stack is allowed by the task and matches the team's, and it keeps the verification code (anchor checks, distances, grouping) strongly typed and testable without the model.
+In plain terms:
 
-### Ranking
+1. **Understand.** One AI call turns the message into hard limits and up to four needs, checked against a strict schema. If it fails, a keyword parser answers instead, never an error page.
+2. **Rank, then judge.** Code ranks listings by how close the places the need asks for are (a school "near", a main road "far") and by keywords in the description. The AI reads only the 20 most promising, so cost and wait do not grow with the number of listings; "Sprawdź kolejne ogłoszenia" loads the next 20. Details: [design.md §16.9](docs/design.md).
+3. **Verify.** The AI judges, code verifies. A quote must appear in the listing text, a place must be a real entry in the listing's nearby list, a field must exist. Anything that cannot be verified becomes "the listing does not say". Hard filters, grouping and distances are plain code.
 
-`CandidateRanker` scores every listing per need and sums over needs; this decides which 20 the model reads, not what it concludes.
+## Under the hood
 
-- For each place the need plan asks for (a school "near", a main road "far"), the nearest matching entry of the listing's `nearby_json` gives `1 − d/1500` for *near* and `d/1500` for *far* (metres). For *far* the worst present tag counts, because the nearest noise source decides.
-- A description sentence, or a nearby place's name, containing a keyword of the need adds 0.5.
-- No entry within 1 500 m scores 0: an absent place is not citable evidence.
-- Ties go to the newest listing. A listing with no context for any need is not sent to the model and is shown as "the listing does not say".
+### Architecture
 
-Details: [design.md §16.9](docs/design.md). There is no price or condition weighting: after the AI-first pivot "cheap" and "nice" are needs like any other, judged with evidence.
+```mermaid
+flowchart LR
+    subgraph local["On the author's machine, once"]
+        O["otodom.pl"] --> N["Normalize"]
+        N --> P["Places within 1.5 km<br/>from OpenStreetMap"]
+        P --> D["Dossier written by<br/>a coding agent"]
+        D --> V["Code validates<br/>the quotes"]
+        V --> S[("SQL dump")]
+    end
+    subgraph prod["Production on Railway"]
+        B["Browser<br/>React app"] --> A[".NET API"]
+        A --> M[("MySQL")]
+        A <--> L["OpenAI<br/>understand and judge"]
+        A -.-> F["Keyword fallback<br/>when the AI is down"]
+    end
+    S ==>|"the only data path"| M
+```
 
-### Failure mode
+The import never runs in production: the database there is filled only from the dump. The dossiers are written by a coding agent in a session from a versioned prompt, so they cost no API calls.
 
-A confident wrong "fits". Code proves that a quoted sentence exists, not that the model read it correctly, and 83 of 197 locations are approximate, so a cited distance can be off. Mitigations: evidence next to every verdict so the buyer can check before calling, and caution as the default (44% of verdicts in the eval say the listing does not answer). How often "fits" is wrong is not measured yet; see the [one-pager](docs/one-pager.md).
+### Tech stack
 
-## Run it
+| Layer | Technology |
+|---|---|
+| Backend | C#, .NET 9, ASP.NET Core Minimal API, EF Core 9 with the Pomelo MySQL provider |
+| Database | MySQL 8.4 |
+| Frontend | React 19, TypeScript, Vite, React Router, TanStack Query, Leaflet for the map |
+| AI | OpenAI API (`gpt-5.6-luna` by default) with strict structured output; the answer streams to the browser; prompts are versioned files in `prompts/` |
+| Data | otodom.pl listings, OpenStreetMap (Overpass) for nearby places, a coding agent for the dossiers |
+| Tests and CI | xUnit (no network, database or model), GitHub Actions |
+| Run and deploy | Docker Compose locally, Railway in production |
 
-Requirements: Docker with Compose, the .NET SDK from [`global.json`](global.json) (9.0.203, roll-forward to the latest feature band), Node 22.
+Why C#: the stack is allowed by the task and matches the team's, and it keeps the verification code (evidence checks, distances, grouping) strongly typed and testable without the model.
 
-### Configuration
+## Data
+
+197 flat-sale listings fetched once from otodom.pl (Gdańsk, Gdynia, Sopot). Demo use only. Sellers' contact details are stripped on import, the data is not committed to this repository and not indexed, and every listing links back to its otodom page.
+
+## Run it locally
+
+You do not need an OpenAI API key. With `CHAT_MODE=fallback` (the default in `.env.example`) the app runs fully: the list, filters, listing details, and the risks and nearby places from the dossier all work. Only the AI chat pipeline (needs understood, per-listing verdicts, grouping) is off; the chat then shows the notice "AI chwilowo niedostępne" with the results of basic filters. To turn the AI on, set `CHAT_MODE=llm` and `OPENAI_API_KEY` in `.env`; a missing key then stops the API at startup.
+
+Requirements: Docker with Compose. For development and checks also the .NET SDK from [`global.json`](global.json) and Node 22.
+
+**1. Configure.**
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env`: set `MYSQL_ROOT_PASSWORD` and `MYSQL_PASSWORD`, and keep the password inside `ConnectionStrings__Default` equal to `MYSQL_PASSWORD`. Settings that matter:
+In `.env` set `MYSQL_ROOT_PASSWORD` and `MYSQL_PASSWORD`, and keep the password inside `ConnectionStrings__Default` equal to `MYSQL_PASSWORD`.
 
-| Variable | Meaning |
-|---|---|
-| `CHAT_MODE` | `fallback` (default): no model call, keyword parsing only. `llm`: the full `ask` pipeline; needs `OPENAI_API_KEY`, and a missing key stops the API at startup. |
-| `OPENAI_API_KEY` | only for `CHAT_MODE=llm` and for `eval-intents` / `eval-judge`. Never commit it. |
-| `LLM_MODEL`, `LLM_JUDGE_MODEL` | interpretation and judge models. |
-| `CHAT_MAX_LENGTH`, `CHAT_TIMEOUT_SECONDS` | message length limit (300) and model timeout (5 s). |
-
-The chat endpoint is limited to 5 requests per minute per IP.
-
-### Start the app in containers
+**2. Start.**
 
 ```bash
 docker compose up -d --build
 ```
 
-The app is at http://localhost:8080 and `/api/health` returns `db: ok`. The API creates the schema at startup; the database is empty until you load the data.
+The app is at http://localhost:8080 and `/api/health` returns `db: ok`. The schema is created at startup; the database is empty until you load the data.
 
-### Data
-
-Listings arrive as a dump. `data/` is not in git, so the dump is not in the repository: ask the author for `flatplanner-data.sql` and put it in `data/dumps/`, then load it into the running stack:
+**3. Load the data.** `data/` is not in git, so the dump is not in the repository: ask the author for `flatplanner-data.sql`, put it in `data/dumps/`, then:
 
 ```bash
 set -a; source .env; set +a
 docker compose exec -T -e MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql mysql -uroot --default-character-set=utf8mb4 flatplanner < data/dumps/flatplanner-data.sql
 ```
 
-The dump holds `listings` and `listing_facts`. Check: `SELECT COUNT(*) FROM listings;` returns 197.
+Check: `SELECT COUNT(*) FROM listings;` returns 197.
 
-To rebuild the data instead of loading a dump, run the Ingest commands in order (the listings fetched today will differ from the demo set):
-
-```bash
-dotnet run --project src/Flatplanner.Ingest -- scrape
-dotnet run --project src/Flatplanner.Ingest -- normalize
-dotnet run --project src/Flatplanner.Ingest -- nearby
-dotnet run --project src/Flatplanner.Ingest -- export-dossiers
-```
-
-Then have a coding agent write `data/agent/dossiers.jsonl` from `data/agent/listings.jsonl` following `prompts/listing-dossier.v2.md`, and finish with `import-dossiers` and `report`. The dossiers of the demo set were produced this way with prompt `listing-dossier.v2`; no API cost is involved.
-
-### Development
+**Development mode.**
 
 ```bash
 docker compose up -d mysql
@@ -132,9 +156,9 @@ PROMPTS_DIR=../../prompts dotnet run --project src/Flatplanner.Api --urls http:/
 cd web && npm ci && npm run dev
 ```
 
-The Vite dev server is at http://localhost:5173 and proxies `/api` to the API on port 5080. `PROMPTS_DIR` is needed because the API resolves it relative to its project folder.
+The Vite dev server is at http://localhost:5173 and proxies `/api` to the API on port 5080.
 
-### Checks
+**Checks** (CI runs the same on every pull request; the tests use no network, database or model).
 
 ```bash
 dotnet format Flatplanner.sln --verify-no-changes
@@ -145,30 +169,6 @@ dotnet test Flatplanner.sln
 cd web && npm run lint && npm run build
 ```
 
-CI (`.github/workflows/ci.yml`) runs the same checks on every pull request. The tests use no network, database or model.
+**Rebuilding the data instead of loading a dump** (the listings fetched today will differ from the demo set): run the Ingest commands `scrape`, `normalize`, `nearby`, `export-dossiers`, each as `dotnet run --project src/Flatplanner.Ingest -- <command>`. Then have a coding agent write `data/agent/dossiers.jsonl` from `data/agent/listings.jsonl` following [`prompts/listing-dossier.v2.md`](prompts/listing-dossier.v2.md), and finish with `import-dossiers`. Do not run `report` on a fresh clone: it overwrites the committed `docs/ingest-report.md`.
 
-### Evaluation (paid)
-
-`eval-intents` runs the 10 questions of [`tests/search-queries.json`](tests/search-queries.json) through the real model and the keyword fallback; `eval-judge` runs the judge cases of `tests/judge-cases.json` against a running API with `CHAT_MODE=llm`. Both call the OpenAI API and write their reports to `data/eval/`.
-
-```bash
-dotnet run --project src/Flatplanner.Ingest -- eval-intents
-```
-
-## Layout
-
-| Path | Contents |
-|---|---|
-| `src/Flatplanner.Core` | entities, `DbContext`, migrations, search intent and its normaliser, evidence anchors, LLM client |
-| `src/Flatplanner.Api` | Minimal API endpoints, list queries, ranking, judging, SPA hosting |
-| `src/Flatplanner.Ingest` | local-only console app: scrape, normalize, nearby, dossier export and import, report, evals |
-| `tests/` | xUnit tests and the evaluation query sets |
-| `web/` | React SPA, built into the API's `wwwroot` in the container |
-| `prompts/` | versioned LLM prompts; a changed prompt is a new file |
-| `docs/` | product scope, design, UI spec, one-pagers, import report |
-
-## Notes
-
-- .NET 9 support ends on 2026-11-10. Irrelevant for a prototype; moving to .NET 10 is blocked by Pomelo, which has no release for EF Core 10 yet ([design.md §14.2](docs/design.md)).
-- Descriptions are always rendered as text, never as HTML.
-- Secrets live only in the local `.env` (git-ignored) and in the hosting provider's variables.
+The app runs on .NET 9, whose support ends on 2026-11-10: irrelevant for a prototype, and moving to .NET 10 is blocked by Pomelo ([design.md §14.2](docs/design.md)).

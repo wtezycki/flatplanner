@@ -1,24 +1,23 @@
-import { Link, useSearchParams } from 'react-router'
+import { useSearchParams } from 'react-router'
 import type { AskItem } from '../api.ts'
-import { formatArea, formatFloor, formatPrice, formatRooms, verdictPresentation } from '../format.ts'
+import { formatPrice, verdictPresentation } from '../format.ts'
 import { listingSearch } from '../intent.ts'
+import type { CardLabels } from '../useCardLabels.ts'
+import ListingCardBody from './ListingCardBody.tsx'
 import NeedVerdict from './NeedVerdict.tsx'
-import RiskList from './RiskList.tsx'
+import PhotoCarousel from './PhotoCarousel.tsx'
 
 interface Props {
   item: AskItem
+  labels: CardLabels
   needs: string[]
   excludeNeeds: number[]
 }
 
-export default function AskCard({ item, needs, excludeNeeds }: Props) {
+export default function AskCard({ item, labels, needs, excludeNeeds }: Props) {
   const [searchParams] = useSearchParams()
-  const parameters = [
-    formatArea(item.areaM2),
-    formatRooms(item.rooms),
-    item.floor === undefined ? undefined : formatFloor(item.floor, item.buildingFloors, false),
-  ].filter(Boolean)
-  const location = item.districtName ? `${item.districtName}, ${item.cityName}` : item.cityName
+  const { listing } = item
+  const href = { search: listingSearch(searchParams, listing.id) }
   const verdicts = needs
     .map((need, index) => ({ need, index, result: item.needs[index] }))
     .filter(({ index }) => !excludeNeeds.includes(index))
@@ -27,69 +26,39 @@ export default function AskCard({ item, needs, excludeNeeds }: Props) {
 
   return (
     <article className="tile">
-      <div className={item.imageUrl ? 'tile__media' : 'tile__media tile__media--missing'}>
-        {item.imageUrl ? (
-          <img src={item.imageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
-        ) : (
-          'Brak zdjęcia'
-        )}
-      </div>
-      <div className="tile__body">
-        <p className="tile__price-line">
-          <span className="card__price num">{formatPrice(item.pricePln)}</span>
-          <span className="tile__parameters">{parameters.join(' · ')}</span>
-        </p>
-        <p className="card__location">
-          {location}
-          {item.locationApproximate && (
-            <>
-              {' '}
-              <span className="badge">lokalizacja przybliżona, odległość orientacyjna</span>
-            </>
-          )}
-        </p>
-        <p className="card__title">
-          <Link className="card__link" to={{ search: listingSearch(searchParams, item.id) }}>
-            {item.title}
-          </Link>
-        </p>
+      <PhotoCarousel urls={listing.imageUrls} href={href} />
+      <ListingCardBody
+        item={listing}
+        labels={labels}
+        href={href}
+        priceNote={item.totalWithExtrasPln === undefined ? undefined : `Łącznie z dopłatą: ${formatPrice(item.totalWithExtrasPln)}`}
+      >
         {verdicts.length > 0 && (
-          <ul className="tile__pills">
-            {ordered.map(({ need, result }) => {
-              const { icon, label } = verdictPresentation(result.verdict)
-              return (
-                <li key={need} className={`verdict-pill verdict-pill--${result.verdict}`}>
-                  <span role="img" aria-label={label}>
-                    {icon}
-                  </span>
-                  {need}
-                </li>
-              )
-            })}
-          </ul>
-        )}
-        {item.aiSummary && (
-          <div className="ai-box">
-            <p className={verdicts.length > 0 ? 'ai-box__text ai-box__text--clamped' : 'ai-box__text'}>
-              <span className="ai-box__label">
-                <span aria-hidden="true">✨</span> AI:
-              </span>{' '}
-              {item.aiSummary}
-            </p>
+          <div className="tile__needs">
+            <ul className="tile__pills">
+              {ordered.map(({ need, result }) => {
+                const { icon, label } = verdictPresentation(result.verdict)
+                return (
+                  <li key={need} className={`verdict-pill verdict-pill--${result.verdict}`}>
+                    <span role="img" aria-label={label}>
+                      {icon}
+                    </span>
+                    {need}
+                  </li>
+                )
+              })}
+            </ul>
+            <details className="tile__why">
+              <summary>Dlaczego pasuje</summary>
+              <ul className="verdicts">
+                {ordered.map(({ need, result }) => (
+                  <NeedVerdict key={need} need={need} result={result} />
+                ))}
+              </ul>
+            </details>
           </div>
         )}
-        {verdicts.length > 0 && (
-          <details className="tile__why">
-            <summary>Dlaczego pasuje</summary>
-            <ul className="verdicts">
-              {ordered.map(({ need, result }) => (
-                <NeedVerdict key={need} need={need} result={result} />
-              ))}
-            </ul>
-          </details>
-        )}
-        <RiskList risks={item.risks} totalWithExtrasPln={item.totalWithExtrasPln} />
-      </div>
+      </ListingCardBody>
     </article>
   )
 }

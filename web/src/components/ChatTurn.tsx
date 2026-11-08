@@ -1,11 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
+import logo from '../assets/flatplanner.svg'
 import { ApiError, DEFAULT_RETRY_AFTER_SECONDS, streamAsk } from '../api.ts'
 import { useAskTurn } from '../useAskTurn.ts'
 import AskProgress from './AskProgress.tsx'
 import AskReply from './AskReply.tsx'
 import AskResults from './AskResults.tsx'
-import Icon from './Icon.tsx'
 
 interface Props {
   history: string[]
@@ -56,9 +56,7 @@ export default function ChatTurn({ history, message, isLast, page }: Props) {
         </p>
       </div>
       <div className="turn__answer">
-        <span className="turn__avatar" aria-hidden="true">
-          <Icon name="sparkles" />
-        </span>
+        <img className="turn__avatar" src={logo} alt="" />
         <div className="turn__content">
           <span className="sr-only">Odpowiedź: </span>
           {query.isError && (

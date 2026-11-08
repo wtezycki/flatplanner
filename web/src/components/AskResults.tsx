@@ -1,8 +1,13 @@
 import type { AskResponse } from '../api.ts'
 import { ASK_GROUP_HEADINGS, formatListingsCount } from '../format.ts'
+import { useCardLabels } from '../useCardLabels.ts'
 import AskCard from './AskCard.tsx'
 import AskProgress from './AskProgress.tsx'
+import Icon from './Icon.tsx'
+import type { IconName } from './Icon.tsx'
 import Pagination from './Pagination.tsx'
+
+const GROUP_ICONS: Record<string, IconName> = { full: 'check', partial: 'halfCircle', near: 'risk' }
 
 const ASK_PAGE_SIZE = 12
 
@@ -17,6 +22,7 @@ interface Props {
 
 export default function AskResults({ response, excludeNeeds, page, interactive, checkingMore, onCheckMore }: Props) {
   const { needs, items, unknownCount, remainingCount } = response
+  const cardLabels = useCardLabels()
   const matching = items.filter((item) => item.group !== 'unknown')
   const unknownItems = items.filter((item) => item.group === 'unknown')
   const totalPages = Math.max(1, Math.ceil(matching.length / ASK_PAGE_SIZE))
@@ -40,11 +46,17 @@ export default function AskResults({ response, excludeNeeds, page, interactive, 
         const groupItems = pageItems.filter((item) => item.group === group)
         return groupItems.length === 0 ? null : (
           <section key={group} className="ask-group">
-            {needs.length > 0 && <h2 className="ask-group__heading">{heading}</h2>}
+            {needs.length > 0 && (
+              <h2 className={`ask-group__heading ask-group__heading--${group}`}>
+                <Icon name={GROUP_ICONS[group]} />
+                {heading}
+                <span className="ask-group__count num">{matching.filter((item) => item.group === group).length}</span>
+              </h2>
+            )}
             <ul className="ask-list">
               {groupItems.map((item) => (
-                <li key={item.id}>
-                  <AskCard item={item} needs={needs} excludeNeeds={excludeNeeds} />
+                <li key={item.listing.id}>
+                  <AskCard item={item} labels={cardLabels(item.listing)} needs={needs} excludeNeeds={excludeNeeds} />
                 </li>
               ))}
             </ul>
@@ -57,8 +69,8 @@ export default function AskResults({ response, excludeNeeds, page, interactive, 
           <summary className="ask-group__heading">Ogłoszenie o tym nie mówi ({unknownCount})</summary>
           <ul className="ask-list">
             {unknownItems.map((item) => (
-              <li key={item.id}>
-                <AskCard item={item} needs={needs} excludeNeeds={excludeNeeds} />
+              <li key={item.listing.id}>
+                <AskCard item={item} labels={cardLabels(item.listing)} needs={needs} excludeNeeds={excludeNeeds} />
               </li>
             ))}
           </ul>

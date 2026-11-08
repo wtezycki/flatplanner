@@ -1,12 +1,12 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { Link, useSearchParams } from 'react-router'
 import { ApiError, DEFAULT_RETRY_AFTER_SECONDS, fetchListings, metaQuery } from '../api.ts'
-import type { EnumOption } from '../api.ts'
 import Icon from '../components/Icon.tsx'
 import ListingCard from '../components/ListingCard.tsx'
 import Pagination from '../components/Pagination.tsx'
 import { formatListingsCount } from '../format.ts'
 import { intentFromSearchParams, withoutWorkspaceParams } from '../intent.ts'
+import { useCardLabels } from '../useCardLabels.ts'
 
 const SKELETON_CARDS = 3
 
@@ -61,8 +61,7 @@ export default function ListingsPage() {
   const sortOptions = (meta.data?.enums.sort ?? []).filter(
     (option) => option.value !== 'relevance' || intent.preferences.length > 0,
   )
-  const enumLabel = (options: EnumOption[] | undefined, value: string | undefined) =>
-    options?.find((option) => option.value === value)?.label
+  const cardLabels = useCardLabels()
 
   const changeSort = (sort: string) => {
     const next = new URLSearchParams(allParams)
@@ -98,14 +97,7 @@ export default function ListingsPage() {
         <ul className={listings.isPlaceholderData ? 'cards cards--stale' : 'cards'}>
           {data.items.map((item) => (
             <li key={item.id}>
-              <ListingCard
-                item={item}
-                labels={{
-                  market: enumLabel(meta.data?.enums.market, item.market),
-                  finishCondition: enumLabel(meta.data?.enums.finishCondition, item.finishCondition),
-                  ownership: enumLabel(meta.data?.enums.ownership, item.ownership),
-                }}
-              />
+              <ListingCard item={item} labels={cardLabels(item)} />
             </li>
           ))}
         </ul>

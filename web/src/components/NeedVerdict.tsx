@@ -17,7 +17,7 @@ export default function NeedVerdict({ need, result }: Props) {
         <p className="verdict__reason">{result.reason ?? need}</p>
         {result.evidence.length > 0 && (
           <p className="chips">
-            {result.evidence.map((evidence) => (
+            {result.evidence.slice(0, 1).map((evidence) => (
               <span key={`${evidence.kind}:${evidence.label}`} className="chip" title={evidence.label}>
                 {evidence.kind === 'quote' ? `„${evidence.label}”` : evidence.label}
               </span>

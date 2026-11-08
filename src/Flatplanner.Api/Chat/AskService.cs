@@ -211,7 +211,8 @@ public sealed class AskService(
             .ToList();
         var candidates = shown.Candidates.ToDictionary(c => c.Listing.Id);
         var arranged = AskGrouping.Arrange(rows, excluded);
-        var items = arranged.Select(r => Item(candidates[r.Row.Id], r.Group, shown.Results[r.Row.Id])).ToList();
+        var medians = await CardSignals.CityMediansAsync(db, ct);
+        var items = arranged.Select(r => Item(candidates[r.Row.Id], r.Group, shown.Results[r.Row.Id], medians)).ToList();
 
         var relaxations = shown.Candidates.Count == 0
             ? await HardFilterRelaxationsAsync(interpretation.Intent, viewFilters, filters.Chips, ct)
@@ -230,15 +231,12 @@ public sealed class AskService(
             interpretation.FallbackReason);
     }
 
-    private static AskItem Item(AskCandidate candidate, string group, IReadOnlyList<NeedResult> needs)
+    private static AskItem Item(AskCandidate candidate, string group, IReadOnlyList<NeedResult> needs, IReadOnlyDictionary<string, int> medians)
     {
-        var listing = candidate.Listing;
         var extras = candidate.Risks.Where(r => r.Kind == RiskKind.ExtraCost && r.AmountPln is not null).Sum(r => r.AmountPln!.Value);
 
         return new AskItem(
-            listing.Id, listing.Title, listing.PricePln, listing.AreaM2, listing.Rooms, listing.Floor, listing.BuildingFloors,
-            EnumLabels.CityNames[listing.CitySlug], listing.DistrictName, listing.ImageUrls.FirstOrDefault(), listing.AiSummary,
-            listing.LocationApproximate, group, needs, candidate.Risks, extras > 0 ? listing.PricePln + extras : null);
+            ListingCardRow.From(candidate.Listing).ToItem(medians), group, needs, extras > 0 ? candidate.Listing.PricePln + extras : null);
     }
 
     private async Task<IReadOnlyList<Relaxation>> HardFilterRelaxationsAsync(

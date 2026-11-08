@@ -55,6 +55,7 @@ public static class PlaceLabels
 
     public static IReadOnlyCollection<string> AllTags => Tags.Keys;
 
+    // A city centre is named after its city ("Gdańsk · 338 m"), which reads like a distance to the city, not to its centre.
     public static string Of(string? name, string tag, int distanceM) =>
-        $"{name ?? Tags.GetValueOrDefault(tag, "miejsce")} · {distanceM} m";
+        $"{(tag.StartsWith("place=", StringComparison.Ordinal) ? null : name) ?? Tags.GetValueOrDefault(tag, "miejsce")} · {distanceM} m";
 }

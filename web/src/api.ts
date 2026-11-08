@@ -192,21 +192,9 @@ export interface ListingRisk {
 }
 
 export interface AskItem {
-  id: number
-  title: string
-  pricePln: number
-  areaM2: number
-  rooms: number
-  floor?: number
-  buildingFloors?: number
-  cityName: string
-  districtName?: string
-  imageUrl?: string
-  aiSummary?: string
-  locationApproximate: boolean
+  listing: ListingItem
   group: string
   needs: NeedResult[]
-  risks: ListingRisk[]
   totalWithExtrasPln?: number
 }
 

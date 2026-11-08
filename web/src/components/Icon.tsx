@@ -157,6 +157,13 @@ const PATHS = {
       <path d="m21 21-4.3-4.3" />
     </>
   ),
+  check: <path d="M20 6 9 17l-5-5" />,
+  halfCircle: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 3a9 9 0 0 1 0 18Z" fill="currentColor" />
+    </>
+  ),
   chevronLeft: <path d="m15 18-6-6 6-6" />,
   chevronRight: <path d="m9 18 6-6-6-6" />,
   fresh: <path d="m12 3 1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3Z" />,

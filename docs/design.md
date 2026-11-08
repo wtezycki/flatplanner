@@ -1266,6 +1266,7 @@ The `main` branch requires both jobs to pass before a squash merge. A `docker bu
   - from #13: `"remove":{"areaMin":null,...}` keeps `null` inside the map.
 - **`SearchIntentNormalizerTests`:** price and area outside the former bounds are kept without a warning; min > max is swapped silently.
 - **`CardSignalsTests`:** median rounding, the below-median threshold, risk kinds distinct in canonical order, nearest stop and park within 800 m and none with an approximate location.
+- **`InterpretationBuilderTests`:** the chips of the R27 filters: years without a thousands separator, `zł/m²` and `zł` units, several enum values in one chip, garage and basement.
 - **`PlaceLabelsTests`:** a city centre is labelled “centrum miasta” whatever its name, a named place keeps its name, an unnamed one its kind (R29).
 - **`SearchIntentSchemaTests`:**
   - the schema from `SearchIntentSchema.Build` has every object field in `required` and `additionalProperties: false` on every object (OpenAI strict rules; an error here gives a 400 on production);

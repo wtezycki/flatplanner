@@ -41,6 +41,10 @@ export default function PhotoCarousel({ urls, onOpen, href }: Props) {
     if (!drag.current || !element) {
       return
     }
+    if (event.buttons === 0) {
+      drag.current = undefined
+      return
+    }
     const distance = event.clientX - drag.current.x
     if (!drag.current.moved && Math.abs(distance) > DRAG_THRESHOLD_PX) {
       drag.current.moved = true
@@ -57,6 +61,9 @@ export default function PhotoCarousel({ urls, onOpen, href }: Props) {
     if (drag.current?.moved && element) {
       element.classList.remove('gallery__track--dragging')
       dragged.current = true
+      window.setTimeout(() => {
+        dragged.current = false
+      })
       show(Math.min(photos.length - 1, Math.max(0, Math.round(element.scrollLeft / element.clientWidth))))
     }
     drag.current = undefined
@@ -106,7 +113,7 @@ export default function PhotoCarousel({ urls, onOpen, href }: Props) {
   return (
     <div className="gallery" role="group" aria-label="Zdjęcia oferty">
       {href ? (
-        <Link className="gallery__link" to={href} draggable={false} onClick={(event) => void swallowClickAfterDrag(event)}>
+        <Link className="gallery__link" to={href} draggable={false} tabIndex={-1} aria-hidden="true" onClick={(event) => void swallowClickAfterDrag(event)}>
           {trackElement}
         </Link>
       ) : (

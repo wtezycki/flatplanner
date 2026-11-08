@@ -8,15 +8,15 @@ public sealed class AskConversationTests
     private const int MaxLength = 300;
 
     [Fact]
-    public void Validate_FourPreviousMessages_IsValid()
+    public void Validate_MaxHistoryPreviousMessages_IsValid()
     {
-        var history = new[] { "a", "b", "c", "d" };
+        var history = Enumerable.Repeat("a", SearchDefinitions.MaxHistory).ToArray();
 
         Assert.Null(AskValidation.Validate("e", history, MaxLength));
     }
 
     [Fact]
-    public void Validate_FivePreviousMessages_RejectsHistory()
+    public void Validate_OneMoreThanMaxHistory_RejectsHistory()
     {
         var history = Enumerable.Repeat("a", SearchDefinitions.MaxHistory + 1).ToArray();
 

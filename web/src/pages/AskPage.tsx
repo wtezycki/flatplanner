@@ -7,22 +7,22 @@ import Composer from '../components/Composer.tsx'
 import Icon from '../components/Icon.tsx'
 import ListingDetailPage from './ListingDetailPage.tsx'
 
-const MAX_TURNS = 5
-
 export default function AskPage() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const meta = useQuery(metaQuery).data
+  const maxTurns = meta?.chatMaxTurns
   const turns = searchParams
     .getAll('q')
     .map((turn) => turn.trim())
     .filter(Boolean)
-    .slice(0, MAX_TURNS)
+    .slice(0, maxTurns)
   const listingId = searchParams.get('listing')
   const page = Number.parseInt(searchParams.get('page') ?? '1', 10) || 1
-  const maxLength = useQuery(metaQuery).data?.chatMaxLength
+  const maxLength = meta?.chatMaxLength
   const thread = useRef<HTMLDivElement>(null)
   const previousTurns = useRef(turns.length)
   const previousPage = useRef(page)
-  const limitReached = turns.length >= MAX_TURNS
+  const limitReached = maxTurns !== undefined && turns.length >= maxTurns
 
   const ask = (text: string) => {
     const next = new URLSearchParams(searchParams)
@@ -87,6 +87,10 @@ export default function AskPage() {
     )
   }
 
+  if (maxTurns === undefined) {
+    return null
+  }
+
   return (
     <div className="chat">
       <div className="container chat__container" ref={thread}>
@@ -106,7 +110,7 @@ export default function AskPage() {
             <Icon name="newChat" />
           </button>
           {limitReached ? (
-            <p className="dock__limit">Rozmowa może mieć najwyżej {MAX_TURNS} pytań. Zacznij nową.</p>
+            <p className="dock__limit">Rozmowa może mieć najwyżej {maxTurns} pytań. Zacznij nową.</p>
           ) : (
             <Composer label="Dopytaj albo zmień kryteria" placeholder="Dopytaj albo zmień kryteria" maxLength={maxLength} autoFocus onSubmit={ask} />
           )}

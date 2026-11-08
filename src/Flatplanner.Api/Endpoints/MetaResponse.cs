@@ -6,4 +6,5 @@ public sealed record MetaResponse(
     MetaEnums Enums,
     string ChatMode,
     int ChatMaxLength,
+    int ChatMaxTurns,
     DateTime? DataAsOf);

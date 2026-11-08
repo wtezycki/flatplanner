@@ -1,5 +1,6 @@
 using Flatplanner.Core.Data;
 using Flatplanner.Core.Options;
+using Flatplanner.Core.Search;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -52,6 +53,7 @@ public sealed class MetaService(FlatplannerDbContext db, IOptions<FlatplannerOpt
                 EnumLabels.ProvenanceOptions),
             settings.ChatMode,
             settings.ChatMaxLength,
+            SearchDefinitions.MaxHistory + 1,
             dataAsOf is { } value ? DateTime.SpecifyKind(value, DateTimeKind.Utc) : null);
     }
 }

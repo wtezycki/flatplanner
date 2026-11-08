@@ -71,6 +71,7 @@ export interface MetaResponse {
   }
   chatMode: string
   chatMaxLength: number
+  chatMaxTurns: number
   dataAsOf?: string
 }
 
@@ -297,13 +298,11 @@ function parseEvent(block: string): { name: string; data: string } | undefined {
 export async function streamAsk(
   request: AskStreamRequest,
   onUnderstood: ((understood: AskUnderstood) => void) | undefined,
-  signal?: AbortSignal,
 ): Promise<AskResponse> {
   const response = await fetch('/api/search/ask/stream', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
-    signal,
   })
   if (!response.ok || !response.body) {
     throw errorFrom(response)

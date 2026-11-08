@@ -21,12 +21,45 @@ public sealed class JudgeInputTests
         new("potrzeba", places.Select(t => new NeedPlace(t, PlacePreference.Near, null)).ToArray(), keywords);
 
     [Fact]
-    public void Nearby_PlannedTags_NearestPerKindWithOriginalIndex()
+    public void Nearby_PlannedTags_EveryPlaceOfAKindWithOriginalIndex()
     {
         var places = JudgeInput.Nearby(Nearby, [Need(["amenity=school", "highway=primary"], [])]);
 
-        Assert.Equal([1, 4], places.Select(p => p.I));
-        Assert.Equal("Szkoła Podstawowa nr 5", places[0].N);
+        Assert.Equal([0, 1, 4], places.Select(p => p.I));
+        Assert.Equal("Szkoła Podstawowa nr 12", places[0].N);
+    }
+
+    [Fact]
+    public void Nearby_FourPlacesOfOneKind_ThreeNearestKept()
+    {
+        NearbyPlace[] gyms =
+        [
+            new("Siłownia A", "leisure=sports_centre", null, 900),
+            new("Siłownia B", "leisure=sports_centre", null, 100),
+            new("Siłownia C", "leisure=sports_centre", null, 500),
+            new("Karate Klub", "leisure=sports_centre", null, 1300),
+        ];
+
+        var places = JudgeInput.Nearby(gyms, [Need(["leisure=sports_centre"], [])]);
+
+        Assert.Equal([0, 1, 2], places.Select(p => p.I));
+    }
+
+    [Fact]
+    public void Nearby_PlannedExtra_KeepsOnlyMatchingKindsAndUntaggedEntries()
+    {
+        NearbyPlace[] worship =
+        [
+            new("Kościół św. Brygidy", "amenity=place_of_worship", "religion=christian;denomination=roman_catholic", 200),
+            new("Nowa Synagoga", "amenity=place_of_worship", "religion=jewish;denomination=orthodox", 300),
+            new("Cerkiew Świętego Mikołaja", "amenity=place_of_worship", "religion=christian;denomination=orthodox", 700),
+            new("Kaplica", "amenity=place_of_worship", null, 900),
+        ];
+        AskNeed church = new("cerkiew", [new NeedPlace("amenity=place_of_worship", PlacePreference.Near, "denomination=orthodox")], []);
+
+        var places = JudgeInput.Nearby(worship, [church]);
+
+        Assert.Equal([2, 3], places.Select(p => p.I));
     }
 
     [Fact]

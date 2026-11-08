@@ -27,6 +27,8 @@ public sealed class CandidateRankerTests
 
     private static NearbyPlace Place(string tag, int distanceM, string? extra = null) => new(null, tag, extra, distanceM);
 
+    private static NearbyPlace Named(string name, string tag, int distanceM) => new(name, tag, null, distanceM);
+
     private static AskNeed Need(string tag, string prefer, params string[] keywords) => new("potrzeba", [new NeedPlace(tag, prefer, null)], keywords);
 
     private static AskNeed NeedWithExtra(string tag, string prefer, string extra) => new("potrzeba", [new NeedPlace(tag, prefer, extra)], []);
@@ -115,5 +117,32 @@ public sealed class CandidateRankerTests
         AskNeed quiet = new("cisza", [new NeedPlace("railway=tram", PlacePreference.Far, null), new NeedPlace("highway=primary", PlacePreference.Far, null)], []);
 
         Assert.Equal([2L, 1L], Order([quiet], tramClose, bothMid));
+    }
+
+    [Fact]
+    public void Rank_PlaceNameCarriesKeyword_LiftsListing()
+    {
+        var plainGym = Candidate(1, nearby: Named("Siłownia Fit", "leisure=sports_centre", 700));
+        var karateClub = Candidate(2, nearby: Named("Gdański Klub Kyokushin Karate", "leisure=sports_centre", 800));
+
+        Assert.Equal([2L, 1L], Order([Need("leisure=sports_centre", PlacePreference.Near, "karate")], plainGym, karateClub));
+    }
+
+    [Fact]
+    public void Rank_KeywordInNameOfAnotherTag_NoBonus()
+    {
+        var withKarateCafe = Candidate(1, nearby: [Named("Siłownia Fit", "leisure=sports_centre", 100), Named("Kawiarnia Karate", "amenity=cafe", 50)]);
+        var gymOnly = Candidate(2, created: Created.AddDays(1), nearby: Named("Siłownia Fit", "leisure=sports_centre", 100));
+
+        Assert.Equal([2L, 1L], Order([Need("leisure=sports_centre", PlacePreference.Near, "karate")], withKarateCafe, gymOnly));
+    }
+
+    [Fact]
+    public void Rank_OrthodoxSynagogue_NotAnOrthodoxChurch()
+    {
+        var synagogue = Candidate(1, nearby: Place("amenity=place_of_worship", 100, "religion=jewish;denomination=orthodox"));
+        var church = Candidate(2, nearby: Place("amenity=place_of_worship", 700, "religion=christian;denomination=orthodox"));
+
+        Assert.Equal([2L, 1L], Order([NeedWithExtra("amenity=place_of_worship", PlacePreference.Near, "denomination=orthodox")], synagogue, church));
     }
 }

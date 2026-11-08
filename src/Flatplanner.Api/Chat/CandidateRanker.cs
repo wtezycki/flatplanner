@@ -1,5 +1,6 @@
 using Flatplanner.Core.Data;
 using Flatplanner.Core.Search;
+using Flatplanner.Core.Text;
 
 namespace Flatplanner.Api.Chat;
 
@@ -23,16 +24,22 @@ public static class CandidateRanker
         // The nearest noise source decides, so `far` takes the worst present tag (design 16.9).
         var worstFar = present[PlacePreference.Far].DefaultIfEmpty(0).Min();
         var place = Math.Max(bestNear, worstFar);
-        var keyword = need.Keywords.Length > 0 && JudgeInput.Description(candidate.Listing.DescriptionText, [need]).Length > 0
-            ? KeywordBonus
-            : 0;
-        return place + keyword;
+        var mentioned = need.Keywords.Length > 0
+            && (JudgeInput.Description(candidate.Listing.DescriptionText, [need]).Length > 0 || NamesMention(candidate.Nearby, need));
+        return place + (mentioned ? KeywordBonus : 0);
+    }
+
+    // OSM tags a martial arts club only as a sports centre, so its name ("Karate Klub") is the one clue; every flat has some sports centre nearby (design 16.9).
+    private static bool NamesMention(IReadOnlyList<NearbyPlace> nearby, AskNeed need)
+    {
+        var near = need.Places.Where(p => p.Prefer == PlacePreference.Near).ToList();
+        return nearby.Any(p => p.Name is not null && near.Any(n => n.Accepts(p)) && need.Mentions(TextFolding.Fold(p.Name)));
     }
 
     // A tag absent within the radius scores 0 either way: absence is not citable evidence (design 16.9).
     private static double? PlaceScore(IReadOnlyList<NearbyPlace> nearby, NeedPlace place)
     {
-        var nearest = nearby.Where(p => p.Tag == place.Tag && Matches(p.Extra, place.Extra)).MinBy(p => p.DistanceM);
+        var nearest = nearby.Where(place.Accepts).MinBy(p => p.DistanceM);
         if (nearest is null)
         {
             return null;
@@ -40,18 +47,5 @@ public static class CandidateRanker
 
         var share = Math.Min(nearest.DistanceM, NearbyPlace.RadiusM) / (double)NearbyPlace.RadiusM;
         return place.Prefer == PlacePreference.Near ? 1 - share : share;
-    }
-
-    // An entry without the key counts: most OSM schools carry no `isced:level` (design 16.9).
-    private static bool Matches(string? entryExtra, string? plannedExtra)
-    {
-        if (plannedExtra is null || entryExtra is null)
-        {
-            return true;
-        }
-
-        var key = plannedExtra.Split('=')[0] + "=";
-        var values = entryExtra.Split(';');
-        return !values.Any(v => v.StartsWith(key, StringComparison.Ordinal)) || values.Contains(plannedExtra);
     }
 }

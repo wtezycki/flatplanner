@@ -9,4 +9,5 @@ public sealed record NearbyPlace(
     [property: JsonPropertyName("d")] int DistanceM)
 {
     public const int RadiusM = 1_500;
+    public const int MaxPerKind = 3;
 }

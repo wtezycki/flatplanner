@@ -99,3 +99,9 @@ export const ASK_GROUP_HEADINGS: Record<string, string> = {
   partial: 'Pasuje częściowo',
   near: 'Prawie pasuje: jedna rzecz nie gra',
 }
+
+export const ASK_GROUP_HINTS: Record<string, string> = {
+  full: 'Spełnia wszystkie Twoje warunki',
+  partial: 'Część warunków wymaga potwierdzenia',
+  near: 'Warto rzucić okiem, jeśli odpuścisz jeden warunek',
+}

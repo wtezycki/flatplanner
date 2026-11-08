@@ -1,5 +1,5 @@
 import type { AskResponse } from '../api.ts'
-import { ASK_GROUP_HEADINGS, formatListingsCount } from '../format.ts'
+import { ASK_GROUP_HEADINGS, ASK_GROUP_HINTS, formatListingsCount } from '../format.ts'
 import { useCardLabels } from '../useCardLabels.ts'
 import AskCard from './AskCard.tsx'
 import AskProgress from './AskProgress.tsx'
@@ -47,11 +47,16 @@ export default function AskResults({ response, excludeNeeds, page, interactive, 
         return groupItems.length === 0 ? null : (
           <section key={group} className="ask-group">
             {needs.length > 0 && (
-              <h2 className={`ask-group__heading ask-group__heading--${group}`}>
-                <Icon name={GROUP_ICONS[group]} />
-                {heading}
-                <span className="ask-group__count num">{matching.filter((item) => item.group === group).length}</span>
-              </h2>
+              <header className={`ask-group__head ask-group__head--${group}`}>
+                <span className="ask-group__icon" aria-hidden="true">
+                  <Icon name={GROUP_ICONS[group]} />
+                </span>
+                <div className="ask-group__titles">
+                  <h2 className="ask-group__heading">{heading}</h2>
+                  <p className="ask-group__hint">{ASK_GROUP_HINTS[group]}</p>
+                </div>
+                <span className="ask-group__count num">{formatListingsCount(matching.filter((item) => item.group === group).length)}</span>
+              </header>
             )}
             <ul className="ask-list">
               {groupItems.map((item) => (

@@ -10,11 +10,12 @@ interface Props {
   response: AskResponse
   excludeNeeds: number[]
   page: number
+  interactive: boolean
   checkingMore: boolean
   onCheckMore: () => void
 }
 
-export default function AskResults({ response, excludeNeeds, page, checkingMore, onCheckMore }: Props) {
+export default function AskResults({ response, excludeNeeds, page, interactive, checkingMore, onCheckMore }: Props) {
   const { needs, items, unknownCount, remainingCount } = response
   const matching = items.filter((item) => item.group !== 'unknown')
   const unknownItems = items.filter((item) => item.group === 'unknown')
@@ -50,8 +51,8 @@ export default function AskResults({ response, excludeNeeds, page, checkingMore,
           </section>
         )
       })}
-      <Pagination page={current} totalPages={totalPages} />
-      {current === totalPages && unknownItems.length > 0 && (
+      {interactive && <Pagination page={current} totalPages={totalPages} />}
+      {interactive && current === totalPages && unknownItems.length > 0 && (
         <details className="ask-group ask-unknown">
           <summary className="ask-group__heading">Ogłoszenie o tym nie mówi ({unknownCount})</summary>
           <ul className="ask-list">
@@ -63,13 +64,13 @@ export default function AskResults({ response, excludeNeeds, page, checkingMore,
           </ul>
         </details>
       )}
-      {current === totalPages && remainingCount > 0 && (
+      {interactive && current === totalPages && remainingCount > 0 && (
         <div className="ask-more">
           <p className="ask-more__line">
             Sprawdzone: {items.length} z {items.length + remainingCount} pasujących ogłoszeń, od najbardziej obiecujących.
           </p>
           {checkingMore ? (
-            <AskProgress />
+            <AskProgress stage="reading" />
           ) : (
             <button className="btn btn--secondary" type="button" onClick={onCheckMore}>
               Sprawdź kolejne ogłoszenia

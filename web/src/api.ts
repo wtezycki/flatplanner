@@ -275,18 +275,75 @@ export function fetchListing(id: string, signal?: AbortSignal): Promise<ListingD
   return getJson(`/api/listings/${encodeURIComponent(id)}`, signal)
 }
 
-export function postAsk(
-  message: string,
-  excludeNeeds: number[],
-  more: boolean,
+export interface AskUnderstood {
+  summary: string
+  needs: string[]
+  declined: DeclinedNeed[]
+  notices: AskNotice[]
+}
+
+export interface AskStreamRequest {
+  message: string
+  history: string[]
+  excludeNeeds: number[]
+  more: boolean
+}
+
+function parseEvent(block: string): { name: string; data: string } | undefined {
+  let name = ''
+  let data = ''
+  for (const line of block.split('\n')) {
+    if (line.startsWith('event: ')) {
+      name = line.slice('event: '.length)
+    } else if (line.startsWith('data: ')) {
+      data += line.slice('data: '.length)
+    }
+  }
+  return name && data ? { name, data } : undefined
+}
+
+export async function streamAsk(
+  request: AskStreamRequest,
+  onUnderstood: ((understood: AskUnderstood) => void) | undefined,
   signal?: AbortSignal,
 ): Promise<AskResponse> {
-  return requestJson('/api/search/ask', {
+  const response = await fetch('/api/search/ask/stream', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message, excludeNeeds, more }),
+    body: JSON.stringify(request),
     signal,
   })
+  if (!response.ok || !response.body) {
+    const retryAfter = Number.parseInt(response.headers.get('Retry-After') ?? '', 10)
+    throw new ApiError(response.status, Number.isNaN(retryAfter) ? undefined : retryAfter)
+  }
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  try {
+    for (;;) {
+      const { done, value } = await reader.read()
+      buffer += decoder.decode(value, { stream: !done })
+      const blocks = buffer.split('\n\n')
+      buffer = blocks.pop() ?? ''
+      for (const block of blocks) {
+        const event = parseEvent(block)
+        if (event?.name === 'understood') {
+          onUnderstood?.(JSON.parse(event.data) as AskUnderstood)
+        } else if (event?.name === 'results') {
+          return JSON.parse(event.data) as AskResponse
+        } else if (event?.name === 'error') {
+          throw new ApiError(500)
+        }
+      }
+      if (done) {
+        throw new ApiError(500)
+      }
+    }
+  } finally {
+    void reader.cancel()
+  }
 }
 
 export const metaQuery = queryOptions({

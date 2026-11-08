@@ -11,8 +11,8 @@ export function useAskTurn(history: string[], message: string, excludeNeeds: num
 
   const query = useQuery({
     queryKey,
-    queryFn: ({ signal }) =>
-      streamAsk({ message, history, excludeNeeds, more: false }, (value) => setStreamed({ id, value }), signal),
+    // No abort signal: StrictMode's remount joins the request in flight instead of repeating it, and a turn the user leaves is still answered.
+    queryFn: () => streamAsk({ message, history, excludeNeeds, more: false }, (value) => setStreamed({ id, value })),
     retry: false,
     staleTime: Infinity,
     placeholderData: (previous, previousQuery) => (previousQuery && sameConversation(previousQuery.queryKey) ? previous : undefined),

@@ -20,11 +20,11 @@ export interface SearchIntent {
   pricePerM2Max?: number
   rentMin?: number
   rentMax?: number
-  finishCondition?: string
-  ownership?: string
-  buildingType?: string
-  heating?: string
-  buildingMaterial?: string
+  finishConditions: string[]
+  ownerships: string[]
+  buildingTypes: string[]
+  heatings: string[]
+  buildingMaterials: string[]
   requireLift: boolean
   requireBalcony: boolean
   requireGarage: boolean
@@ -169,6 +169,8 @@ export interface ListingDetail {
   hasGarage?: boolean
   hasBasement?: boolean
   advertiserType?: string
+  priceOutlier: boolean
+  risks: ListingRisk[]
 }
 
 export interface Evidence {

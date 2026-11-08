@@ -81,6 +81,19 @@ export const RISK_KIND_LABELS: Record<string, string> = {
   field_mismatch: 'Niezgodność z danymi ogłoszenia',
 }
 
+export const RISK_KIND_HINTS: Record<string, string> = {
+  extra_cost: 'Opis wspomina o koszcie ponad cenę mieszkania, np. miejsce postojowe, garaż lub komórka za dopłatą.',
+  legal: 'Opis wskazuje na kwestię prawną, np. sprzedaż z VAT, syndyk, garaż w osobnej księdze wieczystej albo kredyt do spłaty z ceny.',
+  occupied: 'Opis wskazuje, że lokal jest wynajęty lub zajęty.',
+  noise: 'Opis wymienia źródło hałasu, np. klub, główną ulicę albo planowaną linię tramwajową.',
+  field_mismatch: 'Opis przeczy jednemu z pól ogłoszenia, np. liczbie pokoi, piętru albo czynszowi. Dopytaj sprzedającego.',
+}
+
+export const PRICE_OUTLIER_HINT = 'Cena za m² poza zakresem 7 000–40 000 zł. Może to być błąd w ogłoszeniu, sprawdź opis.'
+
+export const RISK_SOURCE_NOTE =
+  'Wykryte przez AI w opisie ogłoszenia. Każdy cytat sprawdziliśmy dosłownie w tekście. Zweryfikuj to ze sprzedającym.'
+
 export const ASK_GROUP_HEADINGS: Record<string, string> = {
   full: 'Pasuje',
   partial: 'Pasuje częściowo',

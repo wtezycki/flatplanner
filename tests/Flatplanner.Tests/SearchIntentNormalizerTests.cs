@@ -40,12 +40,17 @@ public sealed class SearchIntentNormalizerTests
     [Fact]
     public void Normalize_UnknownEnumValues_AreRemoved()
     {
-        var intent = new SearchIntent { FinishCondition = "luxury", Ownership = Ownership.Full, Heating = "solar" };
+        var intent = new SearchIntent
+        {
+            FinishConditions = ["luxury", FinishCondition.ReadyToUse],
+            Ownerships = [Ownership.Full],
+            Heatings = ["solar"],
+        };
 
         var normalized = SearchIntentNormalizer.Normalize(intent, Meta).Intent;
 
-        Assert.Null(normalized.FinishCondition);
-        Assert.Null(normalized.Heating);
-        Assert.Equal(Ownership.Full, normalized.Ownership);
+        Assert.Equal([FinishCondition.ReadyToUse], normalized.FinishConditions);
+        Assert.Empty(normalized.Heatings);
+        Assert.Equal([Ownership.Full], normalized.Ownerships);
     }
 }

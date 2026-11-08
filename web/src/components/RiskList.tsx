@@ -1,5 +1,5 @@
 import type { ListingRisk } from '../api.ts'
-import { RISK_KIND_LABELS, formatPrice } from '../format.ts'
+import { RISK_KIND_HINTS, RISK_KIND_LABELS, formatPrice } from '../format.ts'
 
 interface Props {
   risks: ListingRisk[]
@@ -16,7 +16,7 @@ export default function RiskList({ risks, totalWithExtrasPln }: Props) {
         <summary>
           Na co uważać ({risks.length})
           {risks.map((risk) => (
-            <span key={`${risk.kind}:${risk.quote}`} className="badge badge--warning">
+            <span key={`${risk.kind}:${risk.quote}`} className="badge badge--warning" title={RISK_KIND_HINTS[risk.kind]}>
               {RISK_KIND_LABELS[risk.kind] ?? risk.kind}
             </span>
           ))}

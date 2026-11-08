@@ -74,29 +74,29 @@ public static class InterpretationBuilder
             yield return new Chip("rent", rent);
         }
 
-        if (intent.FinishCondition is { } finishCondition)
+        if (intent.FinishConditions.Length > 0)
         {
-            yield return new Chip("finishCondition", Label(EnumLabels.FinishConditionOptions, finishCondition));
+            yield return new Chip("finishConditions", Labels(EnumLabels.FinishConditionOptions, intent.FinishConditions));
         }
 
-        if (intent.Ownership is { } ownership)
+        if (intent.Ownerships.Length > 0)
         {
-            yield return new Chip("ownership", Label(EnumLabels.OwnershipOptions, ownership));
+            yield return new Chip("ownerships", Labels(EnumLabels.OwnershipOptions, intent.Ownerships));
         }
 
-        if (intent.BuildingType is { } buildingType)
+        if (intent.BuildingTypes.Length > 0)
         {
-            yield return new Chip("buildingType", Label(EnumLabels.BuildingTypeOptions, buildingType));
+            yield return new Chip("buildingTypes", Labels(EnumLabels.BuildingTypeOptions, intent.BuildingTypes));
         }
 
-        if (intent.Heating is { } heating)
+        if (intent.Heatings.Length > 0)
         {
-            yield return new Chip("heating", $"ogrzewanie: {Label(EnumLabels.HeatingOptions, heating)}");
+            yield return new Chip("heatings", $"ogrzewanie: {Labels(EnumLabels.HeatingOptions, intent.Heatings)}");
         }
 
-        if (intent.BuildingMaterial is { } buildingMaterial)
+        if (intent.BuildingMaterials.Length > 0)
         {
-            yield return new Chip("buildingMaterial", $"materiał: {Label(EnumLabels.BuildingMaterialOptions, buildingMaterial)}");
+            yield return new Chip("buildingMaterials", $"materiał: {Labels(EnumLabels.BuildingMaterialOptions, intent.BuildingMaterials)}");
         }
 
         if (intent.RequireLift)
@@ -198,7 +198,8 @@ public static class InterpretationBuilder
         ({ } min, { } max) => $"piętro {min}–{max}",
     };
 
-    private static string Label(IReadOnlyList<EnumOption> options, string value) => options.First(o => o.Value == value).Label;
+    private static string Labels(IReadOnlyList<EnumOption> options, IEnumerable<string> values) =>
+        string.Join(", ", values.Select(value => options.First(o => o.Value == value).Label));
 
     private static string? RangeLabel(int? min, int? max, string noun, string unit, bool grouped = true)
     {

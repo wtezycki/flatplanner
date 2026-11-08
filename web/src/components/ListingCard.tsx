@@ -2,6 +2,8 @@ import { Link, useSearchParams } from 'react-router'
 import type { ListingItem } from '../api.ts'
 import { listingSearch } from '../intent.ts'
 import {
+  PRICE_OUTLIER_HINT,
+  RISK_KIND_HINTS,
   RISK_KIND_LABELS,
   formatArea,
   formatBelowMedian,
@@ -31,9 +33,16 @@ function Fact({ icon, children }: { icon: IconName; children: string }) {
   )
 }
 
-function Badge({ icon, variant, children }: { icon: IconName; variant?: 'danger' | 'positive' | 'warning'; children: string }) {
+interface BadgeProps {
+  icon: IconName
+  variant?: 'positive' | 'warning'
+  hint?: string
+  children: string
+}
+
+function Badge({ icon, variant, hint, children }: BadgeProps) {
   return (
-    <span className={variant ? `badge badge--${variant}` : 'badge'}>
+    <span className={variant ? `badge badge--${variant}` : 'badge'} title={hint}>
       <Icon name={icon} />
       {children}
     </span>
@@ -91,22 +100,30 @@ export default function ListingCard({ item, labels }: Props) {
         {hasSignals && (
           <p className="card__badges card__badges--signals">
             {item.riskKinds.map((kind) => (
-              <Badge key={kind} icon="risk" variant="danger">
+              <Badge key={kind} icon="risk" variant="warning" hint={RISK_KIND_HINTS[kind]}>
                 {RISK_KIND_LABELS[kind] ?? kind}
               </Badge>
             ))}
             {item.priceOutlier && (
-              <Badge icon="risk" variant="warning">
+              <Badge icon="risk" variant="warning" hint={PRICE_OUTLIER_HINT}>
                 nietypowa cena, sprawdź opis
               </Badge>
             )}
             {item.belowMedianPercent !== undefined && (
-              <Badge icon="cheaper" variant="positive">
+              <Badge icon="cheaper" variant="positive" hint="Cena za m² niższa niż mediana ofert z tego miasta (bez ofert z nietypową ceną).">
                 {formatBelowMedian(item.belowMedianPercent)}
               </Badge>
             )}
-            {item.nearbyStop && <Badge icon="stop">{item.nearbyStop}</Badge>}
-            {item.nearbyPark && <Badge icon="park">{item.nearbyPark}</Badge>}
+            {item.nearbyStop && (
+              <Badge icon="stop" hint="Najbliższy przystanek, odległość w linii prostej (dane OpenStreetMap).">
+                {item.nearbyStop}
+              </Badge>
+            )}
+            {item.nearbyPark && (
+              <Badge icon="park" hint="Najbliższy park, odległość w linii prostej (dane OpenStreetMap).">
+                {item.nearbyPark}
+              </Badge>
+            )}
           </p>
         )}
         <p className="card__badges">

@@ -102,29 +102,29 @@ public static class ListingFilters
             query = query.Where(l => l.RentPln <= rentMax);
         }
 
-        if (intent.FinishCondition is { } finishCondition)
+        if (intent.FinishConditions.Length > 0)
         {
-            query = query.Where(l => l.FinishCondition == finishCondition);
+            query = query.Where(l => l.FinishCondition != null && intent.FinishConditions.Contains(l.FinishCondition));
         }
 
-        if (intent.Ownership is { } ownership)
+        if (intent.Ownerships.Length > 0)
         {
-            query = query.Where(l => l.Ownership == ownership);
+            query = query.Where(l => l.Ownership != null && intent.Ownerships.Contains(l.Ownership));
         }
 
-        if (intent.BuildingType is { } buildingType)
+        if (intent.BuildingTypes.Length > 0)
         {
-            query = query.Where(l => l.BuildingType == buildingType);
+            query = query.Where(l => l.BuildingType != null && intent.BuildingTypes.Contains(l.BuildingType));
         }
 
-        if (intent.Heating is { } heating)
+        if (intent.Heatings.Length > 0)
         {
-            query = query.Where(l => l.Heating == heating);
+            query = query.Where(l => l.Heating != null && intent.Heatings.Contains(l.Heating));
         }
 
-        if (intent.BuildingMaterial is { } buildingMaterial)
+        if (intent.BuildingMaterials.Length > 0)
         {
-            query = query.Where(l => l.BuildingMaterial == buildingMaterial);
+            query = query.Where(l => l.BuildingMaterial != null && intent.BuildingMaterials.Contains(l.BuildingMaterial));
         }
 
         if (intent.RequireLift)

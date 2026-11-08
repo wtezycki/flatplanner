@@ -41,7 +41,7 @@ public sealed class ApiSerializationTests
             new DateTime(2026, 11, 4, 7, 49, 54, DateTimeKind.Utc),
             [], "Opis", null, "gdansk", "Gdańsk", null, null, 54.35m, 18.65m, false, 799000, 41.86m, 19087, 2,
             null, false, false, null, null, "secondary", null, null, null, null, null, null, null,
-            true, null, null, null, null);
+            true, null, null, null, null, false, []);
 
         var json = JsonSerializer.Serialize(detail, ApiJson.Options);
 
@@ -49,6 +49,7 @@ public sealed class ApiSerializationTests
         Assert.DoesNotContain("buildYear", json);
         Assert.DoesNotContain("hasBalcony", json);
         Assert.Contains("\"hasLift\":true", json);
+        Assert.Contains("\"risks\":[]", json);
         Assert.Contains("\"imageUrls\":[]", json);
         Assert.Contains("\"lat\":54.35", json);
     }

@@ -137,6 +137,8 @@ const PATHS = {
       <circle cx="12" cy="12" r="2.5" />
     </>
   ),
+  chevronLeft: <path d="m15 18-6-6 6-6" />,
+  chevronRight: <path d="m9 18 6-6-6-6" />,
   fresh: <path d="m12 3 1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3Z" />,
 } satisfies Record<string, ReactNode>
 

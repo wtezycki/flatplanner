@@ -26,11 +26,11 @@ interface FilterForm {
   rentMax: string
   market: string
   advertiserType: string
-  finishCondition: string
-  ownership: string
-  buildingType: string
-  heating: string
-  buildingMaterial: string
+  finishConditions: string[]
+  ownerships: string[]
+  buildingTypes: string[]
+  heatings: string[]
+  buildingMaterials: string[]
   requireLift: boolean
   requireBalcony: boolean
   requireGarage: boolean
@@ -41,7 +41,8 @@ type RangeField = 'price' | 'area' | 'rooms' | 'floor' | 'buildYear' | 'pricePer
 
 const TEXT_DEBOUNCE_MS = 500
 
-const ENUM_PARAMS = ['market', 'advertiserType', 'finishCondition', 'ownership', 'buildingType', 'heating', 'buildingMaterial'] as const
+const ENUM_PARAMS = ['market', 'advertiserType'] as const
+const MULTI_PARAMS = ['cities', 'districts', 'finishConditions', 'ownerships', 'buildingTypes', 'heatings', 'buildingMaterials'] as const
 const FLAG_PARAMS = ['requireLift', 'requireBalcony', 'requireGarage', 'requireBasement'] as const
 
 const fieldText = (value: number | undefined) => (value === undefined ? '' : String(value))
@@ -66,11 +67,11 @@ function formFromIntent(intent: SearchIntent): FilterForm {
     rentMax: fieldText(intent.rentMax),
     market: intent.market ?? '',
     advertiserType: intent.advertiserType ?? '',
-    finishCondition: intent.finishCondition ?? '',
-    ownership: intent.ownership ?? '',
-    buildingType: intent.buildingType ?? '',
-    heating: intent.heating ?? '',
-    buildingMaterial: intent.buildingMaterial ?? '',
+    finishConditions: intent.finishConditions,
+    ownerships: intent.ownerships,
+    buildingTypes: intent.buildingTypes,
+    heatings: intent.heatings,
+    buildingMaterials: intent.buildingMaterials,
     requireLift: intent.requireLift,
     requireBalcony: intent.requireBalcony,
     requireGarage: intent.requireGarage,
@@ -137,11 +138,10 @@ function applyFilters(searchParams: URLSearchParams, form: FilterForm): URLSearc
   }
   next.delete('page')
 
-  for (const city of form.cities) {
-    next.append('cities', city)
-  }
-  for (const district of form.districts) {
-    next.append('districts', district)
+  for (const param of MULTI_PARAMS) {
+    for (const value of form[param]) {
+      next.append(param, value)
+    }
   }
   for (const spec of RANGE_SPECS) {
     const { min, max, issue } = parseRange(form, spec)
@@ -271,6 +271,28 @@ function Radios({ legend, name, value, options, onChange }: RadiosProps) {
   )
 }
 
+interface ChecksProps {
+  legend: string
+  values: string[]
+  options: EnumOption[]
+  onChange: (values: string[]) => void
+}
+
+function Checks({ legend, values, options, onChange }: ChecksProps) {
+  return (
+    <fieldset className="filters__group">
+      <legend>{legend}</legend>
+      <div className="filters__pills">
+        {options.map((option) => (
+          <Pill key={option.value} type="checkbox" checked={values.includes(option.value)} onChange={() => onChange(toggle(values, option.value))}>
+            {option.label}
+          </Pill>
+        ))}
+      </div>
+    </fieldset>
+  )
+}
+
 interface FieldsProps {
   meta: MetaResponse
   intent: SearchIntent
@@ -331,7 +353,7 @@ function FilterFields({ meta, intent }: FieldsProps) {
   const selectedCities = meta.cities.filter((city) => form.cities.includes(city.slug))
   const moreActive =
     [form.buildYearMin, form.buildYearMax, form.pricePerM2Min, form.pricePerM2Max, form.rentMin, form.rentMax].some(Boolean) ||
-    [form.finishCondition, form.ownership, form.buildingType, form.buildingMaterial, form.heating].some(Boolean)
+    [form.finishConditions, form.ownerships, form.buildingTypes, form.buildingMaterials, form.heatings].some((values) => values.length > 0)
   const approximateArea = intent.areaMin === undefined && intent.areaMax === undefined ? intent.areaApprox : undefined
 
   return (
@@ -433,19 +455,18 @@ function FilterFields({ meta, intent }: FieldsProps) {
         <legend>Udogodnienia</legend>
         <div className="filters__pills">
           <Pill type="checkbox" checked={form.requireLift} onChange={(requireLift) => patch({ requireLift })}>
-            Tylko z windą
+            Winda
           </Pill>
           <Pill type="checkbox" checked={form.requireBalcony} onChange={(requireBalcony) => patch({ requireBalcony })}>
-            Tylko z balkonem
+            Balkon
           </Pill>
           <Pill type="checkbox" checked={form.requireGarage} onChange={(requireGarage) => patch({ requireGarage })}>
-            Tylko z garażem
+            Garaż
           </Pill>
           <Pill type="checkbox" checked={form.requireBasement} onChange={(requireBasement) => patch({ requireBasement })}>
-            Tylko z piwnicą
+            Piwnica
           </Pill>
         </div>
-        <p className="filters__hint">Oferty bez tej informacji zostaną pominięte.</p>
       </fieldset>
 
       <details className="filters__details" open={moreActive}>
@@ -454,41 +475,35 @@ function FilterFields({ meta, intent }: FieldsProps) {
           <Range legend="Rok budowy" label="Rok budowy" field="buildYear" form={form} onChange={patchText} />
           <Range legend="Cena za m² (zł)" label="Cena za m²" field="pricePerM2" form={form} onChange={patchText} />
           <Range legend="Czynsz (zł/mies.)" label="Czynsz" field="rent" form={form} onChange={patchText} />
-          <p className="filters__hint">Oferty bez roku budowy lub czynszu zostaną pominięte.</p>
-          <Radios
+          <Checks
             legend="Stan wykończenia"
-            name="finishCondition"
-            value={form.finishCondition}
+            values={form.finishConditions}
             options={meta.enums.finishCondition}
-            onChange={(finishCondition) => patch({ finishCondition })}
+            onChange={(finishConditions) => patch({ finishConditions })}
           />
-          <Radios
+          <Checks
             legend="Forma własności"
-            name="ownership"
-            value={form.ownership}
+            values={form.ownerships}
             options={meta.enums.ownership}
-            onChange={(ownership) => patch({ ownership })}
+            onChange={(ownerships) => patch({ ownerships })}
           />
-          <Radios
+          <Checks
             legend="Typ budynku"
-            name="buildingType"
-            value={form.buildingType}
+            values={form.buildingTypes}
             options={meta.enums.buildingType}
-            onChange={(buildingType) => patch({ buildingType })}
+            onChange={(buildingTypes) => patch({ buildingTypes })}
           />
-          <Radios
+          <Checks
             legend="Materiał budynku"
-            name="buildingMaterial"
-            value={form.buildingMaterial}
+            values={form.buildingMaterials}
             options={meta.enums.buildingMaterial}
-            onChange={(buildingMaterial) => patch({ buildingMaterial })}
+            onChange={(buildingMaterials) => patch({ buildingMaterials })}
           />
-          <Radios
+          <Checks
             legend="Ogrzewanie"
-            name="heating"
-            value={form.heating}
+            values={form.heatings}
             options={meta.enums.heating}
-            onChange={(heating) => patch({ heating })}
+            onChange={(heatings) => patch({ heatings })}
           />
         </div>
       </details>

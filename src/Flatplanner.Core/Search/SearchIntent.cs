@@ -21,11 +21,11 @@ public sealed record SearchIntent
     public int? PricePerM2Max { get; init; }
     public int? RentMin { get; init; }
     public int? RentMax { get; init; }
-    public string? FinishCondition { get; init; }
-    public string? Ownership { get; init; }
-    public string? BuildingType { get; init; }
-    public string? Heating { get; init; }
-    public string? BuildingMaterial { get; init; }
+    public string[] FinishConditions { get; init; } = [];
+    public string[] Ownerships { get; init; } = [];
+    public string[] BuildingTypes { get; init; } = [];
+    public string[] Heatings { get; init; } = [];
+    public string[] BuildingMaterials { get; init; } = [];
     public bool RequireLift { get; init; }
     public bool RequireBalcony { get; init; }
     public bool RequireGarage { get; init; }

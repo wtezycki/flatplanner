@@ -80,7 +80,8 @@ public sealed class ListingsService(FlatplannerDbContext db)
                 listing.QualityFlags.Contains(QualityFlag.FloorGarret), listing.BuildingFloors, listing.BuildYear,
                 listing.Market, listing.FinishCondition, listing.Ownership, listing.Heating, listing.BuildingType,
                 listing.WindowsType, listing.BuildingMaterial, listing.RentPln,
-                listing.HasLift, listing.HasBalcony, listing.HasGarage, listing.HasBasement, listing.AdvertiserType);
+                listing.HasLift, listing.HasBalcony, listing.HasGarage, listing.HasBasement, listing.AdvertiserType,
+                listing.QualityFlags.Contains(QualityFlag.PriceOutlier), DossierJson.ParseList<ListingRisk>(listing.RisksJson));
     }
 
     // `relevance` ranks by preferences (design 7.5), which arrives with item #8; until then it falls back to newest.

@@ -15,6 +15,7 @@ import LocationSection from '../components/LocationSection.tsx'
 import PhotoCarousel from '../components/PhotoCarousel.tsx'
 import PhotoLightbox from '../components/PhotoLightbox.tsx'
 import PhotoMosaic from '../components/PhotoMosaic.tsx'
+import RiskBox from '../components/RiskBox.tsx'
 import {
   formatArea,
   formatDate,
@@ -126,6 +127,7 @@ function Details({ listing, onClose }: { listing: ListingDetail; onClose: () => 
           <KeyFact icon="ownership" label="Forma własności" value={labelOf(meta?.enums.ownership, listing.ownership)} />
           <KeyFact icon="pin" label="Lokalizacja" value={[listing.street, listing.cityName].filter(Boolean).join(', ')} />
         </ul>
+        <RiskBox risks={listing.risks} priceOutlier={listing.priceOutlier} />
         <div className="sheet__split">
           <section>
             <h2 className="detail__heading">Parametry</h2>

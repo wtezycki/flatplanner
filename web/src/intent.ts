@@ -122,14 +122,6 @@ export function withoutWorkspaceParams(searchParams: URLSearchParams): URLSearch
   return next
 }
 
-export function filterQuery(searchParams: URLSearchParams): string {
-  const next = new URLSearchParams()
-  for (const param of [...FILTER_PARAMS, 'text']) {
-    searchParams.getAll(param).forEach((value) => next.append(param, value))
-  }
-  return next.toString()
-}
-
 export function listingSearch(searchParams: URLSearchParams, id: number): string {
   const next = new URLSearchParams(searchParams)
   next.set('listing', String(id))

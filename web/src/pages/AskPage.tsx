@@ -6,11 +6,7 @@ import { ApiError, DEFAULT_RETRY_AFTER_SECONDS, metaQuery, postAsk } from '../ap
 import AskProgress from '../components/AskProgress.tsx'
 import AskReply from '../components/AskReply.tsx'
 import AskResults from '../components/AskResults.tsx'
-import Filters from '../components/Filters.tsx'
-import SearchBar from '../components/SearchBar.tsx'
-import { filterQuery } from '../intent.ts'
 import ListingDetailPage from './ListingDetailPage.tsx'
-import ListingsPage from './ListingsPage.tsx'
 
 function askErrorMessage(error: Error, maxLength: number | undefined): string {
   if (error instanceof ApiError && error.status === 429) {
@@ -27,18 +23,17 @@ export default function AskPage() {
   const message = searchParams.get('q')?.trim() ?? ''
   const listingId = searchParams.get('listing')
   const page = Number.parseInt(searchParams.get('page') ?? '1', 10) || 1
-  const filters = filterQuery(searchParams)
   const [draft, setDraft] = useState<string>()
   const [exclusion, setExclusion] = useState({ message: '', indexes: [] as number[] })
   const excludeNeeds = exclusion.message === message ? exclusion.indexes : []
   const maxLength = useQuery(metaQuery).data?.chatMaxLength
 
   const queryClient = useQueryClient()
-  const askKey = ['ask', message, excludeNeeds, filters]
+  const askKey = ['ask', message, excludeNeeds]
 
   const ask = useQuery({
     queryKey: askKey,
-    queryFn: ({ signal }) => postAsk(message, excludeNeeds, filters, false, signal),
+    queryFn: ({ signal }) => postAsk(message, excludeNeeds, false, signal),
     enabled: message !== '',
     retry: false,
     staleTime: Infinity,
@@ -46,7 +41,7 @@ export default function AskPage() {
   })
 
   const more = useMutation({
-    mutationFn: () => postAsk(message, excludeNeeds, filters, true),
+    mutationFn: () => postAsk(message, excludeNeeds, true),
     onSuccess: (data) => {
       void queryClient.invalidateQueries({ queryKey: ['ask', message], refetchType: 'none' })
       queryClient.setQueryData(askKey, data)
@@ -123,55 +118,47 @@ export default function AskPage() {
           </button>
         </form>
       </div>
-      <div className="layout">
-        <div className="layout__side">
-          <SearchBar />
-          <Filters />
-        </div>
-        {message === '' ? (
-          <ListingsPage />
-        ) : (
-          <section className="results ask__results" aria-busy={ask.isFetching} aria-label="Oferty">
-            {ask.isPending && <AskProgress key={`${message}:${excludeNeeds.join(',')}`} />}
-            {ask.isError && (
-              <div className="notice notice--error" role="alert">
-                {askErrorMessage(ask.error, maxLength)}
-              </div>
-            )}
-            {ask.data && (
-              <div className={ask.isPlaceholderData ? 'ask__answer cards--stale' : 'ask__answer'}>
-                <AskReply
-                  response={ask.data}
-                  excludeNeeds={excludeNeeds}
-                  onExcludeNeed={excludeNeed}
-                  onRestoreNeeds={restoreNeeds}
-                />
-                <AskResults
-                  response={ask.data}
-                  excludeNeeds={excludeNeeds}
-                  page={page}
-                  checkingMore={more.isPending}
-                  onCheckMore={() => more.mutate()}
-                />
-                {more.isError && (
-                  <div className="notice notice--error" role="alert">
-                    {askErrorMessage(more.error, maxLength)}
-                  </div>
-                )}
-              </div>
-            )}
-            {ask.isPending && (
-              <ul className="ask-list" aria-busy="true">
-                {[1, 2, 3, 4].map((placeholder) => (
-                  <li key={placeholder}>
-                    <div className="tile tile--skeleton" />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        )}
-      </div>
+      {message !== '' && (
+        <section className="results ask__results" aria-busy={ask.isFetching} aria-label="Oferty">
+          {ask.isPending && <AskProgress key={`${message}:${excludeNeeds.join(',')}`} />}
+          {ask.isError && (
+            <div className="notice notice--error" role="alert">
+              {askErrorMessage(ask.error, maxLength)}
+            </div>
+          )}
+          {ask.data && (
+            <div className={ask.isPlaceholderData ? 'ask__answer cards--stale' : 'ask__answer'}>
+              <AskReply
+                response={ask.data}
+                excludeNeeds={excludeNeeds}
+                onExcludeNeed={excludeNeed}
+                onRestoreNeeds={restoreNeeds}
+              />
+              <AskResults
+                response={ask.data}
+                excludeNeeds={excludeNeeds}
+                page={page}
+                checkingMore={more.isPending}
+                onCheckMore={() => more.mutate()}
+              />
+              {more.isError && (
+                <div className="notice notice--error" role="alert">
+                  {askErrorMessage(more.error, maxLength)}
+                </div>
+              )}
+            </div>
+          )}
+          {ask.isPending && (
+            <ul className="ask-list" aria-busy="true">
+              {[1, 2, 3, 4].map((placeholder) => (
+                <li key={placeholder}>
+                  <div className="tile tile--skeleton" />
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
     </div>
   )
 }

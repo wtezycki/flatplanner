@@ -329,7 +329,7 @@ Inline, height 20 px, padding `0 6px`, `--radius-sm`, `--fs-xs`, `--fw-semibold`
 | Place | Text |
 |---|---|
 | browser tab title | list: „Flatplanner: Przeczytamy ogłoszenia za Ciebie” (the motto, without its full stop); details: „{title} · Flatplanner” |
-| mode switch | „Szukaj” / „Czat AI” |
+| mode switch | „Czat AI” / „Lista”; `aria-label` of the navigation „Tryb wyszukiwania” |
 | search placeholder | „np. Morena, Wrzeszcz, balkon” |
 | chat placeholder (scenario B) | „np. chcę ładne, tanie mieszkanie, 40 m w Gdańsku” |
 | chat annotation when `chatMode = fallback` | „Tryb uproszczony, bez AI” |
@@ -542,6 +542,8 @@ The classic list uses the §11.1 tokens. Since R26 it is what the results column
 - Provenance, verdict and info tokens are not defined in `styles.css` until a view uses them.
 
 ### 11.5 Ask page `/` as built (item #7′b)
+
+**Superseded in part by R28 (user decision 2026-11-08):** the chat is the landing page `/` and the classic list with its filter panel and text search is a separate mode at `/listings`; the filter panel is no longer part of the chat page. A segmented switch in the header (`ModeSwitch`, `<nav aria-label="Tryb wyszukiwania">`: sparkles icon „Czat AI” and list icon „Lista”, `NavLink`s, labels hidden ≤ 640 px) moves between the modes. `?listing=<id>` opens the details in either mode and „Wróć” returns to that mode; `/listings/:id` redirects to `/listings?listing=<id>`. The bullets below that describe the one-screen layout hold only where R28 does not say otherwise.
 
 - **One screen (R26, user decision 2026-11-06; replaces the chat column and the `?view=classic` panel of the first #7′b build):** `/` is a normal scrolling page in the 1280 px container: the hero heading and the AI composer on top, then the classic two-column layout of §11.4 (filter panel on the left with the text search above it, results on the right). Without `q` the results column is the classic list (results bar with count and sort, cards, pagination). With `q` it holds the reply (progress, summary, need chips, notices, relaxations) and the AI tiles; the filter panel narrows them through the `ask` query string, the previous results stay visible while a narrowed response loads, and the reply heading „Zrozumiałem:” shows the interpretation of the question only. `?listing=<id>` replaces the whole screen with the details and „‹ Wróć do wyników”. State is in the URL (`q`, `listing`, the filter parameters, `sort`, `page`), so refresh and „back” work. `/listings` and `/listings/:id` redirect to `/` with their parameters and to `/?listing=:id`.
 - The hero heading (28 px, centred above the composer, 22 px ≤ 640 px) stays visible without `q` and is visually hidden with `q` (it labels the input). The composer is a pill with the input, a „×” button while there is a `q` (aria-label „Wyczyść pytanie”, removes `q` and keeps the filters) and the „Szukaj” button; it keeps the current question for editing, submitting it unchanged re-sends it and clears excluded needs, submitting it empty removes `q`. Input `maxLength` is `chatMaxLength` from `/api/meta`. The filter panel collapses under a „Filtry” toggle whenever the content is narrower than 820 px.

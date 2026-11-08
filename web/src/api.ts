@@ -278,11 +278,10 @@ export function fetchListing(id: string, signal?: AbortSignal): Promise<ListingD
 export function postAsk(
   message: string,
   excludeNeeds: number[],
-  filters: string,
   more: boolean,
   signal?: AbortSignal,
 ): Promise<AskResponse> {
-  return requestJson(filters ? `/api/search/ask?${filters}` : '/api/search/ask', {
+  return requestJson('/api/search/ask', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ message, excludeNeeds, more }),

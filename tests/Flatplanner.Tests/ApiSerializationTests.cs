@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Flatplanner.Api;
+using Flatplanner.Api.Chat;
 using Flatplanner.Api.Listings;
 using Flatplanner.Core.Search;
 
@@ -58,5 +59,16 @@ public sealed class ApiSerializationTests
         Assert.Contains("\"items\":[]", json);
         Assert.Contains("\"chips\":[]", json);
         Assert.Contains("\"warnings\":[]", json);
+    }
+
+    [Fact]
+    public void AskResponse_NothingRemaining_KeepsRemainingCount()
+    {
+        var response = new AskResponse("", [], [], [], [], 0, 0, [], false, null);
+
+        var json = JsonSerializer.Serialize(response, ApiJson.Options);
+
+        Assert.Contains("\"remainingCount\":0", json);
+        Assert.DoesNotContain("fallbackReason", json);
     }
 }

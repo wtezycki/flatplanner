@@ -207,6 +207,7 @@ export interface AskResponse {
   notices: AskNotice[]
   items: AskItem[]
   unknownCount: number
+  remainingCount: number
   relaxations: Relaxation[]
   usedFallback: boolean
   fallbackReason?: string
@@ -248,11 +249,17 @@ export function fetchListing(id: string, signal?: AbortSignal): Promise<ListingD
   return getJson(`/api/listings/${encodeURIComponent(id)}`, signal)
 }
 
-export function postAsk(message: string, excludeNeeds: number[], filters: string, signal?: AbortSignal): Promise<AskResponse> {
+export function postAsk(
+  message: string,
+  excludeNeeds: number[],
+  filters: string,
+  more: boolean,
+  signal?: AbortSignal,
+): Promise<AskResponse> {
   return requestJson(filters ? `/api/search/ask?${filters}` : '/api/search/ask', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message, excludeNeeds }),
+    body: JSON.stringify({ message, excludeNeeds, more }),
     signal,
   })
 }

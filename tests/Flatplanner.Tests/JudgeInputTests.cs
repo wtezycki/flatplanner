@@ -17,7 +17,8 @@ public sealed class JudgeInputTests
         new("Grunwaldzka", "highway=primary", null, 90),
     ];
 
-    private static AskNeed Need(string[] places, string[] keywords) => new("potrzeba", places, keywords);
+    private static AskNeed Need(string[] places, string[] keywords) =>
+        new("potrzeba", places.Select(t => new NeedPlace(t, PlacePreference.Near, null)).ToArray(), keywords);
 
     [Fact]
     public void Nearby_PlannedTags_NearestPerKindWithOriginalIndex()
@@ -60,4 +61,35 @@ public sealed class JudgeInputTests
         Assert.Equal([1, 2, 3, 4], JudgeInput.Nearby(Nearby, needs).Select(p => p.I));
         Assert.Equal(Description, JudgeInput.Description(Description, needs));
     }
+
+    [Fact]
+    public void HasContext_NoPlannedPlaceAndNoSentence_False()
+    {
+        Assert.False(JudgeInput.HasContext(Candidate(), [Need(["leisure=dog_park"], ["winda"])]));
+    }
+
+    [Fact]
+    public void HasContext_PlannedPlaceNearby_True()
+    {
+        Assert.True(JudgeInput.HasContext(Candidate(), [Need(["leisure=dog_park"], []), Need(["amenity=school"], [])]));
+    }
+
+    [Fact]
+    public void HasContext_NeedWithEmptyPlan_True()
+    {
+        Assert.True(JudgeInput.HasContext(Candidate(), [Need(["leisure=dog_park"], ["winda"]), Need([], [])]));
+    }
+
+    private static AskCandidate Candidate() => AskCandidate.From(new Listing
+    {
+        Source = Source.Otodom,
+        ExternalId = "1",
+        Url = "https://www.otodom.pl/",
+        Title = "Mieszkanie",
+        DescriptionText = Description,
+        SearchText = "",
+        CitySlug = City.Gdansk,
+        Market = Market.Secondary,
+        NearbyJson = System.Text.Json.JsonSerializer.Serialize(Nearby, DossierJson.Options),
+    });
 }

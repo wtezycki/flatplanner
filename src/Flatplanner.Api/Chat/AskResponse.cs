@@ -9,6 +9,7 @@ public sealed record AskResponse(
     IReadOnlyList<AskNotice> Notices,
     IReadOnlyList<AskItem> Items,
     int UnknownCount,
+    int RemainingCount,
     IReadOnlyList<Relaxation> Relaxations,
     bool UsedFallback,
     string? FallbackReason);

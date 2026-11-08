@@ -7,30 +7,27 @@ namespace Flatplanner.Api.Chat;
 
 public sealed class ListingJudge(LlmJsonClient llm, string promptsDir, string reasoningEffort, ILogger<ListingJudge> logger)
 {
-    private const int BatchSize = 15;
+    public const int WindowSize = 20;
+    private const int BatchSize = 10;
     public static readonly TimeSpan Timeout = TimeSpan.FromSeconds(60);
-
-    // A batch takes ~30 s of output, so all batches of the ~200 listings run at once (design 16.2 step 3).
-    private const int Parallelism = 14;
     private const int MaxOutputTokens = 8192;
+
+    // Every call judges at most one window after the longest judged prefix of the ranking (design 16.9 step 5).
+    public static IReadOnlyList<long> NextWindow(IReadOnlyList<long> ranked, Func<long, bool> isJudged, bool more)
+    {
+        var prefix = JudgedPrefix(ranked, isJudged);
+        return prefix >= WindowSize && !more
+            ? []
+            : ranked.Skip(prefix).Take(WindowSize).Where(id => !isJudged(id)).ToList();
+    }
+
+    public static int JudgedPrefix(IReadOnlyList<long> ranked, Func<long, bool> isJudged) =>
+        ranked.TakeWhile(isJudged).Count();
 
     public async Task<JudgeOutcome> JudgeAsync(IReadOnlyList<AskNeed> needs, IReadOnlyList<AskCandidate> candidates, CancellationToken ct)
     {
         var prompt = await PromptFiles.LoadAsync(promptsDir, PromptVersions.ListingJudge, ct);
-        using var gate = new SemaphoreSlim(Parallelism);
-
-        var batches = await Task.WhenAll(candidates.Chunk(BatchSize).Select(async batch =>
-        {
-            await gate.WaitAsync(ct);
-            try
-            {
-                return await JudgeBatchAsync(prompt, needs, batch, ct);
-            }
-            finally
-            {
-                gate.Release();
-            }
-        }));
+        var batches = await Task.WhenAll(candidates.Chunk(BatchSize).Select(batch => JudgeBatchAsync(prompt, needs, batch, ct)));
 
         var judgments = batches
             .OfType<IReadOnlyList<JudgedListing>>()

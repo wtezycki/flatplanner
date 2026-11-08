@@ -1,6 +1,7 @@
 import type { AskResponse } from '../api.ts'
 import { ASK_GROUP_HEADINGS, formatListingsCount } from '../format.ts'
 import AskCard from './AskCard.tsx'
+import AskProgress from './AskProgress.tsx'
 import Pagination from './Pagination.tsx'
 
 const ASK_PAGE_SIZE = 12
@@ -9,10 +10,12 @@ interface Props {
   response: AskResponse
   excludeNeeds: number[]
   page: number
+  checkingMore: boolean
+  onCheckMore: () => void
 }
 
-export default function AskResults({ response, excludeNeeds, page }: Props) {
-  const { needs, items, unknownCount } = response
+export default function AskResults({ response, excludeNeeds, page, checkingMore, onCheckMore }: Props) {
+  const { needs, items, unknownCount, remainingCount } = response
   const matching = items.filter((item) => item.group !== 'unknown')
   const unknownItems = items.filter((item) => item.group === 'unknown')
   const totalPages = Math.max(1, Math.ceil(matching.length / ASK_PAGE_SIZE))
@@ -59,6 +62,20 @@ export default function AskResults({ response, excludeNeeds, page }: Props) {
             ))}
           </ul>
         </details>
+      )}
+      {current === totalPages && remainingCount > 0 && (
+        <div className="ask-more">
+          <p className="ask-more__line">
+            Sprawdzone: {items.length} z {items.length + remainingCount} pasujących ogłoszeń, od najbardziej obiecujących.
+          </p>
+          {checkingMore ? (
+            <AskProgress />
+          ) : (
+            <button className="btn btn--secondary" type="button" onClick={onCheckMore}>
+              Sprawdź kolejne ogłoszenia
+            </button>
+          )}
+        </div>
       )}
     </div>
   )

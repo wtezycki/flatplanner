@@ -50,7 +50,8 @@ builder.Services.AddSingleton(services =>
         settings.LlmChatReasoningEffort,
         services.GetRequiredService<ILogger<ListingJudge>>());
 });
-builder.Services.AddSingleton<ConcurrentDictionary<string, AskEvaluation>>();
+builder.Services.AddSingleton<ConcurrentDictionary<string, AskInterpretation>>();
+builder.Services.AddSingleton<ConcurrentDictionary<VerdictKey, IReadOnlyList<NeedResult>>>();
 builder.Services.AddScoped<AskService>();
 
 var app = builder.Build();

@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useSearchParams } from 'react-router'
@@ -33,13 +33,24 @@ export default function AskPage() {
   const excludeNeeds = exclusion.message === message ? exclusion.indexes : []
   const maxLength = useQuery(metaQuery).data?.chatMaxLength
 
+  const queryClient = useQueryClient()
+  const askKey = ['ask', message, excludeNeeds, filters]
+
   const ask = useQuery({
-    queryKey: ['ask', message, excludeNeeds, filters],
-    queryFn: ({ signal }) => postAsk(message, excludeNeeds, filters, signal),
+    queryKey: askKey,
+    queryFn: ({ signal }) => postAsk(message, excludeNeeds, filters, false, signal),
     enabled: message !== '',
     retry: false,
     staleTime: Infinity,
     placeholderData: (previous, previousQuery) => (previousQuery?.queryKey[1] === message ? previous : undefined),
+  })
+
+  const more = useMutation({
+    mutationFn: () => postAsk(message, excludeNeeds, filters, true),
+    onSuccess: (data) => {
+      void queryClient.invalidateQueries({ queryKey: ['ask', message], refetchType: 'none' })
+      queryClient.setQueryData(askKey, data)
+    },
   })
 
   const without = (...keys: string[]) => {
@@ -135,7 +146,18 @@ export default function AskPage() {
                   onExcludeNeed={excludeNeed}
                   onRestoreNeeds={restoreNeeds}
                 />
-                <AskResults response={ask.data} excludeNeeds={excludeNeeds} page={page} />
+                <AskResults
+                  response={ask.data}
+                  excludeNeeds={excludeNeeds}
+                  page={page}
+                  checkingMore={more.isPending}
+                  onCheckMore={() => more.mutate()}
+                />
+                {more.isError && (
+                  <div className="notice notice--error" role="alert">
+                    {askErrorMessage(more.error, maxLength)}
+                  </div>
+                )}
               </div>
             )}
             {ask.isPending && (

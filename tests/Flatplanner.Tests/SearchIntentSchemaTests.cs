@@ -43,20 +43,25 @@ public sealed class SearchIntentSchemaTests
     }
 
     [Fact]
-    public void Build_NeedPlaces_EnumOfPlaceTags()
+    public void Build_NeedPlaces_TagEnumPreferenceAndNullableExtra()
     {
-        var places = JsonNode.Parse(SearchIntentSchema.Build(Meta, PlaceTags))!["properties"]!["needs"]!["items"]!["properties"]!["places"]!;
+        var place = JsonNode.Parse(SearchIntentSchema.Build(Meta, PlaceTags))!["properties"]!["needs"]!["items"]!["properties"]!["places"]!["items"]!["properties"]!;
 
-        Assert.Equal(PlaceTags, places["items"]!["enum"]!.AsArray().Select(t => t!.GetValue<string>()));
+        Assert.Equal(PlaceTags, place["tag"]!["enum"]!.AsArray().Select(t => t!.GetValue<string>()));
+        Assert.Equal(PlacePreference.All, place["prefer"]!["enum"]!.AsArray().Select(t => t!.GetValue<string>()));
+        Assert.Equal(["string", "null"], place["extra"]!["type"]!.AsArray().Select(t => t!.GetValue<string>()));
     }
 
     [Fact]
     public void Clean_Keywords_FoldedDistinctAndShortOnesDropped()
     {
-        var need = IntentInterpreter.Clean(new AskNeed(" cisza w dzień ", ["highway=primary", "highway=primary"], ["Hałas", "hałas", "ok", "nad głową"]));
+        var need = IntentInterpreter.Clean(new AskNeed(
+            " cisza w dzień ",
+            [new NeedPlace("highway=primary", PlacePreference.Far, null), new NeedPlace("highway=primary", PlacePreference.Far, null)],
+            ["Hałas", "hałas", "ok", "nad głową"]));
 
         Assert.Equal("cisza w dzień", need.Text);
-        Assert.Equal(["highway=primary"], need.Places);
+        Assert.Equal([new NeedPlace("highway=primary", PlacePreference.Far, null)], need.Places);
         Assert.Equal(["halas", "nad glowa"], need.Keywords);
     }
 
@@ -65,7 +70,7 @@ public sealed class SearchIntentSchemaTests
     {
         const string json = """
             { "cities": ["gdansk"], "districts": ["gdansk:piecki--migowo"], "priceMax": 700000, "areaMin": null, "areaMax": null,
-              "roomsMin": 2, "needs": [{ "text": "podstawówka w zasięgu spaceru", "places": ["amenity=school"], "keywords": ["szkoł"] }],
+              "roomsMin": 2, "needs": [{ "text": "podstawówka w zasięgu spaceru", "places": [{ "tag": "amenity=school", "prefer": "near", "extra": "isced:level=1" }], "keywords": ["szkoł"] }],
               "declined": [{ "text": "bez obcokrajowców", "reason": "Nie oceniamy okolic po tym, kto w nich mieszka." }],
               "clarifications": [] }
             """;
@@ -76,7 +81,7 @@ public sealed class SearchIntentSchemaTests
         Assert.Equal(700000, intent.PriceMax);
         var need = Assert.Single(intent.Needs);
         Assert.Equal("podstawówka w zasięgu spaceru", need.Text);
-        Assert.Equal(["amenity=school"], need.Places);
+        Assert.Equal([new NeedPlace("amenity=school", PlacePreference.Near, "isced:level=1")], need.Places);
         Assert.Equal(["szkoł"], need.Keywords);
         Assert.Equal("bez obcokrajowców", Assert.Single(intent.Declined).Text);
     }

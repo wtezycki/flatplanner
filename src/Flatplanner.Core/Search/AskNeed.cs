@@ -1,3 +1,3 @@
 namespace Flatplanner.Core.Search;
 
-public sealed record AskNeed(string Text, string[] Places, string[] Keywords);
+public sealed record AskNeed(string Text, NeedPlace[] Places, string[] Keywords);

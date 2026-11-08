@@ -50,6 +50,14 @@ public sealed class AskService(
             }
         }
 
+        if (interpretation.Asked.OffTopic)
+        {
+            var offTopic = new[] { new AskNotice(OffTopicReply.NoticeCode, OffTopicReply.Pick()) };
+            yield return new AskUnderstood("", [], [], offTopic);
+            yield return new AskResults(new AskResponse("", [], [], offTopic, [], 0, 0, [], false, null));
+            yield break;
+        }
+
         yield return Understand(interpretation, meta);
 
         var viewFilters = SearchIntentNormalizer.Normalize(filters, meta).Intent;

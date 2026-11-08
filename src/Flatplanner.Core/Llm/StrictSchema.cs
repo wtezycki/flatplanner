@@ -14,6 +14,8 @@ public static class StrictSchema
 
     public static JsonObject Array(JsonNode items) => new() { ["type"] = "array", ["items"] = items };
 
+    public static JsonObject Boolean() => new() { ["type"] = "boolean" };
+
     public static JsonObject String() => new() { ["type"] = "string" };
 
     public static JsonObject Enum(IEnumerable<string> values) => new()

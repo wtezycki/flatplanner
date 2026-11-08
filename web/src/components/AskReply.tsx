@@ -1,3 +1,4 @@
+import { OFF_TOPIC_NOTICE } from '../api.ts'
 import type { AskResponse } from '../api.ts'
 import { pluralPl } from '../format.ts'
 import TypedText from './TypedText.tsx'
@@ -62,9 +63,11 @@ export default function AskReply({ reply, response, excludeNeeds, animate, onExc
 
   return (
     <div className="ask-reply">
-      <p className="ask-summary">
-        <strong>Zrozumiałem:</strong> <TypedText text={summary} animate={animate} />
-      </p>
+      {summary.length > 0 && (
+        <p className="ask-summary">
+          <strong>Zrozumiałem:</strong> <TypedText text={summary} animate={animate} />
+        </p>
+      )}
       {needs.length > 0 && (
         <ul className="ask-needs">
           {needs.map((need, index) =>
@@ -98,11 +101,17 @@ export default function AskReply({ reply, response, excludeNeeds, animate, onExc
           <span aria-hidden="true">ⓘ</span> „{entry.text}”: {entry.reason}
         </p>
       ))}
-      {notices.map((notice) => (
-        <p key={`${notice.code}:${notice.text}`} className="ask-note">
-          <span aria-hidden="true">ⓘ</span> {notice.text}
-        </p>
-      ))}
+      {notices.map((notice) =>
+        notice.code === OFF_TOPIC_NOTICE ? (
+          <p key={notice.code} className="ask-offtopic">
+            <TypedText text={notice.text} animate={animate} />
+          </p>
+        ) : (
+          <p key={`${notice.code}:${notice.text}`} className="ask-note">
+            <span aria-hidden="true">ⓘ</span> {notice.text}
+          </p>
+        ),
+      )}
       {response && onExcludeNeed && <Relaxations response={response} onExcludeNeed={onExcludeNeed} />}
     </div>
   )

@@ -209,6 +209,8 @@ export interface AskNotice {
   text: string
 }
 
+export const OFF_TOPIC_NOTICE = 'off_topic'
+
 export interface Relaxation {
   need: string
   count: number

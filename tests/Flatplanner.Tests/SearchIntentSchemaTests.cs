@@ -87,6 +87,19 @@ public sealed class SearchIntentSchemaTests
     }
 
     [Fact]
+    public void Deserialize_OffTopicIntent_SetsFlag()
+    {
+        const string json = """
+            { "cities": [], "districts": [], "priceMax": null, "areaMin": null, "areaMax": null, "roomsMin": null,
+              "needs": [], "declined": [], "clarifications": [], "offTopic": true }
+            """;
+
+        var intent = JsonSerializer.Deserialize<AskIntent>(json, LlmJsonClient.LlmJson)!;
+
+        Assert.True(intent.OffTopic);
+    }
+
+    [Fact]
     public void Deserialize_CamelCaseJudgment_FillsVerdictsAndEvidence()
     {
         const string json = """

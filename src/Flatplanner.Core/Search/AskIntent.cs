@@ -11,6 +11,7 @@ public sealed record AskIntent
     public AskNeed[] Needs { get; init; } = [];
     public DeclinedNeed[] Declined { get; init; } = [];
     public string[] Clarifications { get; init; } = [];
+    public bool OffTopic { get; init; }
 
     public SearchIntent ToSearchIntent() => new()
     {

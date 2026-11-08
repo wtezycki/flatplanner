@@ -3,6 +3,8 @@
     "expected": { "cities": ["gdansk"], "areaMin": 40, "areaMax": 80 } },
   { "id": "B", "message": "chcę ładne, tanie mieszkanie, 40 m w Gdańsku", "fallbackExpected": true,
     "expected": { "cities": ["gdansk"], "areaMin": 40 } },
+  { "id": "off-topic", "message": "Opowiedz mi o kotach perskich", "fallbackExpected": true,
+    "expected": { "offTopic": true } },
   { "id": "krakow", "message": "2 pokoje w Krakowie", "fallbackExpected": true,
     "expected": { "roomsMin": 2, "clarificationsMin": 1 } },
   { "id": "ukraine-church", "message": "Jestem z Ukrainy i potrzebuję mieć blisko kościół (cerkiew), najlepiej na Oliwie do 800 tysięcy i blisko szkoły", "fallbackExpected": false,

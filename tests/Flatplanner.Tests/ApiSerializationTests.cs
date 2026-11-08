@@ -77,6 +77,18 @@ public sealed class ApiSerializationTests
     }
 
     [Fact]
+    public void AskResponse_OffTopic_CarriesNoticeAndNoItems()
+    {
+        var notice = new AskNotice(OffTopicReply.NoticeCode, OffTopicReply.Compose(0));
+        var response = new AskResponse("", [], [], [notice], [], 0, 0, [], false, null);
+
+        var json = JsonSerializer.Serialize(response, ApiJson.Options);
+
+        Assert.Contains("\"code\":\"off_topic\"", json);
+        Assert.Contains("\"items\":[]", json);
+    }
+
+    [Fact]
     public void AskResponse_NothingRemaining_KeepsRemainingCount()
     {
         var response = new AskResponse("", [], [], [], [], 0, 0, [], false, null);

@@ -28,6 +28,11 @@ public static class IntentComparison
 
             AtLeast("declined", expected.DeclinedMin, actual.Declined.Length);
             AtLeast("clarifications", expected.ClarificationsMin, actual.Clarifications.Length);
+            if (expected.OffTopic != actual.OffTopic)
+            {
+                differences.Add($"offTopic: expected {expected.OffTopic}, got {actual.OffTopic}");
+            }
+
             MissingPlaces(expected.NeedPlaces, actual.Needs);
             MissingNeedTexts(expected.NeedTextContains, actual.Needs);
         }

@@ -32,5 +32,6 @@ public static class SearchIntentSchema
             ["reason"] = StrictSchema.String(),
         })),
         ["clarifications"] = StrictSchema.Array(StrictSchema.String()),
+        ["offTopic"] = StrictSchema.Boolean(),
     }).ToJsonString();
 }

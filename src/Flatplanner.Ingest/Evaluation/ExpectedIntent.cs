@@ -12,6 +12,7 @@ public sealed record ExpectedIntent
     public int? NeedsMax { get; init; }
     public int DeclinedMin { get; init; }
     public int ClarificationsMin { get; init; }
+    public bool OffTopic { get; init; }
     public string[] NeedPlaces { get; init; } = [];
     public string[] NeedTextContains { get; init; } = [];
 }

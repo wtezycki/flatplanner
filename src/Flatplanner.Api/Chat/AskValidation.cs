@@ -14,7 +14,7 @@ public static class AskValidation
 
         if (history.Count > SearchDefinitions.MaxHistory)
         {
-            errors["history"] = [$"Rozmowa może mieć najwyżej {SearchDefinitions.MaxHistory + 1} pytań."];
+            errors["history"] = [$"Rozmowa może mieć najwyżej {SearchDefinitions.MaxTurns} pytań."];
         }
         else if (history.Any(entry => entry.Length == 0 || entry.Length > maxLength))
         {

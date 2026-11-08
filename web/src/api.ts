@@ -244,11 +244,15 @@ export function isServerOrNetworkError(error: unknown): boolean {
   return !(error instanceof ApiError) || error.status >= 500
 }
 
+function errorFrom(response: Response): ApiError {
+  const retryAfter = Number.parseInt(response.headers.get('Retry-After') ?? '', 10)
+  return new ApiError(response.status, Number.isNaN(retryAfter) ? undefined : retryAfter)
+}
+
 async function requestJson<T>(url: string, init: RequestInit): Promise<T> {
   const response = await fetch(url, init)
   if (!response.ok) {
-    const retryAfter = Number.parseInt(response.headers.get('Retry-After') ?? '', 10)
-    throw new ApiError(response.status, Number.isNaN(retryAfter) ? undefined : retryAfter)
+    throw errorFrom(response)
   }
   return (await response.json()) as T
 }
@@ -302,8 +306,7 @@ export async function streamAsk(
     signal,
   })
   if (!response.ok || !response.body) {
-    const retryAfter = Number.parseInt(response.headers.get('Retry-After') ?? '', 10)
-    throw new ApiError(response.status, Number.isNaN(retryAfter) ? undefined : retryAfter)
+    throw errorFrom(response)
   }
 
   const reader = response.body.getReader()

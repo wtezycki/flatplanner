@@ -91,6 +91,14 @@ export const RISK_KIND_HINTS: Record<string, string> = {
   field_mismatch: 'Opis przeczy jednemu z pól ogłoszenia, np. liczbie pokoi, piętru albo czynszowi. Dopytaj sprzedającego.',
 }
 
+export const APPROXIMATE_LOCATION_HINT = 'Ogłaszający nie podał dokładnej lokalizacji.'
+
+export const BELOW_MEDIAN_HINT = 'Cena za m² niższa niż mediana ofert z tego miasta (bez ofert z nietypową ceną).'
+
+export const NEARBY_STOP_HINT = 'Najbliższy przystanek, odległość w linii prostej (dane OpenStreetMap).'
+
+export const NEARBY_PARK_HINT = 'Najbliższy park, odległość w linii prostej (dane OpenStreetMap).'
+
 export const PRICE_OUTLIER_HINT = 'Cena za m² poza zakresem 7 000–40 000 zł. Może to być błąd w ogłoszeniu, sprawdź opis.'
 
 export const RISK_SOURCE_NOTE =

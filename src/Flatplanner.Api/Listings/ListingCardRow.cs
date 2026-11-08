@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Flatplanner.Api.Endpoints;
 using Flatplanner.Core.Data;
 
 namespace Flatplanner.Api.Listings;
@@ -43,7 +44,7 @@ public sealed record ListingCardRow(
         var outlier = QualityFlags.Contains(QualityFlag.PriceOutlier);
         return new ListingItem(
             Id, Title, PricePln, AreaM2, PricePerM2, Rooms, Floor, QualityFlags.Contains(QualityFlag.FloorHigher10), BuildingFloors,
-            CitySlug, Endpoints.EnumLabels.CityNames[CitySlug], DistrictName, ImageUrls, Market,
+            CitySlug, EnumLabels.CityNames[CitySlug], DistrictName, ImageUrls, Market,
             DateTime.SpecifyKind(CreatedAtSource, DateTimeKind.Utc), LocationApproximate, outlier,
             BuildYear, FinishCondition, Ownership, HasLift, HasBalcony, HasGarage, HasBasement,
             CardSignals.RiskKinds(RisksJson), CardSignals.NearestStop(NearbyJson, LocationApproximate),

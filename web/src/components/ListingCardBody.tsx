@@ -3,6 +3,10 @@ import type { To } from 'react-router'
 import type { ReactNode } from 'react'
 import type { ListingItem } from '../api.ts'
 import {
+  APPROXIMATE_LOCATION_HINT,
+  BELOW_MEDIAN_HINT,
+  NEARBY_PARK_HINT,
+  NEARBY_STOP_HINT,
   PRICE_OUTLIER_HINT,
   RISK_KIND_HINTS,
   RISK_KIND_LABELS,
@@ -85,7 +89,7 @@ export default function ListingCardBody({ item, labels, href, priceNote, childre
       </p>
       <p className="card__location">
         {item.locationApproximate ? (
-          <span className="card__approximate" title="Ogłaszający nie podał dokładnej lokalizacji." role="img" aria-label="Lokalizacja przybliżona">
+          <span className="card__approximate" title={APPROXIMATE_LOCATION_HINT} role="img" aria-label="Lokalizacja przybliżona">
             <Icon name="pinApprox" />
           </span>
         ) : (
@@ -111,17 +115,17 @@ export default function ListingCardBody({ item, labels, href, priceNote, childre
             </Badge>
           )}
           {item.belowMedianPercent !== undefined && (
-            <Badge icon="cheaper" variant="positive" hint="Cena za m² niższa niż mediana ofert z tego miasta (bez ofert z nietypową ceną).">
+            <Badge icon="cheaper" variant="positive" hint={BELOW_MEDIAN_HINT}>
               {formatBelowMedian(item.belowMedianPercent)}
             </Badge>
           )}
           {item.nearbyStop && (
-            <Badge icon="stop" hint="Najbliższy przystanek, odległość w linii prostej (dane OpenStreetMap).">
+            <Badge icon="stop" hint={NEARBY_STOP_HINT}>
               {item.nearbyStop}
             </Badge>
           )}
           {item.nearbyPark && (
-            <Badge icon="park" hint="Najbliższy park, odległość w linii prostej (dane OpenStreetMap).">
+            <Badge icon="park" hint={NEARBY_PARK_HINT}>
               {item.nearbyPark}
             </Badge>
           )}

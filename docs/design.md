@@ -71,7 +71,7 @@ As of 2026-11-05. **AI-first pivot: section 16 supersedes the parts of sections 
 |---|---|---|
 | `Flatplanner.Core` (classlib) | `FlatplannerDbContext`, entities, migrations, enum constants, `FlatplannerOptions`, `SearchMeta` + `SearchMetaLoader` (7.1), `SearchIntent` (normalizer, schema, `KeywordRules`, `IntentFallbackParser`, `IntentInterpreter`), `PlaceLabels`, `TextFolding`, `AnchorValidator`, `LlmJsonClient` | NuGet: Pomelo, EF Core, OpenAI, `Microsoft.Extensions.Options.*` |
 | `Flatplanner.Api` (web) | endpoints, execution of list queries, ranking, “what blocks”, `ChatInterpreter` (mode + fallback), `InterpretationBuilder`, `MetaService` (adds labels and counts to `SearchMeta` for `/api/meta`), SPA hosting | Core |
-| `Flatplanner.Ingest` (console, `Host.CreateApplicationBuilder`) | scraper, normalization, mini-W2, report, `eval-intents` command | Core, `Microsoft.Extensions.Hosting` |
+| `Flatplanner.Ingest` (console, `Host.CreateApplicationBuilder`) | scraper, normalization, mini-W2, report, `eval-intents` and `eval-judge` commands | Core, `Microsoft.Extensions.Hosting` |
 | `Flatplanner.Tests` (xUnit) | tests of normalization, anchor validator, intent schema, fallback and API serialization (section 12) | Core, Ingest, Api |
 
 **Why so many projects:** there are two executable processes (API on the server, Ingest locally) that share the `DbContext`, migrations, `SearchIntent` and the LLM client. The fourth project is the tests.
@@ -1157,6 +1157,7 @@ docker compose up --build
 | `report` | 4.4 |
 | `all` | all of the above in order |
 | `eval-intents` | section 12 |
+| `eval-judge` | section 12 (needs the API running with `CHAT_MODE=llm`) |
 | `enrich --revalidate` | plan B only (section 15, K4): re-run the anchor validation on stored quotes, without LLM calls; built only if K4 materializes |
 
 Argument parsing: `args[0]` in a `switch`, no CLI library.
@@ -1317,8 +1318,42 @@ The `main` branch requires both jobs to pass before a squash merge. A `docker bu
 - **`history`:** the previous user messages, oldest first, passed to `IntentInterpreter` as in the `ask` request (16.5a). `expected` describes the intent of the whole conversation. The fallback reads the last message only, so a follow-up has `fallbackExpected: false`.
 - **Query match:** all hard fields equal (arrays as sets) and the model-written checks met. `fallbackExpected: true` means the fallback must also match the hard fields (`FallbackParserTests`); `false` means the query needs the model (a city that only a place name implies, a follow-up). The district `gdansk:przymorze-*` keys are the ones of the local import (there is no Oliwa district in it, so "na Oliwie" gives only the city, 16.2).
 - **Score:** `matching / N` (N = the number of queries), counting the LLM column.
-- Running: `dotnet run --project src/Flatplanner.Ingest -- eval-intents` (needs `OPENAI_API_KEY`). It calls `IntentInterpreter.InterpretWithLlmAsync` and `IntentFallbackParser.ParseAsk` from Core (the same code as in Api, without `CHAT_MODE`), with `meta` from the local database. It prints the prompt version and model, the table `id | LLM ok? | fallback ok? | differences` (the fallback column says `FAIL` when the result differs from `fallbackExpected`) and the score. The score goes into the README and the 1-pager as an offline metric (a proxy of the success metric).
+- Running: `dotnet run --project src/Flatplanner.Ingest -- eval-intents` (needs `OPENAI_API_KEY`). It calls `IntentInterpreter.InterpretWithLlmAsync` and `IntentFallbackParser.ParseAsk` from Core (the same code as in Api, without `CHAT_MODE`), with `meta` from the local database. It prints the prompt version and model, the table `id | LLM ok? | fallback ok? | differences` (the fallback column says `FAIL` when the result differs from `fallbackExpected`) and the score, and writes the full report (each query, its history, the intent the model and the fallback returned, the differences) to `data/eval/<prompt version>-<UTC time>.json` (gitignored). The score goes into the README and the 1-pager as an offline metric (a proxy of the success metric).
 - `PlaceLabels` (the OSM tag list the interpret schema needs) and `IntentFallbackParser.ParseAsk` (fallback result as `AskIntent`) live in Core so that Ingest can run the same code as Api (section 2).
+
+**Judge cases, `tests/judge-cases.json`** (the second step of the ask pipeline, 16.2 steps 3–4, on the three demo listings of 16.6; added with `eval-judge`, not part of the original §13 item):
+
+```json
+[
+  { "id": "night-shift", "message": "Pracuję na nocki i śpię w dzień. 2 pokoje w Gdańsku do 700 tys.",
+    "expectations": [ { "listing": 70, "need": ["cisz", "spok"], "verdicts": ["yes"] } ] },
+  { "id": "school-7yo", "message": "Córka ma 7 lat i będzie sama chodzić do szkoły. 2 pokoje w Gdańsku do 700 tys.",
+    "expectations": [ { "listing": 70, "need": ["szkol", "podstawow"], "verdicts": ["yes"] } ] },
+  { "id": "electric-car", "message": "Mam samochód elektryczny, szukam mieszkania w Gdańsku do 700 tys.",
+    "expectations": [ { "listing": 70, "need": ["ladowa", "elektr"], "verdicts": ["yes"] } ] },
+  { "id": "cyclist", "message": "Codziennie jeżdżę rowerem do pracy i potrzebuję miejsca na rower. 2 pokoje w Gdańsku do 700 tys.",
+    "expectations": [ { "listing": 70, "need": ["rower"], "verdicts": ["yes"] } ] },
+  { "id": "synagogue", "message": "Jestem Żydem i chcę mieszkać blisko synagogi. Gdańsk do 800 tys.",
+    "expectations": [ { "listing": 97, "need": ["synagog"], "verdicts": ["yes"] } ] },
+  { "id": "kitchen-ground", "message": "3 pokoje w Gdańsku do 800 tys., z osobną kuchnią, na parterze",
+    "expectations": [
+      { "listing": 97, "need": ["kuchn"], "verdicts": ["no"] },
+      { "listing": 97, "need": ["parter"], "verdicts": ["yes"] } ] },
+  { "id": "ukrainian-buyer", "message": "Jestem z Ukrainy i kupuję mieszkanie w Gdyni do 500 tys.",
+    "expectations": [ { "listing": 166, "need": ["mswia", "cudzoziem"], "verdicts": ["yes"] } ] },
+  { "id": "prewar-building", "message": "Kocham przedwojenną architekturę. Mieszkanie w Gdyni do 500 tys.",
+    "expectations": [ { "listing": 166, "need": ["przedwojen", "architekt", "modernizm"], "verdicts": ["yes"] } ] },
+  { "id": "home-office", "message": "Pracuję z domu i potrzebuję osobnego pokoju na biuro. Mieszkanie w Gdyni do 500 tys.",
+    "expectations": [ { "listing": 166, "need": ["biur", "gabinet", "prac"], "verdicts": ["yes"] } ] }
+]
+```
+
+- **Case:** a question and, for the listings it is about, the `verdicts` (a set) the judge may give for the need identified by `need` (fragments; the need whose folded text contains any of them). Listing ids are the local ids of 16.6 and change with a new import.
+- **Why these verdicts:** 70 states "nikt nie chodzi nad głową", a school nearby, a bicycle room and a charging station in the garage; 97 has its kitchen turned into a third office in the description (`no` for a separate kitchen, `yes` for the ground floor from the field) and the New Synagogue 148 m away with an exact location; 166 says foreigners can buy it without the MSWiA permit, is a 1930 modernist building and has a room arranged as an office.
+- **Run:** start the API with `CHAT_MODE=llm` against the local database, then `dotnet run --project src/Flatplanner.Ingest -- eval-judge`. Ingest has no access to the judge code of Api, so the command posts each question to `POST /api/search/ask` at `http://localhost:5080` (a constant) and reads the JSON: the whole pipeline is evaluated as the user sees it. When a listing is not in the shown set the command asks for the next window (`more: true`, at most 5 windows), because the judge reads 20 candidates per call (16.9).
+- **Output:** the table `case | listing | need | expected | got | ok?`, the score over expectations, the share of `unknown` among all verdicts of the shown windows (the guardrail of product-scope §5), and a report with the checked verdicts, reasons and evidence in `data/eval/judge-<judge prompt version>-<UTC time>.json` (gitignored).
+- **Restart the API between runs:** the interpretation and verdict caches are in memory (16.2, 16.9), so a second run against the same process returns the cached answers without calling the model.
+- **Not covered:** a listing that is hidden (two or more `no`) is reported as "not in the results", the cases do not measure how often the judge is wrong on listings outside the three, and the expected verdicts come from reading the three descriptions, not from a labelled set.
 
 **Deliberately not tested:**
 - **HTTP endpoints (WebApplicationFactory):** the smoke test 11.5 covers them on real infrastructure; the JSON shape is covered at DTO level by `ApiSerializationTests`;

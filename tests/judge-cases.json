@@ -1,0 +1,22 @@
+[
+  { "id": "night-shift", "message": "Pracuję na nocki i śpię w dzień. 2 pokoje w Gdańsku do 700 tys.",
+    "expectations": [ { "listing": 70, "need": ["cisz", "spok"], "verdicts": ["yes"] } ] },
+  { "id": "school-7yo", "message": "Córka ma 7 lat i będzie sama chodzić do szkoły. 2 pokoje w Gdańsku do 700 tys.",
+    "expectations": [ { "listing": 70, "need": ["szkol", "podstawow"], "verdicts": ["yes"] } ] },
+  { "id": "electric-car", "message": "Mam samochód elektryczny, szukam mieszkania w Gdańsku do 700 tys.",
+    "expectations": [ { "listing": 70, "need": ["ladowa", "elektr"], "verdicts": ["yes"] } ] },
+  { "id": "cyclist", "message": "Codziennie jeżdżę rowerem do pracy i potrzebuję miejsca na rower. 2 pokoje w Gdańsku do 700 tys.",
+    "expectations": [ { "listing": 70, "need": ["rower"], "verdicts": ["yes"] } ] },
+  { "id": "synagogue", "message": "Jestem Żydem i chcę mieszkać blisko synagogi. Gdańsk do 800 tys.",
+    "expectations": [ { "listing": 97, "need": ["synagog"], "verdicts": ["yes"] } ] },
+  { "id": "kitchen-ground", "message": "3 pokoje w Gdańsku do 800 tys., z osobną kuchnią, na parterze",
+    "expectations": [
+      { "listing": 97, "need": ["kuchn"], "verdicts": ["no"] },
+      { "listing": 97, "need": ["parter"], "verdicts": ["yes"] } ] },
+  { "id": "ukrainian-buyer", "message": "Jestem z Ukrainy i kupuję mieszkanie w Gdyni do 500 tys.",
+    "expectations": [ { "listing": 166, "need": ["mswia", "cudzoziem"], "verdicts": ["yes"] } ] },
+  { "id": "prewar-building", "message": "Kocham przedwojenną architekturę. Mieszkanie w Gdyni do 500 tys.",
+    "expectations": [ { "listing": 166, "need": ["przedwojen", "architekt", "modernizm"], "verdicts": ["yes"] } ] },
+  { "id": "home-office", "message": "Pracuję z domu i potrzebuję osobnego pokoju na biuro. Mieszkanie w Gdyni do 500 tys.",
+    "expectations": [ { "listing": 166, "need": ["biur", "gabinet", "prac"], "verdicts": ["yes"] } ] }
+]

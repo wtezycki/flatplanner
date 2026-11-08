@@ -32,11 +32,12 @@ builder.Services.AddTransient<ExportDossiersCommand>();
 builder.Services.AddTransient<ImportDossiersCommand>();
 builder.Services.AddTransient<ReportCommand>();
 builder.Services.AddTransient<EvalIntentsCommand>();
+builder.Services.AddTransient<EvalJudgeCommand>();
 
 using var host = builder.Build();
 var logger = host.Services.GetRequiredService<ILogger<Program>>();
 var command = args.FirstOrDefault();
-string[] commands = ["scrape", "normalize", "nearby", "export-dossiers", "import-dossiers", "report", "all", "eval-intents"];
+string[] commands = ["scrape", "normalize", "nearby", "export-dossiers", "import-dossiers", "report", "all", "eval-intents", "eval-judge"];
 
 if (command is null || !commands.Contains(command))
 {
@@ -78,6 +79,12 @@ if (command == "import-dossiers")
 if (command == "eval-intents")
 {
     await services.GetRequiredService<EvalIntentsCommand>().RunAsync(CancellationToken.None);
+}
+
+if (command == "eval-judge")
+{
+    using var evalJudge = services.GetRequiredService<EvalJudgeCommand>();
+    await evalJudge.RunAsync(CancellationToken.None);
 }
 
 if (command is "report" or "all")

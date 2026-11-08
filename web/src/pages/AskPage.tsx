@@ -21,6 +21,12 @@ export default function AskPage() {
   const previousPage = useRef(page)
   const limitReached = maxTurns !== undefined && turns.length >= maxTurns
 
+  const without = (...keys: string[]) => {
+    const next = new URLSearchParams(searchParams)
+    keys.forEach((key) => next.delete(key))
+    return next
+  }
+
   const setTurns = (next: string[]) => {
     queryClient.setQueryData(threadQuery.queryKey, next)
     if (searchParams.has('page')) {
@@ -29,12 +35,6 @@ export default function AskPage() {
   }
 
   const ask = (text: string) => setTurns([...turns, text])
-
-  const without = (...keys: string[]) => {
-    const next = new URLSearchParams(searchParams)
-    keys.forEach((key) => next.delete(key))
-    return next
-  }
 
   useEffect(() => {
     window.scrollTo(0, 0)

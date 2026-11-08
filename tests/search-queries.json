@@ -1,0 +1,22 @@
+[
+  { "id": "A", "message": "mieszkanie w Gdańsku 40-80 m2", "fallbackExpected": true,
+    "expected": { "cities": ["gdansk"], "areaMin": 40, "areaMax": 80 } },
+  { "id": "B", "message": "chcę ładne, tanie mieszkanie, 40 m w Gdańsku", "fallbackExpected": true,
+    "expected": { "cities": ["gdansk"], "areaMin": 35, "areaMax": 45 } },
+  { "id": "krakow", "message": "2 pokoje w Krakowie", "fallbackExpected": true,
+    "expected": { "roomsMin": 2, "clarificationsMin": 1 } },
+  { "id": "studio-gdynia", "message": "kawalerka w Gdyni do 450 tys.", "fallbackExpected": true,
+    "expected": { "cities": ["gdynia"], "roomsMin": 1, "priceMax": 450000 } },
+  { "id": "trojmiasto-lift", "message": "3 pokoje w Trójmieście z windą, max 2 piętro", "fallbackExpected": true,
+    "expected": { "cities": ["gdansk", "gdynia", "sopot"], "roomsMin": 3, "needsMin": 1 } },
+  { "id": "house-garden", "message": "dom z ogrodem w Gdyni", "fallbackExpected": true,
+    "expected": { "cities": ["gdynia"], "needsMin": 1 } },
+  { "id": "private-sopot", "message": "mieszkanie w Sopocie od właściciela, bez pośredników", "fallbackExpected": true,
+    "expected": { "cities": ["sopot"], "needsMin": 1 } },
+  { "id": "primary-ground", "message": "nowe mieszkanie od dewelopera w Gdańsku, parter", "fallbackExpected": true,
+    "expected": { "cities": ["gdansk"], "needsMin": 1 } },
+  { "id": "declined-area", "message": "2 pokoje w Gdańsku, ale tylko tam, gdzie nie mieszkają Ukraińcy", "fallbackExpected": true,
+    "expected": { "cities": ["gdansk"], "roomsMin": 2, "declinedMin": 1 } },
+  { "id": "city-from-place", "message": "blisko Opery Bałtyckiej, 2 pokoje do 700 tys.", "fallbackExpected": false,
+    "expected": { "cities": ["gdansk"], "roomsMin": 2, "priceMax": 700000 } }
+]

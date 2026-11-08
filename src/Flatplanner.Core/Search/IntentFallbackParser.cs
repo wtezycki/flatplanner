@@ -28,6 +28,24 @@ public static partial class IntentFallbackParser
         };
     }
 
+    public static AskIntent ParseAsk(string message, SearchMeta meta)
+    {
+        var parsed = Parse(message, meta);
+        var (areaMin, areaMax) = parsed.AreaApprox is { } approx
+            ? SearchDefinitions.AreaApproxRange(approx)
+            : (parsed.AreaMin, parsed.AreaMax);
+
+        return new AskIntent
+        {
+            Cities = parsed.Cities,
+            Districts = parsed.Districts,
+            PriceMax = parsed.PriceMax,
+            AreaMin = areaMin,
+            AreaMax = areaMax,
+            RoomsMin = parsed.RoomsMin,
+        };
+    }
+
     private static string[] Cities(string plain) =>
         Regex.IsMatch(plain, $@"\b(?:{FallbackDictionaries.TricityPattern})\b")
             ? City.All

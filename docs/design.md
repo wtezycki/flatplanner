@@ -69,7 +69,7 @@ As of 2026-11-05. **AI-first pivot: section 16 supersedes the parts of sections 
 
 | Project | Responsibility | Depends on |
 |---|---|---|
-| `Flatplanner.Core` (classlib) | `FlatplannerDbContext`, entities, migrations, enum constants, `FlatplannerOptions`, `SearchMeta` + `SearchMetaLoader` (7.1), `SearchIntent` (normalizer, schema, `KeywordRules`, `IntentFallbackParser`, `IntentInterpreter`), `TextFolding`, `AnchorValidator`, `LlmJsonClient` | NuGet: Pomelo, EF Core, OpenAI, `Microsoft.Extensions.Options.*` |
+| `Flatplanner.Core` (classlib) | `FlatplannerDbContext`, entities, migrations, enum constants, `FlatplannerOptions`, `SearchMeta` + `SearchMetaLoader` (7.1), `SearchIntent` (normalizer, schema, `KeywordRules`, `IntentFallbackParser`, `IntentInterpreter`), `PlaceLabels`, `TextFolding`, `AnchorValidator`, `LlmJsonClient` | NuGet: Pomelo, EF Core, OpenAI, `Microsoft.Extensions.Options.*` |
 | `Flatplanner.Api` (web) | endpoints, execution of list queries, ranking, “what blocks”, `ChatInterpreter` (mode + fallback), `InterpretationBuilder`, `MetaService` (adds labels and counts to `SearchMeta` for `/api/meta`), SPA hosting | Core |
 | `Flatplanner.Ingest` (console, `Host.CreateApplicationBuilder`) | scraper, normalization, mini-W2, report, `eval-intents` command | Core, `Microsoft.Extensions.Hosting` |
 | `Flatplanner.Tests` (xUnit) | tests of normalization, anchor validator, intent schema, fallback and API serialization (section 12) | Core, Ingest, Api |
@@ -1274,37 +1274,39 @@ The `main` branch requires both jobs to pass before a squash merge. A `docker bu
   - an example JSON in camelCase deserializes via `LlmJsonClient.LlmJson` into a non-empty intent. The same test for the `listing_facts` schema.
 - **`FallbackParserTests`:** `[Theory]` over the queries from `tests/search-queries.json` with `"fallbackExpected": true`. The fallback must produce hard fields identical to `expected` (after `SearchIntentNormalizer`).
 
-**10 test queries, `tests/search-queries.json`:**
+**10 test queries, `tests/search-queries.json`** (rewritten for the ask interpretation, 16.2 step 1: the old file expected `SearchIntent` fields that `AskIntent` no longer has):
 
 ```json
 [
   { "id": "A", "message": "mieszkanie w Gdańsku 40-80 m2", "fallbackExpected": true,
     "expected": { "cities": ["gdansk"], "areaMin": 40, "areaMax": 80 } },
   { "id": "B", "message": "chcę ładne, tanie mieszkanie, 40 m w Gdańsku", "fallbackExpected": true,
-    "expected": { "cities": ["gdansk"], "areaApprox": 40, "preferences": ["cheap", "good_condition"] } },
+    "expected": { "cities": ["gdansk"], "areaMin": 35, "areaMax": 45 } },
   { "id": "krakow", "message": "2 pokoje w Krakowie", "fallbackExpected": true,
-    "expected": { "cities": ["gdansk"], "roomsMin": 2, "roomsMax": 2, "requestedCityOutOfScope": "Kraków" } },
-  { "id": "rent-metro", "message": "chcę wynająć coś blisko metra", "fallbackExpected": true,
-    "expected": { "outOfScope": ["rent", "metro"] } },
+    "expected": { "roomsMin": 2, "clarificationsMin": 1 } },
   { "id": "studio-gdynia", "message": "kawalerka w Gdyni do 450 tys.", "fallbackExpected": true,
-    "expected": { "cities": ["gdynia"], "roomsMin": 1, "roomsMax": 1, "priceMax": 450000 } },
-  { "id": "house", "message": "dom z ogrodem w Gdyni", "fallbackExpected": true,
-    "expected": { "cities": ["gdynia"], "outOfScope": ["house"] } },
-  { "id": "trojmiasto-lift", "message": "3 pokoje w Trójmieście z windą, max 2 piętro", "fallbackExpected": false,
-    "expected": { "cities": ["gdansk", "gdynia", "sopot"], "roomsMin": 3, "roomsMax": 3, "requireLift": true, "floorMax": 2 } },
-  { "id": "private-sopot", "message": "mieszkanie w Sopocie od właściciela, bez pośredników", "fallbackExpected": false,
-    "expected": { "cities": ["sopot"], "advertiserType": "private" } },
-  { "id": "primary-ground", "message": "nowe mieszkanie od dewelopera w Gdańsku, parter", "fallbackExpected": false,
-    "expected": { "cities": ["gdansk"], "market": "primary", "floorMin": 0, "floorMax": 0 } },
-  { "id": "pdf-b", "message": "I want a nice, cheap flat, 40m in Kraków", "fallbackExpected": true,
-    "expected": { "cities": ["gdansk"], "areaApprox": 40, "preferences": ["cheap", "good_condition"], "requestedCityOutOfScope": "Kraków" } }
+    "expected": { "cities": ["gdynia"], "roomsMin": 1, "priceMax": 450000 } },
+  { "id": "trojmiasto-lift", "message": "3 pokoje w Trójmieście z windą, max 2 piętro", "fallbackExpected": true,
+    "expected": { "cities": ["gdansk", "gdynia", "sopot"], "roomsMin": 3, "needsMin": 1 } },
+  { "id": "house-garden", "message": "dom z ogrodem w Gdyni", "fallbackExpected": true,
+    "expected": { "cities": ["gdynia"], "needsMin": 1 } },
+  { "id": "private-sopot", "message": "mieszkanie w Sopocie od właściciela, bez pośredników", "fallbackExpected": true,
+    "expected": { "cities": ["sopot"], "needsMin": 1 } },
+  { "id": "primary-ground", "message": "nowe mieszkanie od dewelopera w Gdańsku, parter", "fallbackExpected": true,
+    "expected": { "cities": ["gdansk"], "needsMin": 1 } },
+  { "id": "declined-area", "message": "2 pokoje w Gdańsku, ale tylko tam, gdzie nie mieszkają Ukraińcy", "fallbackExpected": true,
+    "expected": { "cities": ["gdansk"], "roomsMin": 2, "declinedMin": 1 } },
+  { "id": "city-from-place", "message": "blisko Opery Bałtyckiej, 2 pokoje do 700 tys.", "fallbackExpected": false,
+    "expected": { "cities": ["gdansk"], "roomsMin": 2, "priceMax": 700000 } }
 ]
 ```
 
-- **Hard fields:** all `SearchIntent` fields except `text`. A field absent from `expected` must have the default value (`null` / `false` / `[]`).
-- **Query match:** all hard fields equal; arrays compared as sets.
-- **Score:** `matching / 10`.
-- Running: `dotnet run --project src/Flatplanner.Ingest -- eval-intents`. It calls `IntentInterpreter.InterpretWithLlmAsync` and `IntentFallbackParser` from Core (the same code as in Api, without `CHAT_MODE`), with `meta` from the local database. It prints the table `id | LLM ok? | fallback ok? | differences` and the score. The score goes into the README and the 1-pager as an offline metric (a proxy of the success metric).
+- **Hard fields:** `cities`, `districts`, `priceMax`, `areaMin`, `areaMax`, `roomsMin` (the `AskIntent` hard filters). A field absent from `expected` must have the default value (`null` / `[]`). They are compared after `SearchIntentNormalizer`, as the ask pipeline sees them: an approximate area ("40 m") is the 16.2 range (35–45), a city outside the three is `[]`.
+- **Model-written parts:** `needsMin`, `declinedMin` and `clarificationsMin` (default 0) are lower bounds on the number of `needs`, `declined` and `clarifications`, because their text is the model's. They are checked for the LLM only; the fallback produces none of them.
+- **Query match:** all hard fields equal (arrays as sets) and the lower bounds met. `fallbackExpected: true` means the fallback must also match the hard fields (`FallbackParserTests`); `false` means the query needs the model (a city that only a place name implies).
+- **Score:** `matching / 10`, counting the LLM column.
+- Running: `dotnet run --project src/Flatplanner.Ingest -- eval-intents` (needs `OPENAI_API_KEY`). It calls `IntentInterpreter.InterpretWithLlmAsync` and `IntentFallbackParser.ParseAsk` from Core (the same code as in Api, without `CHAT_MODE`), with `meta` from the local database. It prints the prompt version and model, the table `id | LLM ok? | fallback ok? | differences` (the fallback column says `FAIL` when the result differs from `fallbackExpected`) and the score. The score goes into the README and the 1-pager as an offline metric (a proxy of the success metric).
+- `PlaceLabels` (the OSM tag list the interpret schema needs) and `IntentFallbackParser.ParseAsk` (fallback result as `AskIntent`) live in Core so that Ingest can run the same code as Api (section 2).
 
 **Deliberately not tested:**
 - **HTTP endpoints (WebApplicationFactory):** the smoke test 11.5 covers them on real infrastructure; the JSON shape is covered at DTO level by `ApiSerializationTests`;

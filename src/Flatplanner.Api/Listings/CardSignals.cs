@@ -1,5 +1,5 @@
-using Flatplanner.Api.Chat;
 using Flatplanner.Core.Data;
+using Flatplanner.Core.Search;
 using Microsoft.EntityFrameworkCore;
 
 namespace Flatplanner.Api.Listings;

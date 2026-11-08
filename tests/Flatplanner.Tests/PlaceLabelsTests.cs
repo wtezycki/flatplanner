@@ -1,4 +1,4 @@
-using Flatplanner.Api.Chat;
+using Flatplanner.Core.Search;
 
 namespace Flatplanner.Tests;
 

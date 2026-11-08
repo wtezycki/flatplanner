@@ -159,7 +159,7 @@ public sealed class AskService(
     {
         if (options.Value.ChatMode == ChatMode.Fallback)
         {
-            return (Fallback(message, meta), FallbackReason.Disabled);
+            return (IntentFallbackParser.ParseAsk(message, meta), FallbackReason.Disabled);
         }
 
         try
@@ -170,26 +170,8 @@ public sealed class AskService(
         {
             var reason = FallbackReason.From(ex.Failure);
             logger.LogWarning("Interpretation fell back: {Reason}, prompt {PromptVersion}", reason, PromptVersions.SearchIntent);
-            return (Fallback(message, meta), reason);
+            return (IntentFallbackParser.ParseAsk(message, meta), reason);
         }
-    }
-
-    private static AskIntent Fallback(string message, SearchMeta meta)
-    {
-        var parsed = IntentFallbackParser.Parse(message, meta);
-        var (areaMin, areaMax) = parsed.AreaApprox is { } approx
-            ? SearchDefinitions.AreaApproxRange(approx)
-            : (parsed.AreaMin, parsed.AreaMax);
-
-        return new AskIntent
-        {
-            Cities = parsed.Cities,
-            Districts = parsed.Districts,
-            PriceMax = parsed.PriceMax,
-            AreaMin = areaMin,
-            AreaMax = areaMax,
-            RoomsMin = parsed.RoomsMin,
-        };
     }
 
     private async Task<AskResponse> RespondAsync(

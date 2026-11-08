@@ -14,7 +14,7 @@ export default function NeedVerdict({ need, result }: Props) {
         {icon}
       </span>
       <div className="verdict__text">
-        <p className="verdict__reason">{result.reason ?? need}</p>
+        <p className="verdict__reason">{result.reason || need}</p>
         {result.evidence.length > 0 && (
           <p className="chips">
             {result.evidence.slice(0, 1).map((evidence) => (

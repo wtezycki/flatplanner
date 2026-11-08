@@ -178,7 +178,7 @@ Flow: the sentence from the chatbox goes to the model, which returns a `SearchIn
 - “nice” = `Construction_status` (`ready_to_use` +, `to_renovation` −, `to_completion` −). Stated explicitly in the README: on the primary market this works like “secondary market” (failure mode, section 11);
 - “40 m” → `areaApprox: 40`, tolerance ±12% (35–45 m²) computed in C#, not in the model;
 - after a timeout, an API error or the provider's spend limit the fallback kicks in, and the fallback also recognizes “w Krakowie” (in Kraków);
-- multi-step refinement (“a coś bliżej morza?” (and something closer to the sea?)) is out of scope.
+- multi-step refinement (“a coś bliżej morza?” (and something closer to the sea?)) was out of scope; after the AI pivot it is item #7′c ([design.md](design.md) §16.5a, decided 2026-11-06).
 
 **Kraków variant:** “…w Krakowie” → `requestedCityOutOfScope: "Kraków"`, the rest of the intent preserved. UI: “We have no listings from Kraków. The same criteria in Gdańsk:” + results with the chip `Gdańsk (instead of Kraków)`.
 
@@ -209,7 +209,6 @@ Everything that decides the results (filters, ranking, medians, “what blocks�
 | Deduplication across agencies (UC7/W8) | grouping is a UI and data-model cost; the import report measures candidate pairs instead of assuming there are few ([design.md](design.md) §4.4) | “Grouping the same unit listed by several agencies; the import found {n} candidate pairs among {N} listings.” |
 | Scraper robustness ([scraping-plan.md](scraping-plan.md) §7) | one-off import | “With continuous crawling: response classification and an alert on a change in the `__NEXT_DATA__` structure.” |
 | Declension dictionary, FULLTEXT | with 150 records `LIKE` is enough | “At large scale: an ngram parser or a search engine with a Polish stemmer.” |
-| Multi-step refinement in the chat | UI and test cost | “A conversation that modifies the previous `SearchIntent`.” |
 | Median per (city, market) | n ≥ 30 realistically only in Gdańsk | “Price comparison within the primary and secondary market separately.” |
 
 ---

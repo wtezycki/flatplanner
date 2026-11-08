@@ -1579,11 +1579,26 @@ Anything outside these rules and the dossier is `unknown`.
 
 Kept as built: `GET /api/listings` (#4) and the listings page with filters (#5) as the secondary path. Changed: #6 details become a plain page with fields, description and a link to otodom (no provenance badges, no "Ask the seller"). Replaced: #7 → `ask` (16.2); #8 ranking → 16.2 steps 5–6; #12 "what blocks" → 16.2 step 6 (relaxations from verdicts, hard-filter counts only at zero candidates); #11 → dossier (16.1). Cut: the #12 `blockers` field and `Blockers.tsx`, #13 chips with removal, #14 ask the seller, medians, `why`, quality-flag UI.
 
-**New order:** #6′ minimal details → #11′ dossier (`nearby`, `export-dossiers`, agent run, `import-dossiers`) → #7′a `ask` backend (interpret, judge, verify, groups, relaxations) → #7′b UI (ui-spec §11) → #7′d judge context per need (16.8) → #7′e rank, then judge one window (16.9) → #9′ eval → #10 protection → #15 → #16 → #17.
+**New order:** #6′ minimal details → #11′ dossier (`nearby`, `export-dossiers`, agent run, `import-dossiers`) → #7′a `ask` backend (interpret, judge, verify, groups, relaxations) → #7′b UI (ui-spec §11) → #7′d judge context per need (16.8) → #7′e rank, then judge one window (16.9) → #7′c multi-turn conversation (16.5a) → #9′ eval → #10 protection → #15 → #16 → #17.
 
 **#11′ definition of done** (replaces the #11 row; the real price moves to #7′a, 16.2 step 7): `nearby_json` is filled for every listing; the report gives accepted and dropped risks per kind and the dropped share; demo listing 70 has an `extra_cost` risk of 40 000 zł and a `legal` risk (bank mortgage repaid from the price), listing 97 a `field_mismatch` on rooms and the New Synagogue in `nearby_json`; tests green.
 
 **Tests (§12, no LLM, no network):** `SearchIntentSchemaTests` for `needs`/`declined`; `EvidenceVerifierTests` (quote not in description, place index out of range, approximate location downgrade); grouping (`full`/`partial`/`near`/`unknown`/hidden) and relaxation counts from a fixed verdict table; `import-dossiers` risk validation (kind, quote not in description, amount not in quote or out of range); haversine. `tests/search-queries.json` holds the chat scenarios with the expected behaviour, run by `eval-intents` against the real model.
+
+### 16.5a Multi-turn conversation (planned, #7′c; decided 2026-11-06)
+
+After the first answer the buyer refines ("a w Gdyni?", "a coś bliżej morza?", "jednak bez parkingu"); today every question starts from nothing. This reverses the product-scope §8 cut "multi-step refinement". The points marked **[proposal]** are confirmed when #7′c starts.
+
+- **Stateless server [proposal]:** the request gains `history: string[]`, the previous user messages, oldest first, at most 4, each 1–300 characters; the server keeps no session. `excludeNeeds` applies to the last message.
+- **Interpret:** `prompts/search-intent.v6.md` (a new version file after the v5 of 16.9) receives the history and the message and returns the intent of the whole conversation; the output schema does not change. A refinement keeps earlier filters and needs unless the buyer withdraws them; "od nowa" starts clean. The fallback parser reads the last message only.
+- **Everything after interpretation is unchanged** (narrow, rank, judge one window, verify, group, relaxations; 16.9). Each turn costs one `ask`, so the cost is bounded by the turn limit.
+- **Limit [proposal]:** 5 turns per conversation (`history` ≤ 4). Over the limit the API answers `400` and the UI offers a restart (copy to be added to ui-spec §7 before it is built). Every turn counts for the rate limiter (section 8).
+- **Cache:** keyed by the folded `history` and message together; `excludeNeeds` as today. Logs never hold the messages (7.7), only the turn count.
+- **Guardrails (16.4)** apply to the whole conversation.
+- **UI [proposal]:** a thread of turns (bubble and reply as in ui-spec 11.5); the URL repeats `q` (`?q=…&q=…`, the last one is current), so refresh and "back" work; earlier replies stay on the page; the composer follows the last reply. New strings first in ui-spec §7.
+- **Not built:** sessions that outlive the page, reuse of verdicts between turns when the needs did not change, summarising long histories.
+- **Tests (§12, no LLM):** request validation (count, length), the cache key; refinement scenarios in `tests/search-queries.json` run by `eval-intents`.
+- **Definition of done [proposal]:** "2 pokoje w Gdańsku" then "a w Gdyni?" gives city Gdynia with the rooms kept; "jednak bez parkingu" drops that need; the 6th turn is rejected with `400`; tests green; the eval scenarios pass.
 
 ### 16.6 Demo listings (local import, 2026-11-05)
 

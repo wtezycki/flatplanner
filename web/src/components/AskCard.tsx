@@ -41,11 +41,11 @@ export default function AskCard({ item, labels, needs, excludeNeeds }: Props) {
               {ordered.map(({ need, result }) => {
                 const { icon, label } = verdictPresentation(result.verdict)
                 return (
-                  <li key={need} className={`verdict-pill verdict-pill--${result.verdict}`}>
+                  <li key={need} className={`verdict-pill verdict-pill--${result.verdict}`} title={need}>
                     <span role="img" aria-label={label}>
                       <Icon name={icon} />
                     </span>
-                    <span className="verdict-pill__text" title={need}>
+                    <span className="verdict-pill__text">
                       {need}
                     </span>
                   </li>

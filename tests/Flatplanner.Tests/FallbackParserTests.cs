@@ -22,4 +22,17 @@ public sealed class FallbackParserTests
 
         Assert.Empty(differences);
     }
+
+    [Theory]
+    [InlineData("mieszkanie 40 m", 40, null)]
+    [InlineData("mieszkanie ok. 40 m2", 40, null)]
+    [InlineData("mieszkanie do 60 m2", null, 60)]
+    [InlineData("mieszkanie maksymalnie 60 metrów", null, 60)]
+    public void ParseAsk_SingleArea_IsAMinimumUnlessItIsAnUpperLimit(string message, int? areaMin, int? areaMax)
+    {
+        var intent = IntentFallbackParser.ParseAsk(message, Meta);
+
+        Assert.Equal(areaMin, intent.AreaMin);
+        Assert.Equal(areaMax, intent.AreaMax);
+    }
 }

@@ -52,7 +52,7 @@ public sealed class EvalIntentsCommand(FlatplannerDbContext db, IOptions<Flatpla
     {
         try
         {
-            var intent = await interpreter.InterpretWithLlmAsync(query.Message, [], meta, cancellationToken);
+            var intent = await interpreter.InterpretWithLlmAsync(query.Message, query.History, meta, cancellationToken);
             return IntentComparison.Differences(query.Expected, intent, meta, checkModelParts: true);
         }
         catch (LlmException ex)

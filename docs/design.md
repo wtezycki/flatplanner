@@ -1274,37 +1274,49 @@ The `main` branch requires both jobs to pass before a squash merge. A `docker bu
   - an example JSON in camelCase deserializes via `LlmJsonClient.LlmJson` into a non-empty intent. The same test for the `listing_facts` schema.
 - **`FallbackParserTests`:** `[Theory]` over the queries from `tests/search-queries.json` with `"fallbackExpected": true`. The fallback must produce hard fields identical to `expected` (after `SearchIntentNormalizer`).
 
-**10 test queries, `tests/search-queries.json`** (rewritten for the ask interpretation, 16.2 step 1: the old file expected `SearchIntent` fields that `AskIntent` no longer has):
+**Test queries, `tests/search-queries.json`** (15, rewritten for the ask interpretation, 16.2 step 1: the old file expected `SearchIntent` fields that `AskIntent` no longer has; the first four are the baselines, the rest are life situations and follow-up conversations):
 
 ```json
 [
   { "id": "A", "message": "mieszkanie w Gdańsku 40-80 m2", "fallbackExpected": true,
     "expected": { "cities": ["gdansk"], "areaMin": 40, "areaMax": 80 } },
   { "id": "B", "message": "chcę ładne, tanie mieszkanie, 40 m w Gdańsku", "fallbackExpected": true,
-    "expected": { "cities": ["gdansk"], "areaMin": 35, "areaMax": 45 } },
+    "expected": { "cities": ["gdansk"], "areaMin": 40 } },
   { "id": "krakow", "message": "2 pokoje w Krakowie", "fallbackExpected": true,
     "expected": { "roomsMin": 2, "clarificationsMin": 1 } },
-  { "id": "studio-gdynia", "message": "kawalerka w Gdyni do 450 tys.", "fallbackExpected": true,
-    "expected": { "cities": ["gdynia"], "roomsMin": 1, "priceMax": 450000 } },
-  { "id": "trojmiasto-lift", "message": "3 pokoje w Trójmieście z windą, max 2 piętro", "fallbackExpected": true,
-    "expected": { "cities": ["gdansk", "gdynia", "sopot"], "roomsMin": 3, "needsMin": 1 } },
-  { "id": "house-garden", "message": "dom z ogrodem w Gdyni", "fallbackExpected": true,
-    "expected": { "cities": ["gdynia"], "needsMin": 1 } },
-  { "id": "private-sopot", "message": "mieszkanie w Sopocie od właściciela, bez pośredników", "fallbackExpected": true,
-    "expected": { "cities": ["sopot"], "needsMin": 1 } },
-  { "id": "primary-ground", "message": "nowe mieszkanie od dewelopera w Gdańsku, parter", "fallbackExpected": true,
-    "expected": { "cities": ["gdansk"], "needsMin": 1 } },
+  { "id": "ukraine-church", "message": "Jestem z Ukrainy i potrzebuję mieć blisko kościół (cerkiew), najlepiej na Oliwie do 800 tysięcy i blisko szkoły", "fallbackExpected": false,
+    "expected": { "cities": ["gdansk"], "priceMax": 800000, "needsMin": 3,
+      "needPlaces": ["amenity=place_of_worship|denomination=orthodox", "amenity=school"], "needTextContains": ["MSWiA"] } },
+  { "id": "night-shift-dog", "message": "Pracuję na nocną zmianę i śpię w dzień, mam małego psa. 3 pokoje w Gdyni, co najmniej 60 m, do 900 tys.", "fallbackExpected": true,
+    "expected": { "cities": ["gdynia"], "roomsMin": 3, "areaMin": 60, "priceMax": 900000, "needsMin": 2, "needPlaces": ["leisure=park"] } },
+  { "id": "wheelchair-sopot", "message": "Mama porusza się na wózku. Szukamy w Sopocie mieszkania na parterze albo z windą, bez progów, do 1,2 mln", "fallbackExpected": true,
+    "expected": { "cities": ["sopot"], "priceMax": 1200000, "needsMin": 1 } },
+  { "id": "sea-no-crowds", "message": "Sopot albo Gdynia, najlepiej blisko morza, ale z dala od zgiełku turystów, do 1 mln", "fallbackExpected": true,
+    "expected": { "cities": ["sopot", "gdynia"], "priceMax": 1000000, "needsMin": 2, "needPlaces": ["natural=beach"] } },
   { "id": "declined-area", "message": "2 pokoje w Gdańsku, ale tylko tam, gdzie nie mieszkają Ukraińcy", "fallbackExpected": true,
     "expected": { "cities": ["gdansk"], "roomsMin": 2, "declinedMin": 1 } },
   { "id": "city-from-place", "message": "blisko Opery Bałtyckiej, 2 pokoje do 700 tys.", "fallbackExpected": false,
-    "expected": { "cities": ["gdansk"], "roomsMin": 2, "priceMax": 700000 } }
+    "expected": { "cities": ["gdansk"], "roomsMin": 2, "priceMax": 700000 } },
+  { "id": "follow-city", "history": ["2 pokoje w Sopocie do 800 tys., blisko plaży"], "message": "sprawdź to samo w Gdyni", "fallbackExpected": false,
+    "expected": { "cities": ["gdynia"], "roomsMin": 2, "priceMax": 800000, "needsMin": 1, "needPlaces": ["natural=beach"] } },
+  { "id": "follow-budget-need", "history": ["mieszkanie w Gdańsku od 50 m, do 700 tys."], "message": "podnieśmy budżet do 850 tys. i potrzebuję miejsca w garażu", "fallbackExpected": false,
+    "expected": { "cities": ["gdansk"], "areaMin": 50, "priceMax": 850000, "needsMin": 1, "needTextContains": ["gara"] } },
+  { "id": "follow-withdraw", "history": ["2 pokoje w Gdyni do 650 tys., blisko szkoły i placu zabaw"], "message": "plac zabaw jednak nie jest ważny", "fallbackExpected": false,
+    "expected": { "cities": ["gdynia"], "roomsMin": 2, "priceMax": 650000, "needsMin": 1, "needsMax": 1, "needPlaces": ["amenity=school"] } },
+  { "id": "follow-reset", "history": ["4 pokoje w Gdańsku do 1,5 mln, blisko lasu"], "message": "od nowa: kawalerka w Sopocie do 400 tys.", "fallbackExpected": true,
+    "expected": { "cities": ["sopot"], "roomsMin": 1, "priceMax": 400000, "needsMax": 0 } },
+  { "id": "follow-district", "history": ["3 pokoje w Gdańsku do 950 tys."], "message": "najlepiej na Przymorzu", "fallbackExpected": false,
+    "expected": { "cities": ["gdansk"], "districts": ["gdansk:przymorze-male", "gdansk:przymorze-wielkie"], "roomsMin": 3, "priceMax": 950000 } },
+  { "id": "follow-three-turns", "history": ["mieszkanie w Gdyni", "co najmniej 55 m", "do 800 tys."], "message": "i blisko szpitala", "fallbackExpected": false,
+    "expected": { "cities": ["gdynia"], "areaMin": 55, "priceMax": 800000, "needsMin": 1, "needPlaces": ["amenity=hospital"] } }
 ]
 ```
 
-- **Hard fields:** `cities`, `districts`, `priceMax`, `areaMin`, `areaMax`, `roomsMin` (the `AskIntent` hard filters). A field absent from `expected` must have the default value (`null` / `[]`). They are compared after `SearchIntentNormalizer`, as the ask pipeline sees them: an approximate area ("40 m") is the 16.2 range (35–45), a city outside the three is `[]`.
-- **Model-written parts:** `needsMin`, `declinedMin` and `clarificationsMin` (default 0) are lower bounds on the number of `needs`, `declined` and `clarifications`, because their text is the model's. They are checked for the LLM only; the fallback produces none of them.
-- **Query match:** all hard fields equal (arrays as sets) and the lower bounds met. `fallbackExpected: true` means the fallback must also match the hard fields (`FallbackParserTests`); `false` means the query needs the model (a city that only a place name implies).
-- **Score:** `matching / 10`, counting the LLM column.
+- **Hard fields:** `cities`, `districts`, `priceMax`, `areaMin`, `areaMax`, `roomsMin` (the `AskIntent` hard filters). A field absent from `expected` must have the default value (`null` / `[]`). They are compared after `SearchIntentNormalizer`, as the ask pipeline sees them: a single size ("40 m") is `areaMin` only (R30), a city outside the three is `[]`.
+- **Model-written parts** (LLM only; the fallback produces none of them): `needsMin` and `needsMax` bound the number of `needs`; `declinedMin` and `clarificationsMin` (default 0) are lower bounds; `needPlaces` lists `tag` or `tag|extra` pairs that must appear in the places of some need (an Orthodox church is `amenity=place_of_worship|denomination=orthodox`); `needTextContains` lists fragments that must appear in some need text (after folding), used only where the prompt rule fixes the wording (a citizenship outside the EEA gives a need about the MSWiA permit).
+- **`history`:** the previous user messages, oldest first, passed to `IntentInterpreter` as in the `ask` request (16.5a). `expected` describes the intent of the whole conversation. The fallback reads the last message only, so a follow-up has `fallbackExpected: false`.
+- **Query match:** all hard fields equal (arrays as sets) and the model-written checks met. `fallbackExpected: true` means the fallback must also match the hard fields (`FallbackParserTests`); `false` means the query needs the model (a city that only a place name implies, a follow-up). The district `gdansk:przymorze-*` keys are the ones of the local import (there is no Oliwa district in it, so "na Oliwie" gives only the city, 16.2).
+- **Score:** `matching / N` (N = the number of queries), counting the LLM column.
 - Running: `dotnet run --project src/Flatplanner.Ingest -- eval-intents` (needs `OPENAI_API_KEY`). It calls `IntentInterpreter.InterpretWithLlmAsync` and `IntentFallbackParser.ParseAsk` from Core (the same code as in Api, without `CHAT_MODE`), with `meta` from the local database. It prints the prompt version and model, the table `id | LLM ok? | fallback ok? | differences` (the fallback column says `FAIL` when the result differs from `fallbackExpected`) and the score. The score goes into the README and the 1-pager as an offline metric (a proxy of the success metric).
 - `PlaceLabels` (the OSM tag list the interpret schema needs) and `IntentFallbackParser.ParseAsk` (fallback result as `AskIntent`) live in Core so that Ingest can run the same code as Api (section 2).
 
@@ -1382,6 +1394,7 @@ Places where earlier documents or data allowed two variants, and the variant ado
 | R27 | Range bounds (`SearchDefinitions.PriceMin`…`FloorMax`) in `SearchIntentNormalizer`; list card content (user review, 2026-11-08) | The normalizer no longer clips ranges: `priceMin=100` filters, `areaMax=450` filters, no warning. The form validates per field (not a number, not an integer, negative, from > to) with a red field and a message under it, and does not send a range with an error. `ListingItem` gains `buildYear?`, `finishCondition?`, `ownership?`, `hasLift?`, `hasBalcony?`, `hasGarage?`, `hasBasement?`, `riskKinds` (distinct kinds from `risks_json`), `nearbyStop?` / `nearbyPark?` (nearest within 800 m, only with an exact location) and `belowMedianPercent?` (≥ 10% below the city median of `price_per_m2` without `price_outlier`, city group ≥ 10, rounded to 100 zł as in 7.4; no Tricity fallback). The card shows them as icon facts and pills; the photo is a link. Filters added to the panel and `SearchIntent` (URL parameters of the same names, chips like “rok budowy 2000–2010”, “z garażem”): `buildYearMin/Max`, `pricePerM2Min/Max`, `rentMin/Max`, `finishConditions`, `ownerships`, `buildingTypes`, `heatings`, `buildingMaterials` (repeatable, several values at once), `requireGarage`, `requireBasement`; the LLM does not set them. The details response gains `priceOutlier` and `risks` (the verified dossier risks: `kind`, `reason`, `quote`, `amountPln?`), shown in a risk box on the details page; card pills carry explanatory tooltips; the pagination buttons are chevron icons. Numeric fields accept only digits (and a separator for the area), so a negative value cannot be typed. Not added: a freshness filter (the data is a one-off import, so “last N days” would empty out over time) and a “without risks” filter (every listing carries `field_mismatch`, so its meaning needs a decision) | A bound below the minimum is an empty constraint and above the maximum a harmless one; the limits only dropped valid input (100 zł, a 320 m² flat). The list card showed only market and an approximate-location pill, none of what a buyer weighs first: risks, amenities, condition, price against the city, transit |
 | R28 | Chat-first layout (user decision 2026-11-08) | The chat is the landing page `/`, the classic list with filters and text search is `/listings`, and a header switch (sparkles “Czat AI” / list “Lista”) moves between them; the filter panel leaves the chat page (the `ask` endpoint still accepts the list filter parameters, the chat UI sends none). `/listings` no longer redirects to `/`; `/listings/:id` redirects to `/listings?listing=<id>`. Reverses R26's one screen and the classic-list part of R25. The chat page is a thread (multi-turn, 16.5a: the URL repeats `q`, `history` goes with every turn, older results fold, 5 turns at most) with a docked composer, and the answer streams in two stages (16.5b); the UI sends no filter parameters | the chat is the product's main element; the list is the secondary path and should look good on its own |
 | R29 | Ask results after review of the chat (user decision 2026-11-08) | `AskItem` wraps the `ListingItem` of the list; the tile is the list card in two columns with the need pills and a short “Dlaczego pasuje”; the AI summary box, the risk list and the approximate-location text pill leave the tile; group headings are coloured bars with counts; the assistant avatar is the logo. `prompts/search-intent.v7.md`: a named place that exists in one city only (Politechnika Gdańska, Uniwersytet Gdański, Molo…) implies that city and no question is asked; `prompts/listing-judge.v3.md`: `reason` at most 10 words, empty for `unknown`. `PlaceLabels` shows a city centre as “centrum miasta” instead of the city's name | a buyer asking for “blisko politechniki” was asked which city to search although the polytechnic exists only in Gdańsk; the tiles carried a summary, reasons, evidence, risks and a text pill per listing and were hard to scan; “Gdańsk · 338 m” read like a distance to the city |
+| R30 | A single size is a minimum (user decision 2026-11-08) | In the ask pipeline "40 m", "ok. 40 m" and "co najmniej 40 m" give `areaMin` only; `areaMax` comes only from an explicit upper limit ("do 60 m", "40–60 m"). `prompts/search-intent.v8.md` replaces v7, and `IntentFallbackParser.ParseAsk` maps a single size to `areaMin` and "do/max/poniżej N m" to `areaMax`. The classic list keeps `areaApprox` with its ±12% range (R3) for its own URL parameter | A buyer who names a size wants at least that much; a flat 5 m² smaller is not an answer. The chat no longer produces `areaApprox`, so R3 now matters only for the classic list URL |
 
 ### 14.2 Technical decisions
 
@@ -1553,7 +1566,7 @@ Response `200`:
 Evidence `label`s are built by code from the dossier, never taken from the model. Serialization rule (§6) applies.
 
 **Contract details (#7′a, agreed 2026-11-06):**
-- Interpret output (`AskIntent` in Core, schema `search_intent` from `SearchIntentSchema.Build(meta)`): `cities`, `districts`, `priceMax`, `areaMin`, `areaMax`, `roomsMin`, `needs` (code keeps the first 4), `declined: [{ text, reason }]`, `clarifications: string[]` (at most 2 model-written Polish remarks: an inconsistent need, 16.4, or a city we do not have). "ok. 40 m" becomes the 7.4 range in the prompt; the fallback parser keeps only the rules for these filters (`IntentFallbackParser`, `FallbackDictionaries`; `KeywordRules` and the rest of the 7.7 table are not built).
+- Interpret output (`AskIntent` in Core, schema `search_intent` from `SearchIntentSchema.Build(meta)`): `cities`, `districts`, `priceMax`, `areaMin`, `areaMax`, `roomsMin`, `needs` (code keeps the first 4), `declined: [{ text, reason }]`, `clarifications: string[]` (at most 2 model-written Polish remarks: an inconsistent need, 16.4, or a city we do not have). a single size ("40 m", "ok. 40 m") is a minimum: `areaMin` without `areaMax` (R30); the fallback parser keeps only the rules for these filters (`IntentFallbackParser`, `FallbackDictionaries`; `KeywordRules` and the rest of the 7.7 table are not built).
 - `summary` is built by code: the hard-filter chip labels (`InterpretationBuilder`) and the `needs`, joined with ` · `.
 - `notices: [{ code, text }]`: `clarify` (each `clarifications` entry), `ai_unavailable` (interpret fallback, ui-spec 11.3), `judge_failed` (a judge batch failed, ui-spec 11.3). The response carries `fallbackReason` (7.7 values) when `usedFallback`.
 - Item (R29): `listing` (the `ListingItem` of 6.1, so the tile shows what the list card shows), `group`, `needs`, `totalWithExtrasPln?`. The risks and the AI summary are no longer part of the item: the risk kinds are in `listing.riskKinds` and the full risks in the details response.

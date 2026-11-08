@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import type { MouseEvent, PointerEvent } from 'react'
+import Icon from './Icon.tsx'
 import { Link } from 'react-router'
 import type { To } from 'react-router'
 
@@ -120,7 +121,7 @@ export default function PhotoCarousel({ urls, onOpen, href }: Props) {
             disabled={current === 0}
             onClick={() => show(current - 1)}
           >
-            ‹
+            <Icon name="chevronLeft" />
           </button>
           <button
             className="gallery__nav gallery__nav--next"
@@ -129,7 +130,7 @@ export default function PhotoCarousel({ urls, onOpen, href }: Props) {
             disabled={current === photos.length - 1}
             onClick={() => show(current + 1)}
           >
-            ›
+            <Icon name="chevronRight" />
           </button>
           <span className="gallery__counter num">
             {current + 1} / {photos.length}

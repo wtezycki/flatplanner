@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router'
 import { metaQuery, threadQuery } from '../api.ts'
+import ChatHelp from '../components/ChatHelp.tsx'
 import ChatTurn from '../components/ChatTurn.tsx'
 import Composer from '../components/Composer.tsx'
 import Icon from '../components/Icon.tsx'
@@ -80,6 +81,7 @@ export default function AskPage() {
             autoFocus
             onSubmit={ask}
           />
+          <ChatHelp />
         </div>
       </div>
     )
@@ -103,6 +105,7 @@ export default function AskPage() {
           <button className="dock__new" type="button" aria-label="Nowa rozmowa" title="Nowa rozmowa" onClick={() => setTurns([])}>
             <Icon name="newChat" />
           </button>
+          <ChatHelp compact />
           {limitReached ? (
             <p className="dock__limit">Rozmowa może mieć najwyżej {maxTurns} pytań. Zacznij nową.</p>
           ) : (

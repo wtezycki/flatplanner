@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -11,6 +12,9 @@ public sealed class EvalJudgeCommand : IDisposable
     private const string ApiUrl = "http://localhost:5080";
     private const string ReportDirectory = "data/eval";
     private const int MaxWindows = 5;
+    private const string EventPrefix = "event: ";
+    private const string DataPrefix = "data: ";
+    private static readonly TimeSpan DefaultRetryAfter = TimeSpan.FromSeconds(60);
 
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
@@ -67,15 +71,55 @@ public sealed class EvalJudgeCommand : IDisposable
     {
         try
         {
-            using var response = await http.PostAsJsonAsync("/api/search/ask", new { message, more }, Json, cancellationToken);
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<AskAnswer>(Json, cancellationToken)
-                ?? throw new InvalidDataException("The ask response is empty.");
+            while (true)
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Post, "/api/search/ask/stream")
+                {
+                    Content = JsonContent.Create(new { message, more }, options: Json),
+                };
+                using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                if (response.StatusCode == HttpStatusCode.TooManyRequests)
+                {
+                    await Task.Delay(response.Headers.RetryAfter?.Delta ?? DefaultRetryAfter, cancellationToken);
+                    continue;
+                }
+
+                response.EnsureSuccessStatusCode();
+                return await ReadResultsAsync(response, cancellationToken);
+            }
         }
         catch (HttpRequestException ex)
         {
             throw new InvalidOperationException($"The API at {ApiUrl} did not answer; start it with CHAT_MODE=llm.", ex);
         }
+    }
+
+    private static async Task<AskAnswer> ReadResultsAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        using var reader = new StreamReader(await response.Content.ReadAsStreamAsync(cancellationToken));
+        var eventName = "";
+        while (await reader.ReadLineAsync(cancellationToken) is { } line)
+        {
+            if (line.StartsWith(EventPrefix, StringComparison.Ordinal))
+            {
+                eventName = line[EventPrefix.Length..];
+            }
+            else if (line.StartsWith(DataPrefix, StringComparison.Ordinal))
+            {
+                if (eventName == "error")
+                {
+                    throw new InvalidDataException("The ask stream reported an error.");
+                }
+
+                if (eventName == "results")
+                {
+                    return JsonSerializer.Deserialize<AskAnswer>(line[DataPrefix.Length..], Json)
+                        ?? throw new InvalidDataException("The results event is empty.");
+                }
+            }
+        }
+
+        throw new InvalidDataException("The ask stream ended without results.");
     }
 
     private static JudgeResult Evaluate(string caseId, JudgeExpectation expectation, AskAnswer answer)

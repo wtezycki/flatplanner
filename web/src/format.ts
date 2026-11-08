@@ -31,6 +31,14 @@ export function formatFloor(floor: number, buildingFloors: number | undefined, h
   return buildingFloors === undefined ? label : `${label}/${buildingFloors}`
 }
 
+const NEW_LISTING_DAYS = 7
+const DAY_MS = 24 * 60 * 60 * 1000
+
+export const isNewListing = (createdAtSource: string) =>
+  Date.now() - new Date(createdAtSource).getTime() < NEW_LISTING_DAYS * DAY_MS
+
+export const formatBelowMedian = (percent: number) => `${percent}% poniżej mediany miasta`
+
 export const formatDate = (iso: string) => new Date(iso).toLocaleDateString('pl-PL')
 
 export function formatDetailFloor(

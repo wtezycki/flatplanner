@@ -79,6 +79,17 @@ export interface ListingItem {
   createdAtSource: string
   locationApproximate: boolean
   priceOutlier: boolean
+  buildYear?: number
+  finishCondition?: string
+  ownership?: string
+  hasLift?: boolean
+  hasBalcony?: boolean
+  hasGarage?: boolean
+  hasBasement?: boolean
+  riskKinds: string[]
+  nearbyStop?: string
+  nearbyPark?: string
+  belowMedianPercent?: number
 }
 
 export interface SearchWarning {

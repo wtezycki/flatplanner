@@ -498,10 +498,10 @@ Common rules:
 |---|---|---|
 | `cities` (repeatable) | string | slug from `/api/meta`; an unknown one is removed with a warning |
 | `districts` (repeatable) | string `"{citySlug}:{districtSlug}"` | must exist in the data |
-| `priceMin`, `priceMax` | int (PLN) | 10 000–20 000 000; min > max → swap |
-| `areaMin`, `areaMax`, `areaApprox` | decimal with a **dot** | 10–300; the frontend replaces the comma with a dot before sending |
-| `roomsMin`, `roomsMax` | int | 1–10 |
-| `floorMin`, `floorMax` | int | −1–40 |
+| `priceMin`, `priceMax` | int (PLN) | min > max → swap; no bounds (R27) |
+| `areaMin`, `areaMax`, `areaApprox` | decimal with a **dot** | min > max → swap; `areaApprox` ≤ 0 → removed; the frontend replaces the comma with a dot before sending |
+| `roomsMin`, `roomsMax` | int | min > max → swap |
+| `floorMin`, `floorMax` | int | min > max → swap |
 | `market` | string | `primary`/`secondary` |
 | `advertiserType` | string | `agency`/`private` |
 | `requireLift`, `requireBalcony` | bool | only `true` filters |
@@ -512,7 +512,7 @@ Common rules:
 | `sort` | string | 3.3; default `relevance` when `preferences` is non-empty, otherwise `newest` |
 | `page` | int ≥ 1 | default 1; > `totalPages` → last page (UC1) |
 
-A type error (e.g. `priceMin=abc`) → `400`. A semantically wrong value (unknown slug, number outside the range) is removed, and the reason goes to `interpretation.warnings`. One normalization path serves the form, the LLM and the fallback.
+A type error (e.g. `priceMin=abc`) → `400`. A semantically wrong value (unknown slug) is removed, and the reason goes to `interpretation.warnings`; numeric ranges are not clipped (R27). One normalization path serves the form, the LLM and the fallback.
 
 **Pagination: offset, `pageSize = 20` (a constant, not a parameter).** With ~150 rows the cost of `OFFSET` is zero. Offset gives numbered pages and a stable URL `?page=3`, which UC1 requires. Keyset rejected: it complicates sorting by the computed `relevance` and does not allow a jump to page N.
 
@@ -537,7 +537,9 @@ The list response does **not** echo the intent. The URL is the single source of 
       "floor": 4, "floorHigherThan10": false, "buildingFloors": 6, "citySlug": "gdansk", "cityName": "Gdańsk",
       "districtName": "Letnica", "imageUrls": ["https://ireland.apollo.olxcdn.com/v1/files/.../image;s=655x491;q=80"],
       "market": "secondary", "createdAtSource": "2026-11-04T07:49:54Z",
-      "locationApproximate": false, "priceOutlier": false
+      "locationApproximate": false, "priceOutlier": false,
+      "buildYear": 2021, "finishCondition": "ready_to_use", "hasLift": true, "hasBalcony": true,
+      "riskKinds": ["extra_cost"], "nearbyStop": "przystanek tramwajowy · 120 m", "belowMedianPercent": 14
     }
   ],
   "page": 1, "pageSize": 20, "total": 54, "totalPages": 3, "sort": "newest",
@@ -565,7 +567,7 @@ The list response does **not** echo the intent. The URL is the single source of 
 "notices":  [ { "code": "rent_out_of_scope", "text": "We only have flats for sale, no rentals.",
                 "actionLabel": "Show sale listings", "remove": { "outOfScope": "rent" } },
               { "code": "metro_not_available", "text": "There is no metro in Tricity. ..." } ],
-"warnings": [ { "field": "priceMax", "message": "Price of 5 000 zł omitted: outside the range 10 000–20 000 000 zł." } ]
+"warnings": [ { "field": "districts", "message": "Unknown district omitted." } ]
 ```
 
 - `notices[].actionLabel` and `notices[].remove` are present together or omitted together; a notice without them has no button;
@@ -802,13 +804,13 @@ Built in code (`SearchIntentSchema.Build(meta)`), because the city and district 
 
 ### 7.3 `SearchIntentNormalizer.Normalize` (code decides, the model only translates)
 
-Steps in this order. A message goes to `warnings` **only when the normalizer removes, clips or replaces a value the user (or the model) gave**: an unknown slug, a value outside its range, a district outside the selected cities, an invalid `requestedCityOutOfScope`, a dropped `areaApprox`. Silent housekeeping produces no warning: reordering cities, filling `cities` from districts, the default city for an out-of-scope city (that one is already explained by the `city_out_of_scope` notice), swapping min > max.
+Steps in this order. A message goes to `warnings` **only when the normalizer removes, clips or replaces a value the user (or the model) gave**: an unknown slug, a district outside the selected cities, an invalid `requestedCityOutOfScope`, a dropped `areaApprox`. Silent housekeeping produces no warning: reordering cities, filling `cities` from districts, the default city for an out-of-scope city (that one is already explained by the `city_out_of_scope` notice), swapping min > max.
 
 1. `cities`: only slugs from `meta`, without duplicates, in the order gdansk, gdynia, sopot.
 2. `districts`: only existing keys. When `cities` is non-empty, remove districts outside those cities. When `cities` is empty but districts are present, set `cities` = the cities of those districts.
 3. `requestedCityOutOfScope`: trim; must match `^\p{L}[\p{L} \-]{1,39}$` (just a city name, no digits or special characters), otherwise `null`. This value from the URL ends up in a UI message, so the validation blocks links with arbitrary text on the demo domain. If set and `cities` is empty → `cities = [meta.DefaultCitySlug]` (`gdansk`, the largest part of the data).
-4. Ranges: min > max → swap. Values outside the ranges from 6.1 → `null`.
-5. `areaApprox` together with `areaMin`/`areaMax` → the explicit range wins, `areaApprox = null`.
+4. Ranges: min > max → swap. No other bounds (R27).
+5. `areaApprox` ≤ 0 → `null`. `areaApprox` together with `areaMin`/`areaMax` → the explicit range wins, `areaApprox = null`.
 6. `market`, `advertiserType` outside the enum → `null`.
 7. `preferences`, `outOfScope`: filter to allowed values, without duplicates, canonical order from 3.3.
 8. `text`: trim, max. 100 characters, empty → `null`.
@@ -1258,6 +1260,8 @@ The `main` branch requires both jobs to pass before a squash merge. A `docker bu
   - from §13 #4: no `:null` in the list response; from #6: no `:null` in the details response, `imageUrls` always present;
   - from #12: `blockers` absent when not computed and `[]` when computed with no helpful removal;
   - from #13: `"remove":{"areaMin":null,...}` keeps `null` inside the map.
+- **`SearchIntentNormalizerTests`:** price and area outside the former bounds are kept without a warning; min > max is swapped silently.
+- **`CardSignalsTests`:** median rounding, the below-median threshold, risk kinds distinct in canonical order, nearest stop and park within 800 m and none with an approximate location.
 - **`SearchIntentSchemaTests`:**
   - the schema from `SearchIntentSchema.Build` has every object field in `required` and `additionalProperties: false` on every object (OpenAI strict rules; an error here gives a 400 on production);
   - the set of schema fields = the `SearchIntent` properties (in camelCase) minus `text`, which protects against the record and the schema drifting apart;
@@ -1367,6 +1371,7 @@ Places where earlier documents or data allowed two variants, and the variant ado
 | R24 | More details fields (#6 review) | Four more otodom fields on `listings` and in `ListingDetail`: `heating`, `building_type`, `windows_type`, `building_material` (migration `BuildingCharacteristics`), with labels in `/api/meta.enums`, shown as parameter rows on the details page. Values are the ones seen in the import; any other value gives NULL + `unknown_value:<column>` | the brief leaves the choice of data to us, and these four have the best coverage in the import (heating 183, building type 175, windows 151, material 120 of 198). Not added: free-from date (71), media, security, equipment, energy certificate (too sparse or too heterogeneous). `normalize` must be re-run and the dump refreshed (11.4) |
 | R25 | Ask page routes and states (#7′b) | `/` is one workspace (ui-spec 11.5): a chat column and a results panel; `?q=<message>` is the question (`excludeNeeds` stays in component state), `?listing=<id>` opens the details in the panel and `?view=classic` the classic list with filters ("Wolisz klasyczne filtry?"); `/listings` and `/listings/:id` redirect there. The header stays the white top bar; the page is a split view of chat and results, with no hero and no example chips (user decision 2026-11-06). A failed `ask` request is shown under the field, and the same message submitted again re-sends the request. Hard-filter relaxations are listed as text, not buttons (16.2 contract details) | the pivot made the chat the entry point; the classic list stays as the secondary path (16.5) |
 | R26 | Ask page layout after review of #7′b (user decision 2026-11-06) | One screen instead of a chat column and a separate classic view: the AI search bar on top, the filter panel on the left and the results on the right (ui-spec 11.5). Without `q` the results are the classic list (`GET /api/listings`); with `q` they are the `ask` results, and the filter panel narrows them: `POST /api/search/ask` takes the `GET /api/listings` filter parameters in its query string and keeps only the evaluated candidates that pass `ListingFilters.Apply` (16.2), so narrowing reuses the cached evaluation and costs no LLM call. `?view=classic` and „Wolisz klasyczne filtry?” are dropped; `/listings` redirects to `/` with its filter parameters. The bar keeps the current question for editing; „×” in the bar or an empty submit clears `q`. Need chips carry a remove button that re-sends the question with that need in `excludeNeeds`; „Przywróć wszystkie warunki” clears the exclusions. Tiles show the verdicts as one row of pills and the AI summary clamped to two lines; reasons, evidence and risks move into collapsed blocks of the tile. The listing details (`?listing=<id>`) still replace the screen | the chat column took a third of the screen for one question and one answer, AI and filters were two separate screens, and the tiles were walls of text; AI search in property portals (Zillow, Redfin, Rightmove, Airbnb) sits in the search bar next to the filters. The filters narrow only within the AI candidates, so a filter outside the interpreted hard filters gives an empty list; a cache miss (restart, fallback, failed judge batch) re-runs the pipeline. Every filter change is an `ask` request, which #10 rate limiting must allow for. Supersedes the layout and `?view=classic` parts of R25; the 16.5 cut of "#13 chips with removal" concerned the classic intent chips |
+| R27 | Range bounds (`SearchDefinitions.PriceMin`…`FloorMax`) in `SearchIntentNormalizer`; list card content (user review, 2026-11-08) | The normalizer no longer clips ranges: `priceMin=100` filters, `areaMax=450` filters, no warning. The form validates per field (not a number, not an integer, negative, from > to) with a red field and a message under it, and does not send a range with an error. `ListingItem` gains `buildYear?`, `finishCondition?`, `ownership?`, `hasLift?`, `hasBalcony?`, `hasGarage?`, `hasBasement?`, `riskKinds` (distinct kinds from `risks_json`), `nearbyStop?` / `nearbyPark?` (nearest within 800 m, only with an exact location) and `belowMedianPercent?` (≥ 10% below the city median of `price_per_m2` without `price_outlier`, city group ≥ 10, rounded to 100 zł as in 7.4; no Tricity fallback). The card shows them as icon facts and pills; the photo is a link | A bound below the minimum is an empty constraint and above the maximum a harmless one; the limits only dropped valid input (100 zł, a 320 m² flat). The list card showed only market and an approximate-location pill, none of what a buyer weighs first: risks, amenities, condition, price against the city, transit |
 
 ### 14.2 Technical decisions
 

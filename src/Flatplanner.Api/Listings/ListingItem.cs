@@ -17,4 +17,15 @@ public sealed record ListingItem(
     string Market,
     DateTime CreatedAtSource,
     bool LocationApproximate,
-    bool PriceOutlier);
+    bool PriceOutlier,
+    int? BuildYear,
+    string? FinishCondition,
+    string? Ownership,
+    bool? HasLift,
+    bool? HasBalcony,
+    bool? HasGarage,
+    bool? HasBasement,
+    IReadOnlyList<string> RiskKinds,
+    string? NearbyStop,
+    string? NearbyPark,
+    int? BelowMedianPercent);

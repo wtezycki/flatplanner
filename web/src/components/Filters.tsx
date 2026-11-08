@@ -49,12 +49,61 @@ function formFromIntent(intent: SearchIntent): FilterForm {
   }
 }
 
-function numberValue(raw: string, integer: boolean): string | undefined {
-  const value = Number(raw.replace(/\s/g, '').replace(',', '.'))
-  if (!raw.trim() || !Number.isFinite(value) || (integer && !Number.isInteger(value))) {
-    return undefined
+interface RangeSpec {
+  field: RangeField
+  integer: boolean
+  allowNegative: boolean
+}
+
+const RANGE_SPECS: RangeSpec[] = [
+  { field: 'price', integer: true, allowNegative: false },
+  { field: 'area', integer: false, allowNegative: false },
+  { field: 'rooms', integer: true, allowNegative: false },
+  { field: 'floor', integer: true, allowNegative: true },
+]
+
+const RANGE_ERRORS = {
+  notNumber: 'Wpisz liczbę.',
+  notInteger: 'Wpisz liczbę całkowitą.',
+  negative: 'Wartość nie może być ujemna.',
+  order: 'Wartość „od” nie może być większa niż „do”.',
+}
+
+interface RangeIssue {
+  message: string
+  min: boolean
+  max: boolean
+}
+
+function parseBound(raw: string, spec: RangeSpec): { value?: number; message?: string } {
+  const text = raw.replace(/\s/g, '').replace(',', '.')
+  if (!text) {
+    return {}
   }
-  return String(value)
+  const value = Number(text)
+  if (!Number.isFinite(value)) {
+    return { message: RANGE_ERRORS.notNumber }
+  }
+  if (spec.integer && !Number.isInteger(value)) {
+    return { message: RANGE_ERRORS.notInteger }
+  }
+  if (value < 0 && !spec.allowNegative) {
+    return { message: RANGE_ERRORS.negative }
+  }
+  return { value }
+}
+
+function parseRange(form: FilterForm, spec: RangeSpec) {
+  const min = parseBound(form[`${spec.field}Min`], spec)
+  const max = parseBound(form[`${spec.field}Max`], spec)
+  const message = min.message ?? max.message
+  let issue: RangeIssue | undefined
+  if (message) {
+    issue = { message, min: min.message !== undefined, max: max.message !== undefined }
+  } else if (min.value !== undefined && max.value !== undefined && min.value > max.value) {
+    issue = { message: RANGE_ERRORS.order, min: true, max: true }
+  }
+  return { min: min.value, max: max.value, issue }
 }
 
 function applyFilters(searchParams: URLSearchParams, form: FilterForm): URLSearchParams {
@@ -72,20 +121,16 @@ function applyFilters(searchParams: URLSearchParams, form: FilterForm): URLSearc
   for (const district of form.districts) {
     next.append('districts', district)
   }
-  const numbers: [string, string, boolean][] = [
-    ['priceMin', form.priceMin, true],
-    ['priceMax', form.priceMax, true],
-    ['areaMin', form.areaMin, false],
-    ['areaMax', form.areaMax, false],
-    ['roomsMin', form.roomsMin, true],
-    ['roomsMax', form.roomsMax, true],
-    ['floorMin', form.floorMin, true],
-    ['floorMax', form.floorMax, true],
-  ]
-  for (const [param, raw, integer] of numbers) {
-    const value = numberValue(raw, integer)
-    if (value !== undefined) {
-      next.set(param, value)
+  for (const spec of RANGE_SPECS) {
+    const { min, max, issue } = parseRange(form, spec)
+    if (issue) {
+      continue
+    }
+    if (min !== undefined) {
+      next.set(`${spec.field}Min`, String(min))
+    }
+    if (max !== undefined) {
+      next.set(`${spec.field}Max`, String(max))
     }
   }
   if (form.market) {
@@ -127,6 +172,9 @@ interface RangeProps {
 function Range({ legend, label, field, form, onChange, inputProps, hint }: RangeProps) {
   const minKey = `${field}Min` as const
   const maxKey = `${field}Max` as const
+  const errorId = useId()
+  const spec = RANGE_SPECS.find((candidate) => candidate.field === field)
+  const issue = spec ? parseRange(form, spec).issue : undefined
   return (
     <fieldset className="filters__group">
       <legend>{legend}</legend>
@@ -136,6 +184,8 @@ function Range({ legend, label, field, form, onChange, inputProps, hint }: Range
           aria-label={`${label} od`}
           placeholder="od"
           value={form[minKey]}
+          aria-invalid={issue?.min || undefined}
+          aria-describedby={issue ? errorId : undefined}
           onChange={(event) => onChange({ [minKey]: event.target.value })}
           {...inputProps}
         />
@@ -144,10 +194,17 @@ function Range({ legend, label, field, form, onChange, inputProps, hint }: Range
           aria-label={`${label} do`}
           placeholder="do"
           value={form[maxKey]}
+          aria-invalid={issue?.max || undefined}
+          aria-describedby={issue ? errorId : undefined}
           onChange={(event) => onChange({ [maxKey]: event.target.value })}
           {...inputProps}
         />
       </div>
+      {issue && (
+        <p id={errorId} className="filters__error">
+          {issue.message}
+        </p>
+      )}
       {hint && <p className="filters__hint">{hint}</p>}
     </fieldset>
   )
@@ -332,7 +389,7 @@ function FilterFields({ meta, intent }: FieldsProps) {
         field="rooms"
         form={form}
         onChange={patchText}
-        inputProps={{ type: 'number', min: 1, max: 10 }}
+        inputProps={{ type: 'number', min: 1 }}
       />
       <Range
         legend="Piętro"
@@ -340,7 +397,7 @@ function FilterFields({ meta, intent }: FieldsProps) {
         field="floor"
         form={form}
         onChange={patchText}
-        inputProps={{ type: 'number', min: -1, max: 40 }}
+        inputProps={{ type: 'number', min: -1 }}
       />
 
       <Radios

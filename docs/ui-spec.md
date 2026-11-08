@@ -246,12 +246,15 @@ Order of blocks (each only when non-empty), 8 px spacing:
 Left: “{total} {listing|listings}” (`--fw-semibold`). Right: `<label>Sort</label> <select>` with `meta.enums.sort`; the `relevance` option is visible only with non-empty `intent.preferences`; value = `response.sort`; a change saves the URL immediately (without `page`).
 
 ### 5.6 `ListingCard`
-The whole is a single `<Link to="/listings/{id}">` (`.card`), white background, 1 px `--color-border` outline, `--radius-md`, overflow hidden. Hover: `--shadow-md`, outline `--color-border-strong`. Focus: focus ring on the whole card. Desktop: `grid-template-columns: 240px 1fr`, photo 240×180 `object-fit: cover`; ≤ 640 px: photo on top, `aspect-ratio: 16/9`. Content: 16 px padding, 4 px spacing. Hierarchy:
+The whole is a single `<Link to="/listings/{id}">` (`.card`; the photo is a link too, so the middle button and ctrl-click open a new tab), white background, 1 px `--color-border` outline, `--radius-md`, overflow hidden. Hover: `--shadow-md`, outline `--color-border-strong`. Focus: focus ring on the whole card. Desktop: `grid-template-columns: 240px 1fr`, photo 240×180 `object-fit: cover`; ≤ 640 px: photo on top, `aspect-ratio: 16/9`. Content: 16 px padding, 4 px spacing. Hierarchy:
 1. `pricePln` (`--fs-xl`, `--fw-bold`, `.num`) + `pricePerM2` “19 087 zł/m²” (`--fs-sm`, secondary) on one line;
-2. parameters: “41,86 m² · 2 rooms · floor 4/6” (`--fs-md`); floor per §7.3; no `floor` → omitted;
+2. parameters: “41,86 m² · 2 rooms · floor 4/6 · 2021” with icons (`--fs-md`); floor per §7.3; no `floor` or `buildYear` → omitted;
 3. location: “{districtName}, {cityName}” (without a district: the city alone), secondary;
 4. `title`: `--fs-sm`, secondary, one line with `text-overflow: ellipsis`;
-5. badges (`.badge` neutral, `--fs-xs`): `market` label from meta; “approximate location” with `locationApproximate`; with `priceOutlier` a warning badge “unusual price, check the description”;
+5. facts and pills, in two rows after the title (all `.badge`, `--fs-xs`, with a 14 px icon; a fact missing in the data is omitted, never shown as „brak”):
+   - signals: a `danger` pill per `riskKinds` entry (label from §7.2), the `priceOutlier` warning pill “unusual price, check the description”, a `positive` pill “{X}% below the city median” with `belowMedianPercent`, `nearbyStop` and `nearbyPark` verbatim;
+   - features: `positive` “new listing” for `createdAtSource` younger than 7 days, “Lift” / “Balcony” / “Garage” / “Basement” only when `true`, the `finishCondition` label, the `ownership` label only for `limited_ownership`, the `market` label.
+   The parameters line (2) carries an icon per fact (area, rooms, floor, `buildYear`); the location line (3) a pin icon, and with `locationApproximate` a “≈” marker with a tooltip instead of a pill;
 6. **“Why here”** only when `why` is present (`why != null`; omitted fields are `undefined`) (relevance mode): block with background `--green-50`, `border-left: 3px solid var(--green-500)`, padding `4px 8px`, `--fs-sm`, text `--color-text`; prefix “Why here: ” `--fw-semibold`; `why` displayed verbatim.
 
 Photo: `<img loading="lazy" referrerPolicy="no-referrer" alt="">` (decorative, because the title is in the card). No `imageUrl` or `onError` → a `--color-surface` block with the text “No photo” (secondary, centred).
@@ -331,7 +334,8 @@ Inline, height 20 px, padding `0 6px`, `--radius-sm`, `--fs-xs`, `--fw-semibold`
 | buttons | „Szukaj”, „Zapytaj”, „Wyczyść filtry”, „Spróbuj ponownie”, „Zobacz na otodom ↗”, „‹ Wróć do wyników” |
 | filters (legends) | „Miasto”, „Dzielnica”, „Cena (zł)”, „Powierzchnia (m²)”, „Pokoje”, „Piętro”, „Rynek”, „Ogłaszający”, „Udogodnienia”; fields „od” / „do”; radio „dowolny”; checkboxes „Tylko z windą”, „Tylko z balkonem”; hint „Oferty bez tej informacji zostaną pominięte.”; „Wybierz miasto, aby zobaczyć dzielnice.” |
 | results bar | „{n} {oferta/oferty/ofert}”, „Sortuj” |
-| card | „Dlaczego tutaj:”, „Brak zdjęcia”, „lokalizacja przybliżona”, „nietypowa cena, sprawdź opis” |
+| card | „Dlaczego tutaj:”, „Brak zdjęcia”, „nietypowa cena, sprawdź opis”, „nowa oferta”, „{X}% poniżej mediany miasta”, „Winda”, „Balkon”, „Garaż”, „Piwnica”; risk pills use the labels of `RISK_KIND_LABELS` (§7.2); the approximate-location marker „≈” has `aria-label` „Lokalizacja przybliżona” and `title` „Ogłaszający nie podał dokładnej lokalizacji.” |
+| filter field errors (under the field, red) | „Wpisz liczbę.”, „Wpisz liczbę całkowitą.”, „Wartość nie może być ujemna.”, „Wartość „od” nie może być większa niż „do”.” |
 | details | „Parametry”, „Opis”, „Lokalizacja”, „Lokalizacja przybliżona”, „Mapa lokalizacji”, „Powiększ zdjęcie {i} z {n}”, „+{n} zdjęć”, „Najważniejsze parametry”, „Forma własności”, „Lokalizacja”, „Powiększ mapę”, „Zamknij”, „{tytuł}, zdjęcie {i} z {n}”, „brak danych”, „brak informacji”, „tak”, „Źródło: otodom.pl · pobrano {data} · dodano {data}”, „‹ Wszystkie oferty”; stale-data note from `scrapedAt`: „Dane z {data}. Aktualną ofertę sprawdź na otodom.” |
 | summary prefix after chat | „Zrozumiałem: ” |
 | loading / empty / errors | „Ładowanie…”; zero results: „Brak ofert dla tych kryteriów.”, „Wyniki pojawią się, jeśli zmienisz jedno kryterium:”, „Żadna pojedyncza zmiana nie wystarczy.”; „Nie udało się pobrać ofert.”; „Nieprawidłowe parametry wyszukiwania.” + link „Wyczyść wyszukiwanie”; „Nie udało się wczytać filtrów.”; „Nie znaleziono oferty.” + link „Wróć do listy ofert” |
@@ -369,7 +373,7 @@ Flags (design.md §3.6, only those visible in the details): `price_outlier` „N
 
 **Blockers** (`blockers[].label`): „bez limitu ceny (do {kwota} zł)”, „bez warunku: {etykieta chipa}”.
 
-**Warnings** (`warnings[].message`): „{Pole} {wartość} pominięte: poza zakresem {min}–{max}.”; „Nieznana dzielnica pominięta.”; „Przybliżony metraż zastąpiony zakresem.”
+**Warnings** (`warnings[].message`): „Nieznana dzielnica pominięta.”; „Przybliżony metraż zastąpiony zakresem.”
 
 **Ask the seller** (`askSeller[]`, design.md §6.2, same order): „Wysokość czynszu i co obejmuje” · „Rok budowy budynku” · „Piętro mieszkania” · „Liczbę pięter w budynku” · „Formę własności i księgę wieczystą” · „Czy jest miejsce postojowe i czy jest w cenie” · „Czy miejsce postojowe jest wliczone w cenę mieszkania”.
 

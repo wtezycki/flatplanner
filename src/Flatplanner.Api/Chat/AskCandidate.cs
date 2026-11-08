@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Flatplanner.Core.Data;
 using Flatplanner.Core.Text;
 
@@ -14,10 +13,7 @@ public sealed record AskCandidate(
     public static AskCandidate From(Listing listing) => new(
         listing,
         ListingFields.Of(listing),
-        Parse<NearbyPlace>(listing.NearbyJson),
-        Parse<ListingRisk>(listing.RisksJson),
+        DossierJson.ParseList<NearbyPlace>(listing.NearbyJson),
+        DossierJson.ParseList<ListingRisk>(listing.RisksJson),
         AnchorText.Normalize(listing.DescriptionText));
-
-    private static IReadOnlyList<T> Parse<T>(string? json) =>
-        json is null ? [] : JsonSerializer.Deserialize<T[]>(json, DossierJson.Options) ?? [];
 }

@@ -85,6 +85,10 @@ button, input, select { font: inherit; color: inherit; }
 .notice--info { background: var(--teal-50); border-color: var(--teal-700); color: var(--color-text); }
 
 .badge { display: inline-flex; align-items: center; height: 22px; padding: 0 var(--space-2); border-radius: var(--radius-pill); background: var(--color-surface-strong); color: var(--color-text-secondary); font-size: var(--fs-xs); font-weight: var(--fw-semibold); }
+.badge { gap: var(--space-1); }
+.badge .icon { width: 14px; height: 14px; }
+.badge--danger { background: var(--color-error-bg); color: var(--color-error-text); }
+.badge--positive { background: var(--teal-50); color: var(--teal-900); }
 .badge--warning { background: var(--color-warning-bg); color: var(--color-warning-text); }
 
 .search { display: flex; flex: 1; gap: var(--space-2); }
@@ -104,6 +108,8 @@ button, input, select { font: inherit; color: inherit; }
 .filters__pills { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .filters__pair { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
 .filters__pair .field { width: 100%; min-width: 0; }
+.filters__error { margin-top: var(--space-1); font-size: var(--fs-xs); color: var(--color-error-text); }
+.field[aria-invalid="true"] { border-color: var(--color-error-text); background: var(--color-error-bg); }
 .filters__hint { margin-top: var(--space-1); font-size: var(--fs-xs); color: var(--color-text-secondary); }
 .filters__districts { display: flex; flex-direction: column; gap: var(--space-2); max-height: 240px; overflow-y: auto; }
 .filters__city-title { margin-bottom: var(--space-1); font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--color-text-secondary); }
@@ -125,13 +131,21 @@ button, input, select { font: inherit; color: inherit; }
 .card__body { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; padding: var(--space-1) var(--space-2) var(--space-1) 0; }
 .card__price-line { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--space-3); }
 .card__price { font-size: 26px; font-weight: var(--fw-bold); }
-.card__parameters { font-size: var(--fs-lg); }
+.card__parameters { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); font-size: var(--fs-md); }
+.card__fact { display: inline-flex; align-items: center; gap: var(--space-1); }
+.card__fact .icon { color: var(--teal-700); }
+.card__location { display: flex; align-items: center; gap: var(--space-1); }
+.card__location .icon { width: 16px; height: 16px; }
+.card__approximate { cursor: help; }
 .card__price-per-m2, .card__location { font-size: var(--fs-sm); color: var(--color-text-secondary); }
 .card__title { display: -webkit-box; overflow: hidden; margin-top: var(--space-2); font-size: var(--fs-md); -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .card__link, .card__link:hover { color: var(--color-text); text-decoration: none; }
 .card__link::after { content: ""; position: absolute; inset: 0; }
 .card__link:focus-visible { box-shadow: none; }
-.card__badges { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: auto; }
+.card__badges { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.card__badges--signals { margin-top: var(--space-2); }
+.card__badges:last-child { margin-top: auto; }
+.gallery__link { display: block; height: 100%; }
 
 .gallery { position: relative; z-index: 1; align-self: start; aspect-ratio: 4 / 3; overflow: hidden; border-radius: 12px; background: var(--color-surface-strong); }
 .gallery--missing { display: flex; align-items: center; justify-content: center; color: var(--color-text-secondary); font-size: var(--fs-sm); }

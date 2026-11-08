@@ -114,7 +114,7 @@ public sealed class NearbyCommand(FlatplannerDbContext db, ILogger<NearbyCommand
     {
         var places = string.Concat(PlaceTags.Select(tag => $"nwr{Filter(tag)};"));
         var lines = string.Concat(LineTags.Select(tag => $"way{Filter(tag)};"));
-        var query = $"[out:json][timeout:180][bbox:{boundingBox}];({places});out center bb tags;({lines});out geom tags;";
+        var query = $"[out:json][timeout:180][bbox:{boundingBox}];({places});out geom;({lines});out geom tags;";
 
         using var document = await FetchJsonAsync(query, cancellationToken);
         return document.RootElement.GetProperty("elements").EnumerateArray()
@@ -200,19 +200,9 @@ public sealed class NearbyCommand(FlatplannerDbContext db, ILogger<NearbyCommand
         var name = tags.TryGetProperty("name", out var nameValue) ? nameValue.GetString() : null;
         var extra = extras.Count == 0 ? null : string.Join(';', extras);
 
-        if (element.TryGetProperty("geometry", out var geometry))
+        if (Geometry(element) is { Length: > 0 } lines)
         {
-            var line = geometry.EnumerateArray()
-                .Select(node => (node.GetProperty("lat").GetDouble(), node.GetProperty("lon").GetDouble()))
-                .ToArray();
-            return new OsmPlace(name, tag, extra, 0, 0, 0, 0, line);
-        }
-
-        if (element.TryGetProperty("bounds", out var bounds))
-        {
-            return new OsmPlace(name, tag, extra,
-                bounds.GetProperty("minlat").GetDouble(), bounds.GetProperty("minlon").GetDouble(),
-                bounds.GetProperty("maxlat").GetDouble(), bounds.GetProperty("maxlon").GetDouble());
+            return new OsmPlace(name, tag, extra, lines);
         }
 
         var point = element.TryGetProperty("center", out var center) ? center : element;
@@ -221,7 +211,26 @@ public sealed class NearbyCommand(FlatplannerDbContext db, ILogger<NearbyCommand
             return null;
         }
 
-        return new OsmPlace(name, tag, extra, lat.GetDouble(), lon.GetDouble(), lat.GetDouble(), lon.GetDouble());
+        return new OsmPlace(name, tag, extra, [[(lat.GetDouble(), lon.GetDouble())]]);
+    }
+
+    // A way carries its geometry, a relation the geometry of every member way.
+    private static (double Lat, double Lng)[][] Geometry(JsonElement element)
+    {
+        IEnumerable<JsonElement> geometries = [];
+        if (element.TryGetProperty("geometry", out var way))
+        {
+            geometries = [way];
+        }
+        else if (element.TryGetProperty("members", out var members))
+        {
+            geometries = members.EnumerateArray().Where(m => m.TryGetProperty("geometry", out _)).Select(m => m.GetProperty("geometry"));
+        }
+
+        return geometries
+            .Select(g => g.EnumerateArray().Select(node => (node.GetProperty("lat").GetDouble(), node.GetProperty("lon").GetDouble())).ToArray())
+            .Where(line => line.Length > 0)
+            .ToArray();
     }
 
     private static bool IsLine(string tag) => LineTags.Any(line => line.Values.Any(value => tag == $"{line.Key}={value}"));
@@ -239,15 +248,9 @@ public sealed class NearbyCommand(FlatplannerDbContext db, ILogger<NearbyCommand
         return null;
     }
 
-    // Areas are measured to the nearest point of their bounding box, so a large forest counts from its edge;
-    // roads and tracks to their geometry, because a long road's bounding box covers half a district.
-    private sealed record OsmPlace(
-        string? Name, string Tag, string? Extra, double MinLat, double MinLng, double MaxLat, double MaxLng,
-        (double Lat, double Lng)[]? Line = null)
+    // Measured to the geometry, not to the bounding box: the box of a long beach or a large park covers listings far from it (design 16.1).
+    private sealed record OsmPlace(string? Name, string Tag, string? Extra, (double Lat, double Lng)[][] Lines)
     {
-        public double DistanceM(double lat, double lng) =>
-            Line is { Length: > 1 }
-                ? Line.Zip(Line.Skip(1)).Min(segment => Haversine.DistanceToSegmentM(lat, lng, segment.First, segment.Second))
-                : Haversine.DistanceM(lat, lng, Math.Clamp(lat, MinLat, MaxLat), Math.Clamp(lng, MinLng, MaxLng));
+        public double DistanceM(double lat, double lng) => Lines.Min(line => Haversine.DistanceToPolylineM(lat, lng, line));
     }
 }

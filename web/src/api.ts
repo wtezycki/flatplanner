@@ -340,3 +340,11 @@ export const metaQuery = queryOptions({
   queryKey: ['meta'],
   queryFn: ({ signal }) => getJson<MetaResponse>('/api/meta', signal),
 })
+
+// gcTime stays at the default 5 minutes, like the cached answers: a left conversation and its answers expire together.
+export const threadQuery = queryOptions({
+  queryKey: ['thread'],
+  queryFn: (): string[] => [],
+  initialData: [] as string[],
+  staleTime: Infinity,
+})

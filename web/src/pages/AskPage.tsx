@@ -1,7 +1,7 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router'
-import { metaQuery } from '../api.ts'
+import { metaQuery, threadQuery } from '../api.ts'
 import ChatTurn from '../components/ChatTurn.tsx'
 import Composer from '../components/Composer.tsx'
 import Icon from '../components/Icon.tsx'
@@ -9,13 +9,10 @@ import ListingDetailPage from './ListingDetailPage.tsx'
 
 export default function AskPage() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const queryClient = useQueryClient()
   const meta = useQuery(metaQuery).data
+  const turns = useQuery(threadQuery).data
   const maxTurns = meta?.chatMaxTurns
-  const turns = searchParams
-    .getAll('q')
-    .map((turn) => turn.trim())
-    .filter(Boolean)
-    .slice(0, maxTurns)
   const listingId = searchParams.get('listing')
   const page = Number.parseInt(searchParams.get('page') ?? '1', 10) || 1
   const maxLength = meta?.chatMaxLength
@@ -24,19 +21,20 @@ export default function AskPage() {
   const previousPage = useRef(page)
   const limitReached = maxTurns !== undefined && turns.length >= maxTurns
 
-  const ask = (text: string) => {
-    const next = new URLSearchParams(searchParams)
-    next.delete('listing')
-    next.delete('page')
-    next.append('q', text)
-    setSearchParams(next)
-  }
-
   const without = (...keys: string[]) => {
     const next = new URLSearchParams(searchParams)
     keys.forEach((key) => next.delete(key))
     return next
   }
+
+  const setTurns = (next: string[]) => {
+    queryClient.setQueryData(threadQuery.queryKey, next)
+    if (searchParams.has('page')) {
+      setSearchParams(without('page'))
+    }
+  }
+
+  const ask = (text: string) => setTurns([...turns, text])
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -87,10 +85,6 @@ export default function AskPage() {
     )
   }
 
-  if (maxTurns === undefined) {
-    return null
-  }
-
   return (
     <div className="chat">
       <div className="container chat__container" ref={thread}>
@@ -106,7 +100,7 @@ export default function AskPage() {
       </div>
       <div className="dock">
         <div className="container dock__inner">
-          <button className="dock__new" type="button" aria-label="Nowa rozmowa" title="Nowa rozmowa" onClick={() => setSearchParams(without('q', 'page'))}>
+          <button className="dock__new" type="button" aria-label="Nowa rozmowa" title="Nowa rozmowa" onClick={() => setTurns([])}>
             <Icon name="newChat" />
           </button>
           {limitReached ? (

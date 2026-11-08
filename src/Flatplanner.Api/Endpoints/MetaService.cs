@@ -53,7 +53,7 @@ public sealed class MetaService(FlatplannerDbContext db, IOptions<FlatplannerOpt
                 EnumLabels.ProvenanceOptions),
             settings.ChatMode,
             settings.ChatMaxLength,
-            SearchDefinitions.MaxHistory + 1,
+            SearchDefinitions.MaxTurns,
             dataAsOf is { } value ? DateTime.SpecifyKind(value, DateTimeKind.Utc) : null);
     }
 }

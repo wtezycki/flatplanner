@@ -1391,7 +1391,7 @@ Items are carried out in sequence; each ends with a verifiable definition of don
 | 14 | “Ask the seller about” (W7) | `askSeller` (6.2) | Api, web | a listing without rent (czynsz, maintenance fee) shows a question about the maintenance fee |
 | 15 | Data to production + smoke | 11.4, 11.5; `CHAT_MODE=llm` | — | number of listings in prod = local; smoke A, B, Kraków, 429 pass |
 | 16 | 1-pager | final edit of the `docs/one-pager.md` draft from #3, with the `eval-intents` result | — | the 7 points required by the task description on 1 page |
-| 17 | README | how to run; a 2-minute demo script with deep links (scenario A, a listing with a real price, a listing with a quality flag, the scenario B sentence and Kraków in the chat) and a note that the task's Kraków example runs on Gdańsk; reason for choosing C#; ranking weights; failure mode “ładne” (“nice”); a data note (demo use only, link to the source, contact data removed, not indexed) | — | a fresh clone runs according to the README; every demo link opens the described state |
+| 17 | README | what the product is and why, links to both one-pagers and the docs; how to run; a 2-minute demo script with deep links (scenario A, listings 70, 97 and 166 of 16.6, the scenario B sentence and Kraków in the chat) and a note that the task's Kraków example runs on Gdańsk; reason for choosing C#; ranking (16.9); failure mode (the one-pager's); a data note (demo use only, link to the source, contact data removed, not indexed). After the pivot (16.5, 16.9) the real price, quality flags and the “nice”/“cheap” weights are gone | — | a fresh clone runs according to the README; every demo link opens the described state |
 
 ---
 
